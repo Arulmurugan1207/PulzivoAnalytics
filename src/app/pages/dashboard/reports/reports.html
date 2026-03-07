@@ -1,0 +1,358 @@
+<div class="reports-page">
+  <p-toast></p-toast>
+
+  <!-- Header Section -->
+  <div class="reports-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="pi pi-chart-bar"></i>
+      </div>
+      <div>
+        <h1>Reports</h1>
+        <p>Generate comprehensive analytics reports</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Date Range Picker -->
+      <button 
+        pButton 
+        [label]="dateRangeLabel" 
+        icon="pi pi-calendar"
+        (click)="datePopover.toggle($event)"
+        class="date-btn"></button>
+
+      <p-popover #datePopover>
+        <div class="date-picker-popover">
+          <div class="presets">
+            @for (preset of presets; track preset.value) {
+              <button 
+                class="preset-btn"
+                [class.active]="activePreset === preset.label"
+                (click)="selectPreset(preset)">
+                {{ preset.label }}
+              </button>
+            }
+          </div>
+          
+          @if (activePreset === 'Custom Range') {
+            <div class="custom-range">
+              <p-datepicker 
+                [(ngModel)]="tempDateRange" 
+                selectionMode="range" 
+                [inline]="true"
+                dateFormat="M dd, yy">
+              </p-datepicker>
+              <button 
+                pButton 
+                label="Apply" 
+                (click)="applyCustomDateRange()"
+                class="apply-btn"></button>
+            </div>
+          }
+        </div>
+      </p-popover>
+
+      <!-- API Key Selector -->
+      @if (availableApiKeys.length > 0) {
+        <p-select
+          [(ngModel)]="selectedApiKey"
+          [options]="availableApiKeys"
+          optionLabel="name"
+          optionValue="apiKey"
+          placeholder="Select API Key"
+          (onChange)="onApiKeyChange()"
+          styleClass="api-key-select">
+        </p-select>
+      }
+
+      <!-- Export Dropdown -->
+      <button 
+        pButton 
+        label="Export" 
+        icon="pi pi-download"
+        [loading]="exporting()"
+        (click)="exportReport('csv')"
+        class="export-btn"></button>
+
+      <!-- Save Report -->
+      <button 
+        pButton 
+        icon="pi pi-bookmark" 
+        (click)="saveReportPopover.toggle($event)"
+        [outlined]="true"
+        pTooltip="Save Report"
+        tooltipPosition="bottom"></button>
+
+      <p-popover #saveReportPopover>
+        <div class="save-report-popover">
+          <h4>Save Report</h4>
+          <input 
+            pInputText 
+            [(ngModel)]="newReportName" 
+            placeholder="Report name"
+            class="report-name-input" />
+          <button 
+            pButton 
+            label="Save" 
+            icon="pi pi-check"
+            (click)="saveReport()"
+            class="save-btn"></button>
+        </div>
+      </p-popover>
+    </div>
+  </div>
+
+  <!-- View Tabs -->
+  <div class="view-tabs">
+    <button 
+      class="tab-btn"
+      [class.active]="activeView() === 'templates'"
+      (click)="activeView.set('templates')">
+      <i class="pi pi-file"></i>
+      <span>Report Templates</span>
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeView() === 'custom'"
+      (click)="activeView.set('custom')">
+      <i class="pi pi-wrench"></i>
+      <span>Custom Builder</span>
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeView() === 'saved'"
+      (click)="activeView.set('saved')">
+      <i class="pi pi-bookmark"></i>
+      <span>Saved Reports ({{ savedReports.length }})</span>
+    </button>
+  </div>
+
+  <!-- Templates View -->
+  @if (activeView() === 'templates') {
+    <div class="templates-view">
+      <!-- Template Selection -->
+      <div class="template-grid">
+        @for (template of templates; track template.id) {
+          <div 
+            class="template-card"
+            [class.selected]="selectedTemplate() === template.id"
+            (click)="selectTemplate(template.id)">
+            <div class="template-icon">
+              <i class="pi" [ngClass]="template.icon"></i>
+            </div>
+            <h3>{{ template.name }}</h3>
+            <p>{{ template.description }}</p>
+            @if (selectedTemplate() === template.id) {
+              <div class="selected-badge">
+                <i class="pi pi-check"></i>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Report Content -->
+      @if (loading()) {
+        <div class="loading-state">
+          <i class="pi pi-spin pi-spinner"></i>
+          <p>Generating report...</p>
+        </div>
+      } @else {
+        <div class="report-content">
+          <!-- Metrics Cards -->
+          <div class="metrics-grid">
+            @for (metric of reportMetrics; track metric.label) {
+              <div class="metric-card">
+                <div class="metric-icon" [style.background]="metric.color">
+                  <i class="pi" [ngClass]="metric.icon"></i>
+                </div>
+                <div class="metric-details">
+                  <span class="metric-label">{{ metric.label }}</span>
+                  <span class="metric-value">{{ metric.value }}</span>
+                  @if (metric.trend !== undefined) {
+                    <span class="metric-trend" [class.positive]="metric.trend > 0" [class.negative]="metric.trend < 0">
+                      <i class="pi" [ngClass]="metric.trend > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
+                      {{ Math.abs(metric.trend) }}%
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Charts Section -->
+          <div class="charts-section">
+            <!-- Page Views Trend -->
+            @if (chartData.pageViews) {
+              <div class="chart-card">
+                <h3>Page Views Trend</h3>
+                <div class="chart-container">
+                  <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+                </div>
+                @if (chartData.pageViews.labels && chartData.pageViews.labels.length === 0) {
+                  <p class="no-data-message">
+                    <i class="pi pi-info-circle"></i>
+                    No page view data available for the selected date range. Make sure your tracking script is installed.
+                  </p>
+                }
+              </div>
+            }
+
+            <!-- Device Breakdown -->
+            @if (chartData.devices) {
+              <div class="chart-card">
+                <h3>Device Breakdown</h3>
+                <div class="chart-container">
+                  <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Top Pages Table -->
+          @if (tableData.length > 0) {
+            <div class="table-card">
+              <h3>Top Pages</h3>
+              <p-table [value]="tableData" [paginator]="true" [rows]="10">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Page URL</th>
+                    <th>Views</th>
+                    <th>Unique Visitors</th>
+                    <th>Avg. Time</th>
+                    <th>Bounce Rate</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-page>
+                  <tr>
+                    <td>{{ page.url }}</td>
+                    <td>{{ page.views }}</td>
+                    <td>{{ page.uniqueVisitors }}</td>
+                    <td>{{ page.avgTime }}</td>
+                    <td>{{ page.bounceRate }}%</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Custom Builder View -->
+  @if (activeView() === 'custom') {
+    <div class="custom-builder-view">
+      <div class="builder-layout">
+        <!-- Configuration Panel -->
+        <div class="builder-config">
+          <div class="config-section">
+            <h3>Select Metrics</h3>
+            <div class="checkbox-list">
+              @for (metric of availableMetrics; track metric.value) {
+                <div class="checkbox-item">
+                  <p-checkbox 
+                    [(ngModel)]="metric.checked" 
+                    [binary]="true"
+                    [inputId]="metric.value">
+                  </p-checkbox>
+                  <label [for]="metric.value">{{ metric.label }}</label>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="config-section">
+            <h3>Select Charts</h3>
+            <div class="checkbox-list">
+              @for (chart of availableCharts; track chart.value) {
+                <div class="checkbox-item">
+                  <p-checkbox 
+                    [(ngModel)]="chart.checked" 
+                    [binary]="true"
+                    [inputId]="chart.value">
+                  </p-checkbox>
+                  <label [for]="chart.value">{{ chart.label }}</label>
+                </div>
+              }
+            </div>
+          </div>
+
+          <button 
+            pButton 
+            label="Generate Custom Report" 
+            icon="pi pi-play"
+            (click)="generateReport()"
+            class="generate-btn"></button>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="builder-preview">
+          <h3>Report Preview</h3>
+          <p class="preview-help">Configure metrics and charts on the left, then click generate to see your custom report.</p>
+          
+          @if (!loading()) {
+            <div class="preview-metrics">
+              @for (metric of availableMetrics; track metric.value) {
+                @if (metric.checked) {
+                  <div class="preview-metric-card">
+                    <i class="pi pi-chart-line"></i>
+                    <span>{{ metric.label }}</span>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Saved Reports View -->
+  @if (activeView() === 'saved') {
+    <div class="saved-reports-view">
+      @if (savedReports.length === 0) {
+        <div class="empty-state">
+          <i class="pi pi-bookmark"></i>
+          <h3>No Saved Reports</h3>
+          <p>Save your favorite report configurations for quick access later.</p>
+        </div>
+      } @else {
+        <div class="saved-reports-grid">
+          @for (report of savedReports; track report.id) {
+            <div class="saved-report-card">
+              <div class="report-header">
+                <h4>{{ report.name }}</h4>
+                <button 
+                  pButton 
+                  icon="pi pi-trash" 
+                  (click)="deleteSavedReport(report.id)"
+                  [text]="true"
+                  severity="danger"
+                  class="delete-btn"></button>
+              </div>
+              <p class="report-template">
+                <i class="pi pi-file"></i>
+                {{ report.template }}
+              </p>
+              <p class="report-date">
+                <i class="pi pi-calendar"></i>
+                {{ formatDate(report.dateRange.startDate) }} - {{ formatDate(report.dateRange.endDate) }}
+              </p>
+              <p class="report-created">
+                Created: {{ report.createdAt | date:'short' }}
+              </p>
+              <button 
+                pButton 
+                label="Load Report" 
+                icon="pi pi-eye"
+                (click)="loadSavedReport(report)"
+                class="load-btn"></button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

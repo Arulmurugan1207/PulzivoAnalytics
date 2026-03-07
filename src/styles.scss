@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bright-blue: #2a6df6;
+  --electric-violet: #6f41ff;
+  --french-violet: #5f2bff;
+  --vivid-pink: #ff4da6;
+  --hot-red: #ff3b2f;
+  --orange-red: #ff6a3d;
+
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --muted: #6b7280;
+  --text: #111827;
+
+  --primary-gradient: linear-gradient(90deg, var(--bright-blue), var(--electric-violet));
+  --hero-gradient: linear-gradient(90deg, var(--orange-red), var(--vivid-pink), var(--electric-violet));
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+}
+html {
+  scroll-behavior: smooth;
+}
+html,body { height:100%; }
+body {
+  margin: 0;
+  padding-top: 70px;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.site-header {
+  background: transparent;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid rgba(15,23,42,0.04);
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+}
+.logo {
+  font-weight: 700;
+  color: var(--bright-blue);
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+.site-header nav a {
+  margin-left: 1rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+.site-header nav a:hover { color: var(--text); }
+
+.hero {
+  padding: 5.5rem 0;
+  text-align: center;
+  background: var(--hero-gradient);
+  color: #fff;
+}
+.hero .container { max-width: 980px; }
+.hero h1 {
+  font-size: 2.75rem;
+  line-height: 1.05;
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+}
+.hero p { margin: 0 0 1.25rem 0; color: rgba(255,255,255,0.9); font-size: 1.125rem; }
+
+.cta {
+  display: inline-block;
+  padding: 0.7rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary-gradient);
+  box-shadow: 0 8px 28px rgba(46, 46, 66, 0.12);
+  text-decoration: none;
+  margin-right: 0.5rem;
+}
+.cta.secondary {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+}
+
+section { padding: 3rem 0; }
+.features ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.features li { background: #fff; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
+
+.site-footer { border-top: 1px solid rgba(15,23,42,0.04); background: transparent; }
+.site-footer .container { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding-block: 1rem; color: var(--muted); }
+.site-footer nav a { color: var(--muted); margin-left: 1rem; text-decoration: none; }
+
+/* Utility */
+.text-center { text-align: center; }
+
+/* Make PrimeNG buttons blend with theme */
+.p-button.p-button-primary { background: linear-gradient(90deg, var(--bright-blue), var(--electric-violet)); border: none; color: #fff; }
+.p-button { border-radius: 9999px; font-weight: 700; }
+ .p-password:has(.p-password-toggle-mask-icon) .p-password-input {
+    width: 100%;
+  }

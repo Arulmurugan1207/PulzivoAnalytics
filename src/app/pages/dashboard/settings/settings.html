@@ -1,0 +1,373 @@
+<div class="settings-container">
+  <!-- Custom Tab Navigation -->
+  <div class="settings-tabs-nav">
+    <button pButton 
+      type="button"
+      [label]="'Profile'" 
+      icon="pi pi-user"
+      [class]="'tab-btn ' + (activeTab() === 'profile' ? 'active' : '')"
+      (click)="setActiveTab('profile')">
+    </button>
+    <button pButton 
+      type="button"
+      [label]="'Security'" 
+      icon="pi pi-shield"
+      [class]="'tab-btn ' + (activeTab() === 'security' ? 'active' : '')"
+      (click)="setActiveTab('security')">
+    </button>
+
+    <button pButton 
+      type="button"
+      [label]="'Privacy'" 
+      icon="pi pi-eye-slash"
+      [class]="'tab-btn ' + (activeTab() === 'privacy' ? 'active' : '')"
+      (click)="setActiveTab('privacy')">
+    </button>
+    
+    <button pButton 
+      type="button"
+      [label]="'Analytics'" 
+      icon="pi pi-chart-line"
+      [class]="'tab-btn ' + (activeTab() === 'analytics' ? 'active' : '')"
+      (click)="setActiveTab('analytics')">
+    </button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="settings-tab-content">
+    <!-- Profile Tab -->
+    @if (activeTab() === 'profile') {
+      <div class="profile-section">
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="profile-header">
+              <div class="avatar-section">
+                @if (user()?.avatar) {
+                  <img [src]="user()!.avatar" alt="Profile" class="user-avatar" />
+                } @else {
+                  <p-avatar 
+                    [label]="getUserInitials()" 
+                    size="xlarge" 
+                    shape="circle"
+                    styleClass="user-avatar-placeholder">
+                  </p-avatar>
+                }
+              </div>
+              <div class="profile-info">
+                <h2>{{ user()?.firstname }} {{ user()?.lastname }}</h2>
+                <p class="user-email">{{ user()?.email }}</p>
+                <p-tag 
+                  [value]="user()?.role?.toUpperCase() || 'USER'" 
+                  [severity]="user()?.role === 'owner' ? 'success' : 'info'" 
+                  styleClass="role-tag">
+                </p-tag>
+              </div>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="content">
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="firstname">First Name</label>
+                  <input pInputText id="firstname" formControlName="firstname" />
+                </div>
+                
+                <div class="form-group">
+                  <label for="lastname">Last Name</label>
+                  <input pInputText id="lastname" formControlName="lastname" />
+                </div>
+                
+                <div class="form-group full-width">
+                  <label for="email">Email Address</label>
+                  <input pInputText id="email" formControlName="email" readonly />
+                </div>
+
+                <div class="form-group full-width">
+                  <label for="bio">Bio</label>
+                  <textarea pTextarea id="bio" formControlName="bio" rows="3" 
+                    placeholder="Tell us about yourself..."></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button pButton type="submit" label="Save Changes" 
+                  [loading]="loading()" [disabled]="!profileForm.valid">
+                </button>
+              </div>
+            </form>
+          </ng-template>
+        </p-card>
+      </div>
+    }
+
+    <!-- Security Tab -->
+    @if (activeTab() === 'security') {
+      <div class="security-section">
+        <!-- Password & Authentication -->
+        <p-card>
+          <!-- <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3>Password & Authentication</h3>
+            </div>
+          </ng-template> -->
+
+          <ng-template pTemplate="content">
+            <div class="security-items">
+              <div class="security-item">
+                <div class="security-info">
+                  <h4>Password</h4>
+                  <p>Last changed {{ formatDate(user()?.updatedAt || user()?.createdAt || '') }}</p>
+                </div>
+                <div class="security-actions">
+                  <button pButton label="Change Password" class="p-button-outlined" 
+                    (click)="showChangePasswordDialog.set(true)">
+                  </button>
+                </div>
+              </div>
+
+              <p-divider></p-divider>
+
+              <div class="security-item">
+                <div class="security-info">
+                  <h4>Two-Factor Authentication</h4>
+                  <p>{{ twoFactorEnabled() ? 'Enabled' : 'Add an extra layer of security' }}</p>
+                </div>
+                <div class="security-actions">
+                  @if (!twoFactorEnabled()) {
+                    <button pButton label="Coming Soon" class="p-button-outlined" 
+                      [disabled]="true">
+                    </button>
+                  } @else {
+                    <p-tag value="Enabled" severity="success"></p-tag>
+                  }
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </p-card>
+
+
+      </div>
+    }
+
+
+
+    <!-- Privacy Tab -->
+    @if (activeTab() === 'privacy') {
+      <div class="privacy-section">
+        <p-card>
+          <ng-template pTemplate="content">
+            <div class="data-controls">
+              <div class="data-action">
+                <div class="action-info">
+                  <h4>Export Your Data</h4>
+                  <p>Download a copy of all your data in JSON format</p>
+                </div>
+                <button pButton label="Export Data" icon="pi pi-download" 
+                  class="p-button-outlined" (click)="exportData()">
+                </button>
+              </div>
+
+              <p-divider></p-divider>
+
+              <div class="data-action danger">
+                <div class="action-info">
+                  <h4>Delete Account</h4>
+                  <p>Permanently delete your account and all associated data</p>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </p-card>
+      </div>
+    }
+
+    <!-- Analytics Tab -->
+    @if (activeTab() === 'analytics') {
+      <div class="analytics-section">
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="card-header">
+              <h3>Analytics Tracking Preferences</h3>
+              <p class="card-subtitle">Control what data is tracked on your websites. Available features depend on your plan.</p>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="content">
+            <div class="current-plan-info">
+              <div class="plan-badge">
+                <p-tag [value]="userPlan.toUpperCase()" 
+                  [severity]="userPlan === 'enterprise' ? 'success' : userPlan === 'pro' ? 'info' : 'secondary'">
+                </p-tag>
+                <span>Current Plan</span>
+              </div>
+              <p class="plan-description">
+                @switch (userPlan) {
+                  @case ('free') { 
+                    Basic tracking with {{ availableFeatures.length }} features. 
+                    <a routerLink="/dashboard/plans">Upgrade</a> for more advanced analytics.
+                  }
+                  @case ('pro') { 
+                    Professional analytics with {{ availableFeatures.length }} features enabled.
+                  }
+                  @case ('enterprise') { 
+                    Full enterprise analytics suite with all {{ availableFeatures.length }} features.
+                  }
+                }
+              </p>
+            </div>
+
+            <p-divider></p-divider>
+
+            <form [formGroup]="analyticsForm" (ngSubmit)="saveAnalyticsPreferences()">
+              <div class="analytics-features">
+                <h4>Tracking Features</h4>
+                <p class="features-description">
+                  Enable or disable specific tracking features. All changes are applied immediately to your analytics SDK.
+                </p>
+
+                <div class="features-grid">
+                  @for (feature of availableFeatures; track feature) {
+                    <div class="feature-item">
+                      <div class="feature-checkbox">
+                        <p-checkbox 
+                          [formControlName]="feature"
+                          [inputId]="feature"
+                          [binary]="true">
+                        </p-checkbox>
+                      </div>
+                      <div class="feature-info">
+                        <label [for]="feature" class="feature-label">
+                          {{ featureDescriptions[feature]?.label || feature }}
+                        </label>
+                        <p class="feature-description">
+                          {{ featureDescriptions[feature]?.description || 'No description available' }}
+                        </p>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                @if (availableFeatures.length === 0) {
+                  <p-message severity="info" text="No tracking features available for your plan."></p-message>
+                }
+              </div>
+
+              <div class="form-actions">
+                <button pButton type="submit" label="Save Preferences" 
+                  [loading]="loading()" 
+                  icon="pi pi-check">
+                </button>
+                <button pButton type="button" label="Reset to Defaults" 
+                  class="p-button-outlined"
+                  (click)="resetToDefaults()">
+                </button>
+              </div>
+            </form>
+          </ng-template>
+        </p-card>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Dialogs -->
+<!-- Change Password Dialog -->
+<p-dialog 
+  header="Change Password" 
+  [modal]="true" 
+  [visible]="showChangePasswordDialog()"
+  (visibleChange)="showChangePasswordDialog.set($event)"
+  styleClass="change-password-dialog">
+  
+  <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+    <div class="form-group">
+      <label for="currentPassword">Current Password</label>
+      <p-password 
+        id="currentPassword" 
+        formControlName="currentPassword"
+        placeholder="Enter current password"
+        [feedback]="false"
+        [toggleMask]="true">
+      </p-password>
+    </div>
+    
+    <div class="form-group">
+      <label for="newPassword">New Password</label>
+      <p-password 
+        id="newPassword" 
+        formControlName="newPassword"
+        placeholder="Enter new password"
+        [feedback]="false"
+        [toggleMask]="true">
+      </p-password>
+    </div>
+    
+    <div class="form-group">
+      <label for="confirmPassword">Confirm New Password</label>
+      <p-password 
+        id="confirmPassword" 
+        formControlName="confirmPassword"
+        placeholder="Confirm new password"
+        [feedback]="false"
+        [toggleMask]="true">
+      </p-password>
+    </div>
+
+    @if (passwordForm.get('confirmPassword')?.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched) {
+      <p-message severity="error" text="Passwords do not match"></p-message>
+    }
+    
+    <div class="dialog-buttons">
+      <button pButton type="button" label="Cancel" class="p-button-outlined" 
+        (click)="showChangePasswordDialog.set(false)">
+      </button>
+      <button pButton type="submit" label="Change Password" 
+        [loading]="loading()" [disabled]="!passwordForm.valid">
+      </button>
+    </div>
+  </form>
+</p-dialog>
+
+
+
+<!-- Delete Account Confirmation Dialog -->
+<p-dialog 
+  header="Delete Account" 
+  [modal]="true" 
+  [visible]="showDeleteAccountDialog()"
+  (visibleChange)="showDeleteAccountDialog.set($event)"
+  styleClass="delete-account-dialog">
+  
+  <div class="delete-account-content">
+    <div class="warning-icon">
+      <i class="pi pi-exclamation-triangle"></i>
+    </div>
+    
+    <div class="warning-content">
+      <h3>Are you absolutely sure?</h3>
+      <p>This action cannot be undone. This will permanently delete your account, 
+         all your data, API tokens, and remove all analytics data associated with your account.</p>
+      
+      <p><strong>Please type "DELETE" to confirm:</strong></p>
+      <input pInputText 
+        [(ngModel)]="deleteConfirmation"
+        placeholder="Type DELETE to confirm"
+        class="delete-confirmation-input">
+    </div>
+  </div>
+  
+  <div class="dialog-buttons">
+    <button pButton type="button" label="Cancel" class="p-button-outlined" 
+      (click)="showDeleteAccountDialog.set(false)">
+    </button>
+    <button pButton type="button" label="I understand, delete my account" 
+      class="p-button-danger" 
+      [loading]="loading()" 
+      [disabled]="deleteConfirmation !== 'DELETE'"
+      (click)="deleteAccount()">
+    </button>
+  </div>
+</p-dialog>
+<p-toast></p-toast>

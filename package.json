@@ -1,0 +1,50 @@
+{
+  "name": "simpletrack-prime-ng",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build && npm run minify-analytics",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "minify:analytics": "terser public/stk-analytics.js -o public/stk-analytics.min.js --compress --mangle"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "dependencies": {
+    "@angular/animations": "^21.1.0",
+    "@angular/common": "^21.1.0",
+    "@angular/compiler": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/forms": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0",
+    "@angular/router": "^21.1.0",
+    "@primeuix/themes": "^2.0.3",
+    "chart.js": "^4.5.1",
+    "primeicons": "^7.0.0",
+    "primeng": "^21.0.4",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.1.0",
+    "@angular/cli": "^21.1.0",
+    "@angular/compiler-cli": "^21.1.0",
+    "jsdom": "^27.1.0",
+    "terser": "^5.46.0",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}

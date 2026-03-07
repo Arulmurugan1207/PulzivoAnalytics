@@ -1,0 +1,685 @@
+<!-- Toolbar -->
+<div class="overview-toolbar">
+  @if (availableApiKeys.length > 0) {
+    <div class="key-selector">
+      <label>API Key</label>
+      <p-select
+        [options]="availableApiKeys"
+        [(ngModel)]="selectedApiKey"
+        (ngModelChange)="onApiKeyChange()"
+        optionLabel="name"
+        optionValue="apiKey"
+        placeholder="Select API Key"
+        [style]="{ width: '320px' }">
+        <ng-template #selectedItem let-item>
+          <span>{{ item.name }} <span style="color: #94a3b8; font-size: 0.8rem;">({{ item.apiKey }})</span></span>
+        </ng-template>
+        <ng-template #item let-item>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span>{{ item.name }}</span>
+            <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
+          </div>
+        </ng-template>
+      </p-select>
+    </div>
+
+    <!-- Date Range Picker -->
+    <div class="date-range-picker">
+      <button class="date-trigger" (click)="toggleDatePopover($event)">
+        <i class="pi pi-calendar"></i>
+        <span>{{ dateRangeLabel || 'Select date range' }}</span>
+        <i class="pi pi-chevron-down"></i>
+      </button>
+
+      <p-popover #datePopover [style]="{ width: 'auto' }" styleClass="date-range-popover">
+        <div class="date-range-panel">
+          <!-- Presets sidebar -->
+          <div class="presets-sidebar">
+            @for (preset of presets; track preset.label) {
+              <button
+                class="preset-btn"
+                [class.active]="activePreset === preset.label"
+                (click)="applyPreset(preset.label)">
+                {{ preset.label }}
+              </button>
+            }
+          </div>
+          <!-- Calendar -->
+          <div class="calendar-area">
+            <p-datepicker
+              [(ngModel)]="tempDateRange"
+              [selectionMode]="'range'"
+              [numberOfMonths]="2"
+              [inline]="true"
+              (onSelect)="onDateRangeChange($event)"
+              [showTime]="false">
+            </p-datepicker>
+            <div class="calendar-actions">
+              <button class="cancel-btn" (click)="datePopover.hide()">Cancel</button>
+              <button class="apply-btn" (click)="applyCustomDateRange()" [disabled]="!tempDateRange || tempDateRange.length !== 2">Apply</button>
+            </div>
+          </div>
+        </div>
+      </p-popover>
+    </div>
+  }
+</div>
+
+<!-- Main Content with Tabs -->
+<div class="overview-container">
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    @for (tab of overviewTabs; track tab.id) {
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === tab.id"
+        (click)="setActiveTab(tab.id)">
+        <i [class]="tab.icon"></i>
+        <span>{{ tab.label }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+
+    <!-- Analytics Overview Tab -->
+    @if (activeTab === 'metrics') {
+      <div class="metrics-grid">
+        <!-- Key Metrics Cards -->
+        <div class="metrics-row">
+          <!-- Main Metrics -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <h3>Live Analytics</h3>
+              @if (loadingStates.metrics) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="metric-skeleton">
+                <p-skeleton width="60%" height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="40%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="80%" height="1rem"></p-skeleton>
+              </div>
+            } @else {
+              <div class="metric-value">{{ metrics.liveVisitors | number }}</div>
+              <div class="metric-label">Live Visitors</div>
+              <div class="metric-change positive">+8.2% from yesterday</div>
+            }
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <h3>Page Views</h3>
+              @if (loadingStates.metrics) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="metric-skeleton">
+                <p-skeleton width="70%" height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="50%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="60%" height="1rem"></p-skeleton>
+              </div>
+            } @else {
+              <div class="metric-value">{{ metrics.totalPageViews | number }}</div>
+              <div class="metric-label">Total Page Views</div>
+              <div class="metric-change positive">+12.4% this week</div>
+            }
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <h3>Conversion Rate</h3>
+              @if (loadingStates.metrics) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="metric-skeleton">
+                <p-skeleton width="50%" height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="70%" height="1rem"></p-skeleton>
+              </div>
+            } @else {
+              <div class="metric-value">{{ metrics.conversionRate | number:'1.1-1' }}%</div>
+              <div class="metric-label">Conversion Rate</div>
+              <div class="metric-change negative">-2.1% this week</div>
+            }
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <h3>Bounce Rate</h3>
+              @if (loadingStates.metrics) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="metric-skeleton">
+                <p-skeleton width="45%" height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="55%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="65%" height="1rem"></p-skeleton>
+              </div>
+            } @else {
+              <div class="metric-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
+              <div class="metric-label">Bounce Rate</div>
+              <div class="metric-change positive">-5.3% improvement</div>
+            }
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <!-- Page Views Trend -->
+          <div class="chart-card">
+            <div class="card-header">
+              <h3>Page Views Trend</h3>
+              @if (loadingStates.pageViews) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.pageViews) {
+              <div class="chart-skeleton">
+                <p-skeleton width="100%" height="200px"></p-skeleton>
+              </div>
+            } @else {
+              <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
+            }
+          </div>
+
+          <!-- Device Breakdown -->
+          <div class="chart-card">
+            <div class="card-header">
+              <h3>Device Breakdown</h3>
+              @if (loadingStates.devices) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.devices) {
+              <div class="chart-skeleton">
+                <p-skeleton width="100%" height="200px"></p-skeleton>
+              </div>
+            } @else {
+              <p-chart type="doughnut" [data]="doughnutChartData" [options]="doughnutChartOptions"></p-chart>
+            }
+          </div>
+        </div>
+
+        <!-- Data Tables Row -->
+        <div class="tables-row">
+          <!-- Top Pages -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Top Pages</h3>
+              @if (loadingStates.topPages) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.topPages) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4,5]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="60%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="20%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (page of topPages.slice(0, 5); track page.path) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <div class="page-info">
+                        @if (page.title) {
+                          <span class="page-title">{{ page.title }}</span>
+                        }
+                        <span class="page-path">{{ page.path }}</span>
+                      </div>
+                    </div>
+                    <div class="data-metric">
+                      <span class="views-count">{{ page.views | number }}</span>
+                      <span class="percentage">{{ page.percentage | number:'1.1-1' }}%</span>
+                    </div>
+                  </div>
+                }
+                @if (topPages.length === 0) {
+                  <div class="no-data-row">No page data yet</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Geographic Data -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Top Countries</h3>
+              @if (loadingStates.geography) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.geography) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4,5]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (geo of geoData.slice(0, 5); track geo.country) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <span class="country-flag">{{ geo.flag }}</span>
+                      <span class="country-name">{{ geo.country }}</span>
+                    </div>
+                    <div class="data-metric">
+                      <span class="visitors-count">{{ geo.visitors | number }}</span>
+                      <span class="percentage">{{ geo.percentage | number:'1.1-1' }}%</span>
+                    </div>
+                  </div>
+                }
+                @if (geoData.length === 0) {
+                  <div class="no-data-row">No geographic data yet</div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Traffic Sources Row -->
+        <div class="tables-row">
+          <!-- Traffic Sources -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Traffic Sources</h3>
+              @if (loadingStates.trafficSources) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.trafficSources) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="55%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="25%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (src of trafficSources.slice(0, 6); track src.source) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <i class="pi pi-globe source-icon"></i>
+                      <span class="source-name">{{ src.source }}</span>
+                    </div>
+                    <div class="data-metric">
+                      <span class="views-count">{{ src.visits | number }}</span>
+                      <span class="percentage">{{ src.percentage | number:'1.1-1' }}%</span>
+                    </div>
+                  </div>
+                }
+                @if (trafficSources.length === 0) {
+                  <div class="no-data-row">No referrer data yet</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- UTM Campaigns -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>UTM Campaigns</h3>
+              @if (loadingStates.trafficSources) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.trafficSources) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="55%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="25%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (utm of utmSources.slice(0, 6); track utm.source) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <i class="pi pi-tag source-icon"></i>
+                      <div class="utm-info">
+                        <span class="source-name">{{ utm.source }}</span>
+                        @if (utm.campaign) {
+                          <span class="utm-campaign">{{ utm.campaign }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="data-metric">
+                      <span class="views-count">{{ utm.visits | number }}</span>
+                      <span class="utm-medium">{{ utm.medium || '—' }}</span>
+                    </div>
+                  </div>
+                }
+                @if (utmSources.length === 0) {
+                  <div class="no-data-row">No UTM campaign data yet</div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Browser & OS Row -->
+        <div class="tables-row">
+          <!-- Browser Breakdown -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Browsers</h3>
+              @if (loadingStates.browsers) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.browsers) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (browser of browsers.slice(0, 6); track browser.name) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <i class="pi pi-globe source-icon"></i>
+                      <span class="source-name">{{ browser.name }}</span>
+                    </div>
+                    <div class="data-metric">
+                      <div class="bar-wrap">
+                        <div class="bar-fill" [style.width.%]="browser.percentage"></div>
+                      </div>
+                      <span class="percentage">{{ browser.percentage | number:'1.0-0' }}%</span>
+                    </div>
+                  </div>
+                }
+                @if (browsers.length === 0) {
+                  <div class="no-data-row">No browser data yet</div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- OS Breakdown -->
+          <div class="data-card">
+            <div class="card-header">
+              <h3>Operating Systems</h3>
+              @if (loadingStates.browsers) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.browsers) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="data-list">
+                @for (os of operatingSystems.slice(0, 6); track os.name) {
+                  <div class="data-row">
+                    <div class="data-main">
+                      <i class="pi pi-desktop source-icon"></i>
+                      <span class="source-name">{{ os.name }}</span>
+                    </div>
+                    <div class="data-metric">
+                      <div class="bar-wrap">
+                        <div class="bar-fill" [style.width.%]="os.percentage"></div>
+                      </div>
+                      <span class="percentage">{{ os.percentage | number:'1.0-0' }}%</span>
+                    </div>
+                  </div>
+                }
+                @if (operatingSystems.length === 0) {
+                  <div class="no-data-row">No OS data yet</div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Core Web Vitals Row -->
+        <div class="vitals-row">
+          <div class="chart-card vitals-card">
+            <div class="card-header">
+              <h3>Core Web Vitals</h3>
+              <span class="card-subtitle">Google performance signals</span>
+              @if (loadingStates.webVitals) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.webVitals) {
+              <div class="vitals-skeleton">
+                @for (item of [1,2,3]; track item) {
+                  <div class="vital-skeleton-item">
+                    <p-skeleton width="80px" height="80px" borderRadius="50%"></p-skeleton>
+                    <p-skeleton width="100px" height="1.2rem" styleClass="mt-2"></p-skeleton>
+                    <p-skeleton width="60px" height="1rem" styleClass="mt-1"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="vitals-grid">
+                <!-- LCP -->
+                <div class="vital-item" [class]="'vital-' + webVitals.LCP.rating">
+                  <div class="vital-circle">
+                    <span class="vital-value">
+                      @if (webVitals.LCP.avg !== null) {
+                        {{ (webVitals.LCP.avg / 1000) | number:'1.1-1' }}s
+                      } @else {
+                        —
+                      }
+                    </span>
+                  </div>
+                  <div class="vital-info">
+                    <span class="vital-name">LCP</span>
+                    <span class="vital-desc">Largest Contentful Paint</span>
+                    <span class="vital-rating-badge">{{ webVitals.LCP.rating === 'no-data' ? 'No data' : webVitals.LCP.rating }}</span>
+                    <span class="vital-threshold">&lt; 2.5s is good</span>
+                  </div>
+                </div>
+
+                <!-- FID -->
+                <div class="vital-item" [class]="'vital-' + webVitals.FID.rating">
+                  <div class="vital-circle">
+                    <span class="vital-value">
+                      @if (webVitals.FID.avg !== null) {
+                        {{ webVitals.FID.avg | number:'1.0-0' }}ms
+                      } @else {
+                        —
+                      }
+                    </span>
+                  </div>
+                  <div class="vital-info">
+                    <span class="vital-name">FID</span>
+                    <span class="vital-desc">First Input Delay</span>
+                    <span class="vital-rating-badge">{{ webVitals.FID.rating === 'no-data' ? 'No data' : webVitals.FID.rating }}</span>
+                    <span class="vital-threshold">&lt; 100ms is good</span>
+                  </div>
+                </div>
+
+                <!-- CLS -->
+                <div class="vital-item" [class]="'vital-' + webVitals.CLS.rating">
+                  <div class="vital-circle">
+                    <span class="vital-value">
+                      @if (webVitals.CLS.avg !== null) {
+                        {{ webVitals.CLS.avg | number:'1.2-2' }}
+                      } @else {
+                        —
+                      }
+                    </span>
+                  </div>
+                  <div class="vital-info">
+                    <span class="vital-name">CLS</span>
+                    <span class="vital-desc">Cumulative Layout Shift</span>
+                    <span class="vital-rating-badge">{{ webVitals.CLS.rating === 'no-data' ? 'No data' : webVitals.CLS.rating }}</span>
+                    <span class="vital-threshold">&lt; 0.1 is good</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Session Insights -->
+          <div class="chart-card session-card">
+            <div class="card-header">
+              <h3>Session Insights</h3>
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="session-skeleton">
+                @for (item of [1,2,3]; track item) {
+                  <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>
+                }
+              </div>
+            } @else {
+              <div class="session-stats">
+                <div class="session-stat">
+                  <div class="stat-icon blue"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Avg Session Duration</span>
+                    <span class="stat-value">{{ metrics.avgSessionDuration | number:'1.0-0' }}s</span>
+                  </div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon green"><i class="pi pi-user-plus"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">New Visitors</span>
+                    <span class="stat-value">{{ metrics.newVsReturning.new | number }}</span>
+                  </div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon purple"><i class="pi pi-refresh"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Returning Visitors</span>
+                    <span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Live Events Tab -->
+    @if (activeTab === 'live') {
+      @if (showLiveEvents) {
+        <div class="live-events-container">
+          <div class="live-events-header">
+            <div class="live-events-title">
+              <h3>Live Events Stream</h3>
+              @if (isLiveEventsActive) {
+                <span class="live-dot active"></span>
+              } @else {
+                <span class="live-dot paused"></span>
+              }
+            </div>
+            <div class="live-events-controls">
+              <button 
+                type="button" 
+                class="control-btn" 
+                (click)="toggleLiveEvents()"
+                [title]="isLiveEventsActive ? 'Pause Live Events' : 'Resume Live Events'">
+                <i [class]="isLiveEventsActive ? 'pi pi-pause' : 'pi pi-play'"></i>
+              </button>
+              <button 
+                type="button" 
+                class="control-btn" 
+                (click)="clearLiveEvents()"
+                title="Clear Events">
+                <i class="pi pi-trash"></i>
+              </button>
+              <button 
+                type="button" 
+                class="control-btn" 
+                (click)="toggleLiveEventsVisibility()"
+                title="Hide Live Events">
+                <i class="pi pi-eye-slash"></i>
+              </button>
+            </div>
+          </div>
+
+          @if (loadingStates.liveEvents) {
+            <div class="events-loading">
+              @for (item of [1,2,3,4,5]; track item) {
+                <div class="event-skeleton">
+                  <p-skeleton width="40px" height="40px" borderRadius="50%" styleClass="mr-3"></p-skeleton>
+                  <div style="flex: 1;">
+                    <p-skeleton width="60%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="80%" height="1rem"></p-skeleton>
+                  </div>
+                  <p-skeleton width="60px" height="1rem"></p-skeleton>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="events-list">
+              @for (event of realtimeEvents; track event.timestamp) {
+                <div class="event-row">
+                  <div class="event-icon-wrap">
+                    <i [class]="getEventIcon(event.event_name)"></i>
+                  </div>
+                  <div class="event-body">
+                    <span class="event-type">{{ event.event_name.replace('_', ' ') }}</span>
+                    <span class="event-detail">{{ event.data.page }} &middot; {{ event.data.user_type }} &middot; {{ event.data.country }}</span>
+                  </div>
+                  <span class="event-time">{{ getTimeAgo(event.timestamp) }}</span>
+                </div>
+              }
+              @if (realtimeEvents.length === 0) {
+                <div class="no-data">
+                  @if (isLiveEventsActive) {
+                    <div class="waiting-state">
+                      <i class="pi pi-spin pi-spinner"></i>
+                      <span>Waiting for real-time events...</span>
+                    </div>
+                  } @else {
+                    <div class="paused-state">
+                      <i class="pi pi-pause"></i>
+                      <span>Live events paused</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="live-events-hidden">
+          <div class="hidden-notice">
+            <i class="pi pi-eye-slash"></i>
+            <span>Live Events Hidden</span>
+            <button 
+              type="button" 
+              class="show-btn"
+              (click)="toggleLiveEventsVisibility()"
+              title="Show Live Events">
+              <i class="pi pi-eye"></i>
+              Show Live Events
+            </button>
+          </div>
+        </div>
+      }
+    }
+
+  </div>
+</div>

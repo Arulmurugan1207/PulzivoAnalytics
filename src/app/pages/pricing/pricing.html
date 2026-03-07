@@ -1,0 +1,136 @@
+<div class="pricing-page">
+  <!-- Header -->
+  <section class="pricing-header">
+    <div class="container">
+      <span class="section-badge fade-in">
+        <i class="pi pi-tag"></i> Pricing
+      </span>
+      <h1 class="page-title fade-in">Simple, transparent pricing</h1>
+      <p class="page-subtitle fade-in">Start free and scale as you grow. No hidden fees, cancel anytime.</p>
+    </div>
+  </section>
+
+  <!-- Current Plan Banner -->
+  @if (isLoggedIn) {
+    <section class="current-plan-section">
+      <div class="container">
+        <div class="current-plan-banner">
+          <div class="plan-status-dot"></div>
+          <span>
+            You're on the <strong>{{ currentPlan.name }}</strong> plan &mdash;
+            {{ currentPlan.apiKeyLimit === 'unlimited' ? 'Unlimited' : currentPlan.apiKeyLimit }} API Keys,
+            {{ getPlanLimitDisplay(currentPlan.eventLimit) }} events/mo
+          </span>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- Pricing Cards -->
+  <section class="plans-section">
+    <div class="container">
+      <div class="plans-grid">
+        @for (plan of plans; track plan.type) {
+          <div class="plan-card" [class.popular]="plan.popular" [class.current]="isCurrentPlan(plan)">
+            @if (plan.popular) {
+              <div class="popular-badge">Most Popular</div>
+            }
+            @if (isCurrentPlan(plan)) {
+              <div class="current-badge">Current Plan</div>
+            }
+
+            <div class="plan-header">
+              <h3 class="plan-name">{{ plan.name }}</h3>
+              <p class="plan-desc">{{ plan.description }}</p>
+            </div>
+
+            <div class="plan-price">
+              <span class="currency">$</span>
+              <span class="amount">{{ plan.price }}</span>
+              <span class="period">/mo</span>
+            </div>
+
+            <div class="plan-limits">
+              <div class="limit-item">
+                <i class="pi pi-key"></i>
+                <span>{{ getPlanLimitDisplay(plan.apiKeyLimit) }} API Keys</span>
+              </div>
+              <div class="limit-item">
+                <i class="pi pi-chart-line"></i>
+                <span>{{ getPlanLimitDisplay(plan.eventLimit) }} events/mo</span>
+              </div>
+            </div>
+
+            <button pButton type="button"
+              [label]="isCurrentPlan(plan) ? 'Current Plan' : (plan.price === 0 ? 'Get Started Free' : (plan.price > currentPlan.price ? 'Upgrade' : 'Select'))"
+              [severity]="plan.popular ? undefined : 'secondary'"
+              [outlined]="!plan.popular && !isCurrentPlan(plan)"
+              [disabled]="isCurrentPlan(plan)"
+              (click)="selectPlan(plan)"
+              class="plan-cta">
+            </button>
+
+            <div class="plan-features">
+              <p class="features-label">
+                @if (plan.type === 'free') {
+                  What's included:
+                } @else {
+                  Everything in {{ getPreviousPlanName(plan) }}, plus:
+                }
+              </p>
+              @for (feature of getKeyFeatures(plan); track feature) {
+                <div class="feature-row">
+                  <i class="pi pi-check"></i>
+                  <span>{{ feature }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Help Section -->
+  <section class="help-section">
+    <div class="container">
+      <div class="help-container">
+        <div class="help-header">
+          <i class="pi pi-question-circle"></i>
+          <h4>Need help choosing?</h4>
+          <p>Not sure which plan fits your needs? We can help.</p>
+        </div>
+
+        <div class="help-points">
+          <div class="help-point">
+            <div class="point-icon"><i class="pi pi-code"></i></div>
+            <div class="point-content">
+              <h6>Side projects</h6>
+              <p>The <strong>Free</strong> plan is perfect for personal sites, experiments, and getting started with analytics.</p>
+            </div>
+          </div>
+
+          <div class="help-point">
+            <div class="point-icon"><i class="pi pi-chart-line"></i></div>
+            <div class="point-content">
+              <h6>Growing businesses</h6>
+              <p><strong>Pro</strong> unlocks the full analytics suite — scroll depth, sessions, attribution, and data exports at $19/mo.</p>
+            </div>
+          </div>
+
+          <div class="help-point">
+            <div class="point-icon"><i class="pi pi-globe"></i></div>
+            <div class="point-content">
+              <h6>Enterprise-grade</h6>
+              <p><strong>Enterprise</strong> adds form tracking, error monitoring, Web Vitals, rage click detection, heatmap data, API access, unlimited everything, and priority support at $79/mo.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-cta">
+          <p>Still have questions? <a routerLink="/contact" class="contact-link">Talk to our team <i class="pi pi-arrow-right"></i></a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

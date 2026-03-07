@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SimpleTrack SDK - Advanced Web Analytics & Tracking</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SimpleTrack provides powerful, lightweight analytics tracking for websites and applications. Monitor user behavior, page views, clicks, and more with easy integration.">
+  <meta name="keywords" content="analytics, tracking, web analytics, user behavior, page views, click tracking, simpletrack, privacy-focused analytics">
+  <meta name="author" content="Arulmurugan1207">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#007bff">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://simpletrack.dev">
+  <meta property="og:title" content="SimpleTrack - Advanced Web Analytics & Tracking">
+  <meta property="og:description" content="Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.">
+  <meta property="og:image" content="https://simpletrack.dev/favicon.svg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://simpletrack.dev">
+  <meta property="twitter:title" content="SimpleTrack - Advanced Web Analytics & Tracking">
+  <meta property="twitter:description" content="Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.">
+  <meta property="twitter:image" content="https://simpletrack.dev/favicon.svg">
+
+  <!-- Canonical & Icons -->
+  <link rel="canonical" href="https://simpletrack.dev/">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "SimpleTrack Analytics SDK",
+    "description": "Zero-config web analytics SDK for modern applications with automatic tracking, custom events, and comprehensive reporting capabilities.",
+    "url": "https://simpletrack.dev/analytics-sdk",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web Browser",
+    "programmingLanguage": "JavaScript",
+    "fileSize": "5KB",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": { "@type": "Organization", "name": "SimpleTrack Analytics" },
+    "featureList": [
+      "Zero-configuration setup",
+      "Automatic page view tracking",
+      "Custom event tracking",
+      "User management",
+      "Performance monitoring",
+      "Scroll depth tracking",
+      "Click tracking",
+      "Promo campaign tracking",
+      "Batch event sending",
+      "Debug mode"
+    ],
+    "screenshot": "https://simpletrack.dev/assets/analytics-sdk-preview.png"
+  }
+  </script>
+
+  <!-- FAQ Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I get my analytics reports?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Contact us with your serviceName to access your website's analytics data and reports." }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the SimpleTrack Analytics SDK free?",
+        "acceptedAnswer": { "@type": "Answer", "text": "The SDK is free and open-source (MIT licensed). Hosting and report access may have associated costs." }
+      },
+      {
+        "@type": "Question",
+        "name": "What data is collected by the analytics SDK?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Only what you track: anonymized UUIDs, browser/session info, events. No IP logging by default." }
+      },
+      {
+        "@type": "Question",
+        "name": "Does it work with React/Vue/Angular?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes! Use window.STKAnalytics in components - no wrapper code needed." }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I track custom events?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Use window.STKAnalytics.trackEvent('event_name', { data }) anywhere in your code." }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+  <!-- Analytics Script -->
+  <script>
+    var isLocal = window.location.hostname === 'localhost';
+    var apiKey = isLocal ? 'STK-HEBB9' : 'STK-1A6S9';
+    var apiUrl = isLocal ? 'http://localhost:3004/analytics/log' : 'https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log';
+    var script = document.createElement('script');
+    script.src = (isLocal ? './stk-analytics.js' : './stk-analytics.min.js') + '?t=' + Date.now();
+    script.setAttribute('data-api-key', apiKey);
+    script.setAttribute('data-api-url', apiUrl);
+    script.setAttribute('data-batch-interval', '5000');
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>

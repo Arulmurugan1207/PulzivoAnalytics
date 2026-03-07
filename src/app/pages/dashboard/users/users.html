@@ -1,0 +1,155 @@
+<div class="users-container">
+  <!-- Header Section -->
+  <div class="users-header">
+    <div class="header-left">
+      <h2>Users Management</h2>
+      <p class="subtitle">View and manage all registered users</p>
+    </div>
+    <div class="header-right">
+      <span class="total-count">Total Users: {{ users.length }}</span>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="search-box">
+      <i class="pi pi-search"></i>
+      <input 
+        type="text" 
+        placeholder="Search by name or email..." 
+        [(ngModel)]="searchQuery"
+        (input)="filterUsers()"
+      />
+    </div>
+    <div class="plan-filter">
+      <label>Plan:</label>
+      <select [(ngModel)]="selectedPlanFilter" (change)="filterUsers()">
+        <option value="all">All Plans</option>
+        <option value="free">Free</option>
+        <option value="pro">Pro</option>
+        <option value="enterprise">Enterprise</option>
+      </select>
+    </div>
+    <div class="role-filter">
+      <label>Role:</label>
+      <select [(ngModel)]="selectedRoleFilter" (change)="filterUsers()">
+        <option value="all">All Roles</option>
+        <option value="owner">Owner</option>
+        <option value="admin">Admin</option>
+        <option value="developer">Developer</option>
+        <option value="analyst">Analyst</option>
+        <option value="viewer">Viewer</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading) {
+    <div class="loading-state">
+      <i class="pi pi-spinner pi-spin"></i>
+      <p>Loading users...</p>
+    </div>
+  }
+
+  <!-- Users Table -->
+  @if (!loading && filteredUsers.length > 0) {
+    <div class="users-table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <th>Role</th>
+            <th>Plan</th>
+            <th>API Keys</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers; track user._id) {
+            <tr [class.owner-row]="isOwner(user.email)">
+              <td>
+                <div class="user-name">
+                  <div class="user-avatar">
+                    {{ user.firstname.charAt(0).toUpperCase() }}{{ user.lastname.charAt(0).toUpperCase() }}
+                  </div>
+                  <span>{{ user.firstname }} {{ user.lastname }}</span>
+                  @if (isOwner(user.email)) {
+                    <i class="pi pi-crown owner-icon" title="App Owner"></i>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="email-text">{{ user.email }}</span>
+              </td>
+              <td>
+                <span class="mobile-text">{{ user.mobileno || '-' }}</span>
+              </td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ getRoleLabel(user.role) }}
+                </span>
+              </td>
+              <td>
+                <span class="plan-badge" [ngClass]="getPlanBadgeClass(user.plan)">
+                  {{ (user.plan || 'free') | uppercase }}
+                </span>
+              </td>
+              <td>
+                <span class="api-keys-count">{{ user.apiKeysCount }}</span>
+              </td>
+              <td>
+                <span class="date-text">{{ formatDate(user.createdDate) }}</span>
+              </td>
+              <td>
+                <div class="actions-group">
+                  <div class="action-item">
+                    <label>Role:</label>
+                    <select 
+                      [value]="user.role || 'viewer'" 
+                      (change)="onRoleChange($event, user._id)"
+                      class="role-selector"
+                      [disabled]="isOwner(user.email)"
+                      [title]="isOwner(user.email) ? 'Owner role cannot be changed' : 'Change user role'"
+                    >
+                      <option value="owner">Owner</option>
+                      <option value="admin">Admin</option>
+                      <option value="developer">Developer</option>
+                      <option value="analyst">Analyst</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                  </div>
+                  <div class="action-item">
+                    <label>Plan:</label>
+                    <select 
+                      [value]="user.plan || 'free'" 
+                      (change)="onPlanChange($event, user._id)"
+                      class="plan-selector"
+                      [disabled]="isOwner(user.email)"
+                      [title]="isOwner(user.email) ? 'Owner has Enterprise plan' : 'Change user plan'"
+                    >
+                      <option value="free">Free</option>
+                      <option value="pro">Pro</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading && filteredUsers.length === 0) {
+    <div class="empty-state">
+      <i class="pi pi-users"></i>
+      <h3>No users found</h3>
+      <p>{{ searchQuery ? 'Try adjusting your search criteria' : 'No users registered yet' }}</p>
+    </div>
+  }
+</div>

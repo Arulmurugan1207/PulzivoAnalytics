@@ -1,0 +1,232 @@
+<p-toast />
+
+<div class="plans-container">
+  <!-- Header Section -->
+  <div class="plans-header">
+    <div class="header-content">
+      <div class="title-section">
+        <i class="pi pi-credit-card header-icon"></i>
+        <div>
+          <h1>Plans & Billing</h1>
+          <p class="subtitle">Choose the perfect plan for your needs</p>
+        </div>
+      </div>
+      
+      <!-- Current Plan Badge -->
+      <div class="current-plan-badge">
+        <span class="badge-label">Current Plan:</span>
+        <p-tag 
+          [value]="currentPlan() | uppercase" 
+          [severity]="currentPlan() === 'enterprise' ? 'success' : (currentPlan() === 'pro' ? 'info' : 'secondary')"
+          [rounded]="true"
+          styleClass="plan-tag"
+        />
+        @if (pendingRequest) {
+          <div class="pending-indicator">
+            <i class="pi pi-clock"></i>
+            <span>{{ pendingRequest.changeType | titlecase }} to {{ pendingRequest.requestedPlan | uppercase }} pending</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Billing Cycle Toggle -->
+    <div class="billing-toggle">
+      <span class="toggle-label" [class.active]="billingCycle() === 'month'">Monthly</span>
+      <button 
+        type="button"
+        class="cycle-toggle-btn"
+        (click)="toggleBillingCycle()"
+        [attr.aria-label]="'Switch to ' + (billingCycle() === 'month' ? 'yearly' : 'monthly') + ' billing'"
+      >
+        <span class="toggle-slider" [class.yearly]="billingCycle() === 'year'"></span>
+      </button>
+      <span class="toggle-label" [class.active]="billingCycle() === 'year'">
+        Yearly
+        <span class="discount-badge">Save 20%</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Plans Grid -->
+  <div class="plans-grid">
+    @for (plan of plans; track plan.type) {
+      <div class="plan-card" [class.popular]="plan.popular" [class.current]="plan.currentPlan">
+        @if (plan.popular) {
+          <div class="popular-badge">
+            <i class="pi pi-star-fill"></i>
+            Most Popular
+          </div>
+        }
+
+        @if (plan.currentPlan) {
+          <div class="current-badge">
+            <i class="pi pi-check-circle"></i>
+            Current Plan
+          </div>
+        }
+
+        <div class="plan-header">
+          <h2 class="plan-name">{{ plan.name }}</h2>
+          <div class="plan-price">
+            @if (plan.price === 0) {
+              <span class="price-amount">Free</span>
+            } @else {
+              <span class="price-currency">$</span>
+              <span class="price-amount">
+                {{ billingCycle() === 'year' ? (plan.price * 12 * 0.8 | number:'1.0-0') : plan.price }}
+              </span>
+              <span class="price-period">/{{ billingCycle() === 'year' ? 'year' : 'mo' }}</span>
+            }
+          </div>
+          @if (billingCycle() === 'year' && plan.price > 0) {
+            <p class="monthly-equiv">
+              ${{ (plan.price * 12 * 0.8 / 12) | number:'1.2-2' }}/mo billed annually
+            </p>
+          }
+          <p class="plan-description">{{ plan.description }}</p>
+        </div>
+
+        <div class="plan-limits">
+          <div class="limit-item">
+            <i class="pi pi-globe"></i>
+            <span>
+              <strong>{{ plan.apiKeyLimit }}</strong>
+              {{ plan.apiKeyLimit === 1 ? 'Website' : 'Websites' }}
+            </span>
+          </div>
+          <div class="limit-item">
+            <i class="pi pi-chart-line"></i>
+            <span>
+              <strong>{{ plan.eventLimit === 'unlimited' ? 'Unlimited' : (plan.eventLimit | number) }}</strong>
+              {{ plan.eventLimit === 'unlimited' ? 'events' : 'events/month' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="plan-features">
+          <p class="features-title">What's included:</p>
+          <ul class="features-list">
+            @for (feature of plan.features; track feature) {
+              <li class="feature-item">
+                <i class="pi pi-check"></i>
+                <span>{{ feature }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <div class="plan-action">
+          <p-button
+            [label]="getButtonLabel(plan)"
+            [severity]="getButtonSeverity(plan)"
+            [disabled]="isPlanDisabled(plan)"
+            [outlined]="!plan.popular && !plan.currentPlan && !pendingRequest"
+            (onClick)="selectPlan(plan)"
+            styleClass="plan-btn"
+            [icon]="plan.currentPlan ? 'pi pi-check' : (pendingRequest && plan.type === pendingRequest.requestedPlan ? 'pi pi-clock' : (pendingRequest ? 'pi pi-lock' : 'pi pi-send'))"
+          />
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Additional Info -->
+  <div class="additional-info">
+    <div class="info-card highlight-card">
+      <i class="pi pi-send"></i>
+      <div>
+        <h3>Manual Review Process</h3>
+        <p>All plan changes require manual review. Submit your request and our team will process it within 24 hours with email confirmation.</p>
+      </div>
+    </div>
+    <div class="info-card">
+      <i class="pi pi-shield"></i>
+      <div>
+        <h3>Secure & Reliable</h3>
+        <p>All plans include SSL encryption, daily backups, and 99.9% uptime SLA</p>
+      </div>
+    </div>
+    <div class="info-card">
+      <i class="pi pi-phone"></i>
+      <div>
+        <h3>Support Included</h3>
+        <p>Get help when you need it with our responsive support team</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<p-dialog
+  [(visible)]="showConfirmDialog"
+  [modal]="true"
+  [closable]="!loading()"
+  [closeOnEscape]="!loading()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="confirm-dialog"
+  header="Request Plan Change"
+>
+  @if (selectedPlan) {
+    <div class="dialog-content">
+      <div class="dialog-icon">
+        <i class="pi pi-send"></i>
+      </div>
+      
+      <h3>
+        Request {{ canUpgrade(selectedPlan) ? 'Upgrade' : 'Downgrade' }} to {{ selectedPlan.name }} Plan?
+      </h3>
+      
+      <div class="plan-comparison">
+        <div class="comparison-item">
+          <span class="label">Current Plan:</span>
+          <span class="value">{{ currentPlan() | uppercase }}</span>
+        </div>
+        <i class="pi pi-arrow-right comparison-arrow"></i>
+        <div class="comparison-item">
+          <span class="label">Requested Plan:</span>
+          <span class="value">{{ selectedPlan.name | uppercase }}</span>
+        </div>
+      </div>
+
+      <div class="price-info">
+        @if (selectedPlan.price === 0) {
+          <p>You are requesting to downgrade to the Free plan</p>
+        } @else {
+          <p>
+            The {{ billingCycle() === 'year' ? 'annual' : 'monthly' }} cost will be 
+            <strong>${{ billingCycle() === 'year' ? (selectedPlan.price * 12 * 0.8) : selectedPlan.price }}</strong>
+          </p>
+        }
+      </div>
+
+      <div class="request-info">
+        <i class="pi pi-info-circle"></i>
+        <div>
+          <p><strong>Request Details</strong></p>
+          <p>Account: {{ user?.email }}</p>
+          <p>Your plan change request will be reviewed by our team. You'll receive an email confirmation once your plan has been updated.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <p-button
+        label="Cancel"
+        severity="secondary"
+        [outlined]="true"
+        (onClick)="cancelPlanChange()"
+        [disabled]="loading()"
+      />
+      <p-button
+        [label]="loading() ? 'Sending Request...' : 'Send Request'"
+        [severity]="canUpgrade(selectedPlan) ? 'success' : 'warn'"
+        (onClick)="confirmPlanChange()"
+        [loading]="loading()"
+        [disabled]="loading()"
+        icon="pi pi-send"
+      />
+    </div>
+  }
+</p-dialog>

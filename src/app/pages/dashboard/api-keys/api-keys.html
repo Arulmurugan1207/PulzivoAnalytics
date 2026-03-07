@@ -1,0 +1,290 @@
+<div class="api-keys-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <i class="pi pi-key"></i>
+      </div>
+      <div class="header-text">
+        <h2>API Keys</h2>
+        <p class="subtitle">Manage your API keys and monitor usage across environments</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="env-indicator">
+        <span class="env-dot" [class.prod]="selectedEnvironment === 'production'" [class.dev]="selectedEnvironment === 'development'"></span>
+        <span class="env-label">{{ selectedEnvironment === 'production' ? 'Production' : 'Development' }}</span>
+      </div>
+      <button
+        pButton
+        [label]="selectedEnvironment === 'production' ? 'Switch to Dev' : 'Switch to Prod'"
+        [severity]="selectedEnvironment === 'production' ? 'warn' : 'success'"
+        [icon]="selectedEnvironment === 'production' ? 'pi pi-code' : 'pi pi-globe'"
+        [outlined]="true"
+        size="small"
+        (click)="toggleEnvironment()"
+        pTooltip="Switch environment"
+      ></button>
+      <button
+        pButton
+        label="Create API Key"
+        icon="pi pi-plus"
+        (click)="openCreateDialog()"
+        [disabled]="!canCreateMoreKeys()"
+        class="create-btn"
+      ></button>
+    </div>
+  </div>
+
+  <!-- Usage summary -->
+  <div class="usage-summary">
+    <div class="usage-card active-keys">
+      <div class="card-icon">
+        <i class="pi pi-shield"></i>
+      </div>
+      <div class="card-content">
+        <span class="usage-label">Active Keys</span>
+        <span class="usage-value">{{ currentUsage }} <span class="usage-limit">/ {{ getPlanLimitDisplay() }}</span></span>
+      </div>
+    </div>
+    <div class="usage-card created-month">
+      <div class="card-icon">
+        <i class="pi pi-calendar"></i>
+      </div>
+      <div class="card-content">
+        <span class="usage-label">Created This Month</span>
+        <span class="usage-value">{{ keysCreatedThisMonth }}</span>
+      </div>
+    </div>
+    <div class="usage-card total-created">
+      <div class="card-icon">
+        <i class="pi pi-chart-line"></i>
+      </div>
+      <div class="card-content">
+        <span class="usage-label">Total Created</span>
+        <span class="usage-value">{{ totalKeysCreated }}</span>
+      </div>
+    </div>
+    <div class="usage-card archived">
+      <div class="card-icon">
+        <i class="pi pi-inbox"></i>
+      </div>
+      <div class="card-content">
+        <span class="usage-label">Archived</span>
+        <span class="usage-value">{{ archivedKeysCount }}</span>
+      </div>
+    </div>
+  </div>
+
+  @if (!canCreateMoreKeys()) {
+    <p-message severity="warn" styleClass="limit-warning">
+      You've reached your plan limit of {{ getPlanLimitDisplay() }} active API keys.
+      <a routerLink="/pricing">Upgrade your plan</a> for more.
+    </p-message>
+  }
+
+  <!-- API Keys table -->
+  <div class="keys-table-card">
+    <p-table
+      [value]="getDisplayedKeys()"
+      [loading]="isLoading"
+      [paginator]="true"
+      [rows]="10"
+      [rowsPerPageOptions]="[5, 10, 25]"
+      styleClass="p-datatable-sm"
+      [rowHover]="true"
+    >
+      <ng-template #header>
+        <tr>
+          <th style="width: 180px">Name</th>
+          <th style="width: 200px">API Key</th>
+          <th style="width: 220px">Description</th>
+          <th style="width: 100px">Status</th>
+          <th style="width: 180px">Domains</th>
+          <th style="width: 150px; text-align: center">Actions</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-key>
+        <tr>
+          <td class="key-name">{{ key.name }}</td>
+          <td class="key-value">
+            <code>{{ key.apiKey | slice:0:16 }}...</code>
+            <button
+              pButton
+              [icon]="copiedApiKey === key.apiKey ? 'pi pi-check' : 'pi pi-copy'"
+              [severity]="copiedApiKey === key.apiKey ? 'success' : 'secondary'"
+              [text]="true"
+              size="small"
+              (click)="copyApiKey(key.apiKey)"
+              pTooltip="Copy to clipboard"
+            ></button>
+          </td>
+          <td class="key-desc">{{ key.description || '—' }}</td>
+          <td>
+            <p-tag
+              [value]="key.isActive !== false ? 'Active' : 'Archived'"
+              [severity]="key.isActive !== false ? 'success' : 'secondary'"
+            />
+          </td>
+          <td class="key-domains">
+            @if (key.allowedDomains?.length) {
+              @for (domain of key.allowedDomains; track domain) {
+                <span class="domain-chip">{{ domain }}</span>
+              }
+            } @else {
+              <span class="text-muted">All domains</span>
+            }
+          </td>
+          <td>
+            <button pButton icon="pi pi-chart-bar" [text]="true" size="small" (click)="viewUsage(key.apiKey)" pTooltip="View usage"></button>
+            <button pButton icon="pi pi-pencil" [text]="true" size="small" (click)="openEditDialog(key)" [disabled]="key.isActive === false" pTooltip="Edit"></button>
+            <button pButton icon="pi pi-trash" [text]="true" severity="danger" size="small" (click)="archiveApiKey(key.apiKey)" [disabled]="key.isActive === false" pTooltip="Archive"></button>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="6" class="empty-state">
+            <div class="empty-state-content">
+              <div class="empty-icon">
+                <i class="pi pi-key"></i>
+              </div>
+              <h3>No API keys yet</h3>
+              <p>Create your first API key to start tracking analytics on your website</p>
+              <button pButton label="Create your first key" icon="pi pi-plus" (click)="openCreateDialog()" [disabled]="!canCreateMoreKeys()"></button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    @if (archivedKeys.length > 0) {
+      <div class="archived-toggle">
+        <button
+          pButton
+          [label]="showArchivedKeys ? 'Hide archived keys' : 'Show ' + archivedKeys.length + ' archived key(s)'"
+          icon="pi pi-history"
+          [text]="true"
+          size="small"
+          (click)="showArchivedKeys = !showArchivedKeys"
+        ></button>
+      </div>
+    }
+  </div>
+
+  <!-- Create Dialog -->
+  <p-dialog
+    header="Create API Key"
+    [(visible)]="showCreateDialog"
+    [modal]="true"
+    [style]="{ width: '480px' }"
+    [closable]="true"
+  >
+    <form [formGroup]="createForm" (ngSubmit)="createApiKey()">
+      <div class="form-field">
+        <label for="createName">Name *</label>
+        <input pInputText id="createName" formControlName="name" placeholder="e.g. My Website" />
+        @if (createForm.get('name')?.touched && createForm.get('name')?.hasError('required')) {
+          <small class="form-error">Name is required</small>
+        }
+        @if (createForm.get('name')?.touched && createForm.get('name')?.hasError('minlength')) {
+          <small class="form-error">Name must be at least 3 characters</small>
+        }
+      </div>
+      <div class="form-field">
+        <label for="createDesc">Description</label>
+        <textarea pTextarea id="createDesc" formControlName="description" placeholder="Optional description" [rows]="3"></textarea>
+      </div>
+      <div class="form-field">
+        <label for="createDomains">Allowed Domains</label>
+        <input pInputText id="createDomains" formControlName="allowedDomains" placeholder="e.g. example.com, app.example.com" />
+        <small class="form-hint">Comma-separated. Leave empty to allow all domains.</small>
+      </div>
+    </form>
+    <ng-template #footer>
+      <button pButton label="Cancel" severity="secondary" [text]="true" (click)="showCreateDialog = false"></button>
+      <button pButton label="Create" icon="pi pi-plus" (click)="createApiKey()" [loading]="isSubmitting" [disabled]="!createForm.valid"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Edit Dialog -->
+  <p-dialog
+    header="Edit API Key"
+    [(visible)]="showEditDialog"
+    [modal]="true"
+    [style]="{ width: '480px' }"
+    [closable]="true"
+  >
+    <form [formGroup]="editForm" (ngSubmit)="updateApiKey()">
+      <div class="form-field">
+        <label for="editName">Name *</label>
+        <input pInputText id="editName" formControlName="name" />
+        @if (editForm.get('name')?.touched && editForm.get('name')?.hasError('required')) {
+          <small class="form-error">Name is required</small>
+        }
+      </div>
+      <div class="form-field">
+        <label for="editDesc">Description</label>
+        <textarea pTextarea id="editDesc" formControlName="description" [rows]="3"></textarea>
+      </div>
+      <div class="form-field">
+        <label for="editDomains">Allowed Domains</label>
+        <input pInputText id="editDomains" formControlName="allowedDomains" placeholder="e.g. example.com, app.example.com" />
+        <small class="form-hint">Comma-separated. Leave empty to allow all domains.</small>
+      </div>
+    </form>
+    <ng-template #footer>
+      <button pButton label="Cancel" severity="secondary" [text]="true" (click)="showEditDialog = false"></button>
+      <button pButton label="Save Changes" icon="pi pi-check" (click)="updateApiKey()" [loading]="isSubmitting" [disabled]="!editForm.valid"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Usage Dialog -->
+  <p-dialog
+    header="API Key Usage"
+    [(visible)]="showUsageDialog"
+    [modal]="true"
+    [style]="{ width: '520px' }"
+    [closable]="true"
+  >
+    @if (usage) {
+      <div class="usage-dialog-content">
+        <div class="usage-metric">
+          <div class="usage-metric-header">
+            <span>Daily Requests</span>
+            <span class="usage-metric-count">{{ usage.usage.daily | number }} / {{ usage.limits.daily | number }}</span>
+          </div>
+          <p-progressBar
+            [value]="getUsagePercent(usage.usage.daily, usage.limits.daily)"
+            [showValue]="false"
+          />
+        </div>
+        <div class="usage-metric">
+          <div class="usage-metric-header">
+            <span>Monthly Requests</span>
+            <span class="usage-metric-count">{{ usage.usage.monthly | number }} / {{ usage.limits.monthly | number }}</span>
+          </div>
+          <p-progressBar
+            [value]="getUsagePercent(usage.usage.monthly, usage.limits.monthly)"
+            [showValue]="false"
+          />
+        </div>
+        <div class="usage-meta">
+          <div class="meta-item">
+            <span class="meta-label">Last Used</span>
+            <span class="meta-value">{{ usage.lastUsed | date:'medium' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Total Requests</span>
+            <span class="meta-value">{{ usage.usage.total | number }}</span>
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="usage-loading">
+        <i class="pi pi-spinner pi-spin"></i>
+        <span>Loading usage data...</span>
+      </div>
+    }
+  </p-dialog>
+</div>

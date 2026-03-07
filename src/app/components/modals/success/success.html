@@ -1,0 +1,26 @@
+<p-dialog 
+  [(visible)]="visible" 
+  [modal]="true" 
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="false"
+  [style]="{width: '400px'}"
+  styleClass="success-dialog"
+  (onHide)="hide()">
+  
+  <div class="success-content">
+    <div class="success-icon">
+      <i class="pi pi-check-circle"></i>
+    </div>
+    
+    <h2>{{ title }}</h2>
+    <p>{{ message }}</p>
+    
+    <button 
+      pButton 
+      type="button" 
+      label="Continue" 
+      (click)="hide()"
+      class="continue-btn"></button>
+  </div>
+</p-dialog>

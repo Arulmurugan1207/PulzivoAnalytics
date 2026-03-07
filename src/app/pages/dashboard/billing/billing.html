@@ -1,0 +1,365 @@
+<p-toast />
+
+<div class="billing-container">
+  <!-- Header -->
+  <div class="billing-header">
+    <div class="header-content">
+      <div class="title-section">
+        <i class="pi pi-receipt header-icon"></i>
+        <div>
+          <h1>Billing & Usage</h1>
+          <p class="subtitle">Manage your subscription and track usage</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <p-button
+          label="Export Data"
+          icon="pi pi-download"
+          [outlined]="true"
+          (onClick)="exportBillingData()"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Current Subscription Card -->
+  <div class="subscription-overview">
+    <div class="overview-card main-card">
+      <div class="card-header">
+        <div>
+          <h2>Current Subscription</h2>
+          <p class="card-subtitle">Your active plan details</p>
+        </div>
+        <p-tag 
+          [value]="getCurrentPlan() | uppercase" 
+          [severity]="getPlanBadgeSeverity(getCurrentPlan())"
+          [rounded]="true"
+          styleClass="plan-tag-large"
+        />
+      </div>
+      
+      <div class="subscription-details">
+        <div class="detail-item">
+          <i class="pi pi-dollar"></i>
+          <div>
+            <span class="detail-label">Billing Amount</span>
+            <span class="detail-value">{{ getCurrentPlanPrice() }}</span>
+          </div>
+        </div>
+        
+        <div class="detail-item">
+          <i class="pi pi-calendar"></i>
+          <div>
+            <span class="detail-label">Next Billing Date</span>
+            <span class="detail-value">{{ getNextBillingDate() }}</span>
+          </div>
+        </div>
+        
+        @if (usageData()) {
+          <div class="detail-item">
+            <i class="pi pi-clock"></i>
+            <div>
+              <span class="detail-label">Days Remaining</span>
+              <span class="detail-value">{{ usageData()!.daysRemaining }} days</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="card-actions">
+        <p-button
+          label="Change Plan"
+          icon="pi pi-refresh"
+          severity="info"
+          [outlined]="true"
+          routerLink="/dashboard"
+          [queryParams]="{tab: 'plans'}"
+        />
+        @if (getCurrentPlan() !== 'free') {
+          <p-button
+            label="Cancel Subscription"
+            icon="pi pi-times"
+            severity="danger"
+            [outlined]="true"
+            (onClick)="openCancelDialog()"
+          />
+        }
+      </div>
+    </div>
+
+    <!-- Usage Card -->
+    @if (usageData()) {
+      <div class="overview-card usage-card">
+        <div class="card-header">
+          <h3>Current Usage</h3>
+          <span class="usage-period">
+            {{ formatDate(usageData()!.currentPeriodStart) }} - {{ formatDate(usageData()!.currentPeriodEnd) }}
+          </span>
+        </div>
+
+        <div class="usage-item">
+          <div class="usage-header">
+            <span class="usage-label">
+              <i class="pi pi-chart-line"></i>
+              Events
+            </span>
+            <span class="usage-count">
+              {{ usageData()!.eventsUsed | number }} / 
+              {{ usageData()!.eventsLimit === 'unlimited' ? 'Unlimited' : (usageData()!.eventsLimit | number) }}
+            </span>
+          </div>
+          @if (usageData()!.eventsLimit !== 'unlimited') {
+            <div class="usage-bar">
+              <div 
+                class="usage-fill"
+                [style.width.%]="getUsagePercentage()"
+                [style.background-color]="getUsageColor()"
+              ></div>
+            </div>
+            <span class="usage-percentage" [style.color]="getUsageColor()">
+              {{ getUsagePercentage() | number:'1.0-1' }}% used
+            </span>
+          }
+        </div>
+
+        <div class="usage-item">
+          <div class="usage-header">
+            <span class="usage-label">
+              <i class="pi pi-globe"></i>
+              API Keys
+            </span>
+            <span class="usage-count">
+              {{ usageData()!.apiKeysUsed }} / 
+              {{ usageData()!.apiKeysLimit === 'unlimited' ? 'Unlimited' : usageData()!.apiKeysLimit }}
+            </span>
+          </div>
+        </div>
+
+        <div class="usage-item">
+          <div class="usage-header">
+            <span class="usage-label">
+              <i class="pi pi-database"></i>
+              Data Retention
+            </span>
+            <span class="usage-count">{{ usageData()!.dataRetention }}</span>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Usage Chart -->
+  <div class="usage-chart-section">
+    <div class="section-header">
+      <h2>Usage Over Time</h2>
+      <p class="section-subtitle">Your event usage for the last 30 days</p>
+    </div>
+    
+    <div class="chart-container">
+      @if (usageMetrics().length > 0) {
+        <p-chart 
+          type="line" 
+          [data]="usageChartData" 
+          [options]="usageChartOptions"
+          height="300px"
+        />
+      } @else {
+        <div class="empty-state">
+          <i class="pi pi-chart-line"></i>
+          <p>No usage data available</p>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Plan History Timeline -->
+  <div class="plan-history-section">
+    <div class="section-header">
+      <h2>Plan History</h2>
+      <p class="section-subtitle">Track your subscription changes over time</p>
+    </div>
+
+    @if (planHistory().length > 0) {
+      <p-timeline [value]="planHistory()" align="left" styleClass="custom-timeline">
+        <ng-template pTemplate="content" let-item>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <i [class]="getChangeTypeIcon(item.changeType)" class="timeline-icon"></i>
+              <h3>{{ item.changeType | titlecase }}</h3>
+              <span class="timeline-date">{{ formatDate(item.changedAt) }}</span>
+            </div>
+            <div class="timeline-details">
+              <div class="plan-change">
+                <p-tag [value]="item.previousPlan | uppercase" [severity]="getPlanBadgeSeverity(item.previousPlan)" />
+                <i class="pi pi-arrow-right"></i>
+                <p-tag [value]="item.newPlan | uppercase" [severity]="getPlanBadgeSeverity(item.newPlan)" />
+              </div>
+              <div class="timeline-meta">
+                <span>{{ formatCurrency(item.pricePaid) }}</span>
+                <span>•</span>
+                <span>{{ item.billingCycle === 'year' ? 'Annual' : 'Monthly' }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </p-timeline>
+    } @else {
+      <div class="empty-state">
+        <i class="pi pi-history"></i>
+        <p>No plan history available</p>
+      </div>
+    }
+  </div>
+
+  <!-- Payment History Table -->
+  <div class="payment-history-section">
+    <div class="section-header">
+      <h2>Payment History</h2>
+      <p class="section-subtitle">View all your transactions and invoices</p>
+    </div>
+
+    @if (paymentHistory().length > 0) {
+      <p-table 
+        [value]="paymentHistory()" 
+        [paginator]="true" 
+        [rows]="10"
+        styleClass="payment-table"
+        [tableStyle]="{'min-width': '50rem'}"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Date</th>
+            <th>Plan</th>
+            <th>Amount</th>
+            <th>Period</th>
+            <th>Status</th>
+            <th>Method</th>
+            <th>Invoice</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-payment>
+          <tr>
+            <td>{{ formatDate(payment.billingDate) }}</td>
+            <td>
+              <p-tag 
+                [value]="payment.plan | uppercase" 
+                [severity]="getPlanBadgeSeverity(payment.plan)"
+              />
+            </td>
+            <td class="amount-cell">{{ formatCurrency(payment.amount) }}</td>
+            <td class="period-cell">
+              {{ formatDate(payment.periodStart) }} - {{ formatDate(payment.periodEnd) }}
+            </td>
+            <td>
+              <p-tag 
+                [value]="payment.status | titlecase" 
+                [severity]="getStatusBadgeSeverity(payment.status)"
+              />
+            </td>
+            <td>
+              <span class="payment-method">
+                <i class="pi pi-credit-card"></i>
+                {{ payment.paymentMethod }}
+              </span>
+            </td>
+            <td>
+              @if (payment.invoiceUrl) {
+                <p-button
+                  icon="pi pi-download"
+                  [text]="true"
+                  severity="info"
+                  (onClick)="downloadInvoice(payment)"
+                  [pTooltip]="'Download Invoice'"
+                  tooltipPosition="top"
+                />
+              } @else {
+                <span class="text-muted">N/A</span>
+              }
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="empty-message">No payment history found</td>
+          </tr>
+        </ng-template>
+      </p-table>
+    } @else {
+      <div class="empty-state">
+        <i class="pi pi-wallet"></i>
+        <p>No payment history available</p>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Cancellation Dialog -->
+<p-dialog
+  [(visible)]="showCancelDialog"
+  [modal]="true"
+  [closable]="!loading()"
+  [closeOnEscape]="!loading()"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="cancel-dialog"
+  header="Cancel Subscription"
+>
+  <div class="cancel-dialog-content">
+    <div class="warning-icon">
+      <i class="pi pi-exclamation-triangle"></i>
+    </div>
+    
+    <h3>Are you sure you want to cancel?</h3>
+    
+    <p class="cancel-message">
+      Your subscription will remain active until <strong>{{ getNextBillingDate() }}</strong>.
+      After that, your account will be downgraded to the Free plan.
+    </p>
+
+    <div class="cancel-info">
+      <div class="info-item">
+        <i class="pi pi-check-circle"></i>
+        <span>You'll retain access to all features until the end of your billing period</span>
+      </div>
+      <div class="info-item">
+        <i class="pi pi-database"></i>
+        <span>Your data will be preserved according to the Free plan retention policy</span>
+      </div>
+      <div class="info-item">
+        <i class="pi pi-refresh"></i>
+        <span>You can reactivate your subscription anytime</span>
+      </div>
+    </div>
+
+    <div class="export-reminder">
+      <i class="pi pi-info-circle"></i>
+      <p>Consider exporting your data before cancellation</p>
+      <p-button
+        label="Export Now"
+        icon="pi pi-download"
+        severity="info"
+        [outlined]="true"
+        size="small"
+        (onClick)="exportBillingData()"
+      />
+    </div>
+  </div>
+
+  <div class="dialog-actions">
+    <p-button
+      label="Keep Subscription"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="closeCancelDialog()"
+      [disabled]="loading()"
+    />
+    <p-button
+      label="Confirm Cancellation"
+      severity="danger"
+      (onClick)="confirmCancellation()"
+      [loading]="loading()"
+      [disabled]="loading()"
+    />
+  </div>
+</p-dialog>

@@ -1,0 +1,60 @@
+::ng-deep {
+  .success-dialog {
+    .p-dialog-header {
+      display: none;
+    }
+
+    .p-dialog-content {
+      padding: 3rem 2rem 2rem;
+      border-radius: 16px;
+    }
+  }
+}
+
+.success-content {
+  text-align: center;
+  
+  .success-icon {
+    margin-bottom: 1.5rem;
+    
+    i {
+      font-size: 5rem;
+      color: #10b981;
+      animation: scaleIn 0.5s ease-out;
+    }
+  }
+  
+  h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #1f2937;
+  }
+  
+  p {
+    margin: 0 0 2rem 0;
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  
+  .continue-btn {
+    width: 100%;
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    padding: 0.875rem !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

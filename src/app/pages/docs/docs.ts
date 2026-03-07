@@ -1,0 +1,360 @@
+import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Meta, Title } from '@angular/platform-browser';
+import { CommonModule } from '@angular/common';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { MessageModule } from 'primeng/message';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { DividerModule } from 'primeng/divider';
+import { AccordionModule } from 'primeng/accordion';
+import { RouterModule } from '@angular/router';
+
+interface NavItem {
+  id: string;
+  label: string;
+  icon: string;
+  plan?: 'free' | 'pro' | 'enterprise';
+}
+
+@Component({
+  selector: 'app-docs',
+  standalone: true,
+  imports: [CommonModule, ButtonModule, CardModule, MessageModule, TableModule, TagModule, DividerModule, AccordionModule, RouterModule],
+  templateUrl: './docs.html',
+  styleUrl: './docs.scss',
+})
+export class Docs implements OnInit, OnDestroy {
+  script = `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
+  copied = signal(false);
+  activeSection = signal('getting-started');
+  private observer?: IntersectionObserver;
+
+  constructor(private meta: Meta, private titleService: Title) {
+    this.titleService.setTitle('Documentation | SimpleTrack');
+    this.meta.updateTag({ name: 'description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/docs' });
+    this.meta.updateTag({ property: 'og:title', content: 'Documentation | SimpleTrack' });
+    this.meta.updateTag({ property: 'og:description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+    this.meta.updateTag({ property: 'twitter:url', content: 'https://simpletrack.dev/docs' });
+    this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | SimpleTrack' });
+    this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+  }
+
+  configOptions = [
+    { 
+      attribute: 'data-api-key', 
+      type: 'String', 
+      required: true, 
+      description: 'Your unique API key for authentication' 
+    },
+    { 
+      attribute: 'data-auto-track', 
+      type: 'Boolean', 
+      required: false, 
+      description: 'Enable/disable automatic page view tracking (default: true)' 
+    },
+    { 
+      attribute: 'data-batch-size', 
+      type: 'Number', 
+      required: false, 
+      description: 'Number of events to batch before sending (default: 10)' 
+    },
+    { 
+      attribute: 'data-batch-interval', 
+      type: 'Number', 
+      required: false, 
+      description: 'Milliseconds between batch sends (default: 5000)' 
+    }
+  ];
+
+  faqItems = [
+    {
+      question: 'How small is SimpleTrack?',
+      answer: 'Just 5KB gzipped - smaller than a typical image. Zero dependencies, zero bloat.'
+    },
+    {
+      question: 'Does it work with SPAs?',
+      answer: 'Yes! Automatically detects route changes in React, Vue, Angular, and other frameworks. No manual Router setup required - just include the script and it works.'
+    },
+    {
+      question: 'What data is collected automatically?',
+      answer: 'Page views, referrers, user agent, screen size, and click events. All privacy-focused and GDPR compliant.'
+    },
+    {
+      question: 'Can I track custom events?',
+      answer: 'Yes! Custom event tracking is available on Pro and Enterprise plans. Use STKAnalytics() or STKAnalytics.trackEvent() to track any custom event.'
+    },
+    {
+      question: 'How do I view my data?',
+      answer: 'Access your real-time dashboard at simpletrack.dev/dashboard with beautiful charts and insights.'
+    }
+  ];
+
+  navItems: NavItem[] = [
+    { id: 'getting-started', label: 'Getting Started', icon: 'pi-play', plan: 'free' },
+    { id: 'configuration', label: 'Configuration', icon: 'pi-cog', plan: 'free' },
+    { id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'pro' },
+    { id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'pro' },
+    { id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro' },
+    { id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'pro' },
+    { id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free' },
+    { id: 'debugging', label: 'Debugging', icon: 'pi-code', plan: 'free' },
+    { id: 'faq', label: 'FAQ', icon: 'pi-question-circle' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar' },
+  ];
+  
+  getPlanBadgeClass(plan?: string): string {
+    switch(plan) {
+      case 'free': return 'plan-badge-free';
+      case 'pro': return 'plan-badge-pro';
+      case 'enterprise': return 'plan-badge-enterprise';
+      default: return '';
+    }
+  }
+  
+  getPlanLabel(plan?: string): string {
+    switch(plan) {
+      case 'free': return 'FREE';
+      case 'pro': return 'PRO';
+      case 'enterprise': return 'ENTERPRISE';
+      default: return '';
+    }
+  }
+
+  codeBlocks: { [key: string]: string } = {
+    'script-tag': `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
+    'complete-html': `<!DOCTYPE html>
+<html>
+<head>
+  <title>My Website</title>
+  <script src="https://simpletrack.dev/stk-analytics.min.js" 
+          data-api-key="my-website"></script>
+</head>
+<body>
+  <h1>Welcome to my site</h1>
+</body>
+</html>`,
+    'component-integration': `// Angular/React/Vue component
+handleButtonClick() {
+  window.STKAnalytics.trackEvent('button_click', {
+    button: 'signup',
+    page: 'home'
+  });
+}`,
+    'vanilla-js-events': `// Vanilla JavaScript
+document.querySelector('#myButton').addEventListener('click', () => {
+  window.STKAnalytics.trackEvent('button_click', {
+    button: 'signup'
+  });
+});`,
+    'config-options-example': `<script src="https://simpletrack.dev/stk-analytics.min.js"
+        data-api-key="my-website"
+        data-batch-interval="60000"
+        data-debug="true"
+        data-disable-scroll="false"
+        data-disable-clicks="false"></script>`,
+    'data-click-attributes': `<button data-click="signup-button">Sign Up</button>
+<a href="/pricing" data-click="pricing-link">View Pricing</a>
+<div data-click="hero-banner" class="banner">...</div>`,
+    'custom-event-example': `window.STKAnalytics.trackEvent('video_play', {
+  video_id: 'intro-tutorial',
+  duration: 120
+})`,
+    'stk-api-simple': `// Simple STKAnalytics() API (recommended)
+STKAnalytics('event', 'button_clicked', { button_id: 'signup' });
+STKAnalytics('event', 'video_play', { video_id: 'intro' });
+STKAnalytics('event', 'download', { file: 'whitepaper.pdf' });`,
+    'stk-api-identify': `// User identification
+STKAnalytics('identify', 'user@example.com');
+
+// Track page view
+STKAnalytics('page', '/custom-page');
+
+// Execute when ready
+STKAnalytics(() => {
+  console.log('Analytics ready!');
+});`,
+    'ecommerce-tracking': `// Product view
+window.STKAnalytics.trackEvent('product_view', {
+  product_id: 'SKU-123',
+  name: 'Widget Pro',
+  price: 49.99
+});
+
+// Add to cart
+window.STKAnalytics.trackEvent('add_to_cart', {
+  product_id: 'SKU-123',
+  quantity: 2,
+  value: 99.98
+});`,
+    'immediate-send': `async function handleFormSubmit(e) {
+  e.preventDefault();
+  window.STKAnalytics.trackEvent('form_submit', { form: 'contact' });
+  await window.STKAnalytics.sendBatch();
+  // Now safe to navigate away
+}`,
+    'owner-console': `// Run once in your browser console to permanently
+// disable tracking for yourself on this device:
+STKAnalytics.disableTracking();
+
+// Undo it anytime:
+STKAnalytics.enableTracking();`,
+    'owner-login': `// Call after your own login resolves:
+const user = await getCurrentUser();
+STKAnalytics.setOwner(user.role === 'owner' || user.role === 'admin');
+
+// With persistence across page refreshes (saves to localStorage):
+STKAnalytics.setOwner(true, true); // second arg = persist`,
+    'owner-init': `// Suppress tracking from the very first event:
+STKAnalytics.init({
+  apiKey: 'your-key',
+  excludeOwner: true
+});`,
+    'owner-localstorage': `// Set the flag manually in your browser console once:
+localStorage.setItem('stk_is_owner', 'true');
+// Reload — the SDK reads this automatically on every page load.
+
+// Remove to re-enable tracking:
+localStorage.removeItem('stk_is_owner');`,
+    'owner-env': `// Automatically suppress tracking on localhost / staging:
+const isLocalDev = location.hostname === 'localhost'
+               || location.hostname === '127.0.0.1'
+               || location.hostname.endsWith('.staging.example.com');
+
+STKAnalytics.init({
+  apiKey: 'your-key',
+  excludeOwner: isLocalDev
+});`,
+    'user-email-basic': `// On login
+window.STKAnalytics.setUserEmail('user@example.com');
+
+// On logout
+window.STKAnalytics.clearUserEmail();`,
+    'react-login-integration': `function LoginForm() {
+  const handleLogin = async (email) => {
+    await loginUser(email);
+    window.STKAnalytics.setUserEmail(email);
+  };
+  
+  const handleLogout = () => {
+    window.STKAnalytics.clearUserEmail();
+    logoutUser();
+  };
+}`,
+    'promo-custom-events': `<!-- Add data-track-impression to any element (Pro plan) -->
+<div data-track-impression="summer-sale-banner"
+     data-impression-name="Summer Sale 2024"
+     data-impression-category="promo"
+     class="banner">
+  <h2>50% Off Summer Sale!</h2>
+  <button>Shop Now</button>
+</div>
+
+<!-- That's it! Both impression AND clicks tracked automatically -->
+<!-- Impression: tracked when banner becomes visible -->
+<!-- Click: tracked when user clicks anywhere inside banner -->`,
+    'promo-manual-events': `// Manual tracking (if needed)
+// Track impression
+STKAnalytics('event', 'impression', {
+  impression_id: 'custom-banner',
+  impression_name: 'Custom Banner',
+  category: 'promo',
+  location: window.location.pathname
+});
+
+// Track click
+STKAnalytics('event', 'impression_click', {
+  impression_id: 'custom-banner',
+  impression_name: 'Custom Banner',
+  category: 'promo'
+});`,
+    'intersection-observer': `// Automatic impression tracking with data attributes
+<!-- Just add to your HTML - no JavaScript needed! -->
+<div data-track-impression="homepage-hero"
+     data-impression-name="Homepage Hero Banner"
+     data-impression-category="banner">
+  Hero Content
+</div>
+
+<div data-track-impression="footer-cta"
+     data-impression-name="Footer CTA"
+     data-impression-category="conversion">
+  Footer CTA
+</div>
+
+<!-- SDK automatically tracks when 50% visible -->`,
+    'email-utm-tracking': `// URL: https://yoursite.com?utm_source=email&utm_campaign=summer-sale
+// Attribution is automatically captured on page load`,
+    'debug-configuration': `<script src="https://simpletrack.dev/stk-analytics.min.js"
+        data-api-key="my-website"
+        data-debug="true"></script>`,
+  };
+
+  async copyScript() {
+    try {
+      await navigator.clipboard.writeText(this.script);
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    } catch (e) {
+      console.error('Copy failed', e);
+    }
+  }
+
+  async copyCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      return true;
+    } catch (e) {
+      console.error('Copy failed', e);
+      return false;
+    }
+  }
+
+  scrollToSection(sectionId: string) {
+    this.activeSection.set(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  ngOnInit() {
+    this.setupScrollObserver();
+  }
+
+  ngOnDestroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+
+  private setupScrollObserver() {
+    const options = {
+      root: null,
+      rootMargin: '-20% 0px -60% 0px',
+      threshold: 0
+    };
+
+    this.observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          if (sectionId) {
+            this.activeSection.set(sectionId);
+          }
+        }
+      });
+    }, options);
+
+    // Observe all sections
+    setTimeout(() => {
+      this.navItems.forEach(item => {
+        const element = document.getElementById(item.id);
+        if (element) {
+          this.observer?.observe(element);
+        }
+      });
+    }, 100);
+  }
+}

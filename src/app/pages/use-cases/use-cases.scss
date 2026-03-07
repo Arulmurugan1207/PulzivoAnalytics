@@ -1,0 +1,27 @@
+.use-cases-page {
+  padding: 3rem 0;
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--muted);
+  margin-bottom: 3rem;
+}
+
+.use-case {
+  margin-bottom: 3rem;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+}
+
+.code-block {
+  background: #0f1724;
+  color: #e6eef8;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace;
+}

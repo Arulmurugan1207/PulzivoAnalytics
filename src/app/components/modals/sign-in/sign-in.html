@@ -1,0 +1,88 @@
+<p-dialog 
+  [(visible)]="visible" 
+  [modal]="true" 
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '450px'}"
+  styleClass="sign-in-dialog"
+  (onHide)="hide()">
+  
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <h2>Welcome Back</h2>
+      <p>Sign in to your account</p>
+    </div>
+  </ng-template>
+
+  <div class="sign-in-content">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="input-group">
+        <label for="email">Email</label>
+        <input 
+          pInputText 
+          id="email" 
+          type="email" 
+          formControlName="email"
+          placeholder="your@email.com"
+          class="w-full" />
+        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+          <small class="p-error">Valid email is required</small>
+        }
+      </div>
+
+      <div class="input-group">
+        <label for="password">Password</label>
+        <p-password 
+          formControlName="password"
+          [feedback]="false"
+          [toggleMask]="true"
+          id="password"
+          placeholder="Enter your password"
+          styleClass="w-full" 
+          inputStyleClass="w-full" />
+        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+          <small class="p-error">Password must be at least 6 characters</small>
+        }
+      </div>
+
+      <div class="remember-forgot">
+        <div class="remember-me">
+          <p-checkbox 
+            formControlName="rememberMe" 
+            [binary]="true" 
+            inputId="rememberMe">
+          </p-checkbox>
+          <label for="rememberMe">Remember me</label>
+        </div>
+        <div class="forgot-password">
+          <a (click)="onSwitchToForgotPassword()">Forgot password?</a>
+        </div>
+      </div>
+
+      <button 
+        pButton 
+        type="submit" 
+        label="Sign In" 
+        [loading]="loading"
+        class="sign-in-btn"></button>
+    </form>
+
+    <p-divider align="center">
+      <span class="divider-text">OR</span>
+    </p-divider>
+
+    <button 
+      pButton 
+      type="button" 
+      label="Continue with Google" 
+      icon="pi pi-google"
+      class="p-button-outlined google-btn"></button>
+
+    <div class="signup-link">
+      Don't have an account? 
+      <a (click)="onSwitchToSignUp()">Sign up</a>
+    </div>
+  </div>
+</p-dialog>
+
+<p-toast></p-toast>

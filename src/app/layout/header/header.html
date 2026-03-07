@@ -1,0 +1,44 @@
+<p-menubar [model]="items">
+  <ng-template pTemplate="start">
+    <a class="logo" routerLink="/" (click)="trackLogoClick()">simpletrack.dev</a>
+  </ng-template>
+
+  <ng-template pTemplate="end">
+    @if (!isLoggedIn) {
+      <button pButton type="button" label="Get Started" class="cta" (click)="openSignUp()"></button>
+      <button pButton type="button" label="Sign in" class="p-button-text" (click)="openSignIn()"></button>
+    }
+    
+    @if (isLoggedIn) {
+      <div class="user-menu" (click)="toggleUserMenu($event)">
+        <p-avatar 
+          [label]="userInitials" 
+          shape="circle" 
+          styleClass="user-avatar">
+        </p-avatar>
+        <div class="user-info">
+          <span class="user-name">{{ userName }}</span>
+        </div>
+        <i class="pi pi-chevron-down chevron-icon"></i>
+        <p-menu #userMenu [model]="userMenuItems" [popup]="true" appendTo="body" styleClass="user-dropdown-menu"></p-menu>
+      </div>
+    }
+  </ng-template>
+</p-menubar>
+
+<app-sign-in 
+  (switchToSignUp)="onSwitchToSignUp()" 
+  (switchToForgotPassword)="onSwitchToForgotPassword()"
+  (signInSuccess)="onSignInSuccess($event)">
+</app-sign-in>
+
+<app-sign-up 
+  (switchToSignIn)="onSwitchToSignIn()" 
+  (signUpSuccess)="onSignUpSuccess()">
+</app-sign-up>
+
+<app-forgot-password
+  (backToSignIn)="onBackToSignIn()">
+</app-forgot-password>
+
+<app-success></app-success>

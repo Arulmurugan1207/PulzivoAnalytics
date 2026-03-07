@@ -1,0 +1,139 @@
+::ng-deep {
+  .sign-in-dialog {
+    .p-dialog-header {
+      padding: 2rem 2rem 1rem;
+      border-bottom: none;
+    }
+
+    .p-dialog-content {
+      padding: 0 2rem 2rem;
+    }
+  }
+}
+
+.dialog-header {
+  text-align: center;
+  width: 100%;
+  
+  h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9375rem;
+  }
+}
+
+.sign-in-content {
+  .input-group {
+    margin-bottom: 1.5rem;
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.9375rem;
+    }
+
+    input, ::ng-deep .p-password {
+      width: 100%;
+    }
+
+    small.p-error {
+      display: block;
+      margin-top: 0.25rem;
+      color: #ef4444;
+      font-size: 0.875rem;
+    }
+  }
+
+  .remember-forgot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      label {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6b7280;
+        cursor: pointer;
+        font-weight: 500;
+      }
+    }
+
+    .forgot-password {
+      a {
+        color: var(--bright-blue);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: opacity 0.2s;
+        
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+  }
+
+  .sign-in-btn {
+    width: 100%;
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    padding: 0.875rem !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    margin-bottom: 1.5rem;
+  }
+
+  ::ng-deep .p-divider {
+    margin: 1.5rem 0;
+    
+    .p-divider-content {
+      background: white;
+    }
+  }
+
+  .divider-text {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .google-btn {
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .signup-link {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9375rem;
+    
+    a {
+      color: var(--bright-blue);
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

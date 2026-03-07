@@ -1,0 +1,461 @@
+<div class="docs-layout">
+  <!-- Left Navigation Sidebar -->
+  <aside class="docs-sidebar">
+    <div class="sidebar-header">
+      <h3>Documentation</h3>
+    </div>
+    <nav class="sidebar-nav">
+      @for (item of navItems; track item.id) {
+        <a 
+          class="nav-item" 
+          [class.active]="activeSection() === item.id"
+          (click)="scrollToSection(item.id)">
+          <i class="pi" [ngClass]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="docs-content">
+    <div class="content-wrapper">
+      
+      <!-- Getting Started -->
+      <section id="getting-started" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-play"></i> Getting Started</h1>
+          <span class="plan-badge plan-badge-free">FREE</span>
+        </div>
+        <p class="lead">Quick setup guide to integrate SimpleTrack Analytics in under 60 seconds.</p>
+        
+        <div class="steps-container">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Include the Script</h3>
+              <p>Add this to the <code>&lt;head&gt;</code> or <code>&lt;body&gt;</code> of your HTML:</p>
+              <div class="code-block-wrapper">
+                <button pButton 
+                        type="button" 
+                        [label]="copied() ? 'Copied!' : 'Copy'" 
+                        [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" 
+                        (click)="copyScript()"
+                        [class.p-button-success]="copied()" 
+                        class="copy-btn"
+                        size="small"></button>
+                <pre class="code-block"><code>{{ codeBlocks['script-tag'] }}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Auto-Initialize</h3>
+              <p>The SDK starts tracking automatically when your page loads. No additional initialization required!</p>
+              <ul class="feature-list">
+                <li><i class="pi pi-check-circle"></i> Page views tracked</li>
+                <li><i class="pi pi-check-circle"></i> Click events captured</li>
+                <li><i class="pi pi-check-circle"></i> User sessions recorded</li>
+                <li><i class="pi pi-check-circle"></i> Performance metrics logged</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Verify Setup</h3>
+              <p>Open your browser's console with debug mode enabled to see initialization logs.</p>
+              <button pButton type="button" label="View Debugging Guide" icon="pi pi-arrow-right" iconPos="right" (click)="scrollToSection('debugging')" severity="secondary"></button>
+            </div>
+          </div>
+        </div>
+
+        <p-card>
+          <ng-template pTemplate="header">
+            <h4><i class="pi pi-file-code"></i> Complete Example</h4>
+          </ng-template>
+          <div class="code-block-wrapper">
+            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['complete-html'])" class="copy-btn" size="small"></button>
+            <pre class="code-block"><code>{{ codeBlocks['complete-html'] }}</code></pre>
+          </div>
+        </p-card>
+
+        <p-card>
+          <ng-template pTemplate="header">
+            <h4><i class="pi pi-code"></i> Framework Integration</h4>
+          </ng-template>
+          <p>Use the global <code>STKAnalytics</code> object in your components:</p>
+          <div class="code-block-wrapper">
+            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['component-integration'])" class="copy-btn" size="small"></button>
+            <pre class="code-block"><code>{{ codeBlocks['component-integration'] }}</code></pre>
+          </div>
+        </p-card>
+      </section>
+
+      <!-- Configuration -->
+      <section id="configuration" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-cog"></i> Configuration Options</h1>
+          <span class="plan-badge plan-badge-free">FREE</span>
+        </div>
+        <p class="lead">Customize SimpleTrack behavior using data attributes.</p>
+
+        <p-table [value]="configOptions" [tableStyle]="{'min-width': '50rem'}" styleClass="p-datatable-striped">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Attribute</th>
+              <th>Type</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-option>
+            <tr>
+              <td><code>{{ option.attribute }}</code></td>
+              <td><p-tag [value]="option.type" severity="info"></p-tag></td>
+              <td>
+                <p-tag [value]="option.required ? 'Required' : 'Optional'" 
+                       [severity]="option.required ? 'danger' : 'secondary'"></p-tag>
+              </td>
+              <td>{{ option.description }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        <p-card>
+          <ng-template pTemplate="header">
+            <h4><i class="pi pi-cog"></i> Example with Custom Configuration</h4>
+          </ng-template>
+          <div class="code-block-wrapper">
+            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['config-options-example'])" class="copy-btn" size="small"></button>
+            <pre class="code-block"><code>{{ codeBlocks['config-options-example'] }}</code></pre>
+          </div>
+        </p-card>
+      </section>
+
+      <!-- Automatic Tracking -->
+      <section id="automatic-tracking" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-chart-line"></i> Automatic Tracking</h1>
+          <span class="plan-badge plan-badge-pro">PRO</span>
+        </div>
+        <p class="lead">Zero-code analytics for common user interactions.</p>
+
+        <h3>Page View Tracking</h3>
+        <p>Page views, session duration, and engagement are tracked automatically.</p>
+
+        <h3>Click Tracking</h3>
+        <p>Add <code>data-click</code> attributes to elements:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['data-click-attributes'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['data-click-attributes'] }}</code></pre>
+        </div>
+
+        <h3>SPA Navigation (Automatic)</h3>
+        <p>Route changes are <strong>automatically tracked</strong> in Single Page Applications (React, Vue, Angular, etc.). No manual code required!</p>
+        
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); border-left: 4px solid #10b981; padding: 1rem; border-radius: 8px; margin: 1.5rem 0;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #059669;"><i class="pi pi-check-circle"></i> Automatic Detection</h4>
+          <p style="margin: 0; color: #4b5563;">The SDK detects <code>pushState</code>, <code>replaceState</code>, and <code>popstate</code> events to automatically track navigation in SPAs. Works out of the box with Angular Router, React Router, Vue Router, and more.</p>
+        </div>
+      </section>
+
+      <!-- Custom Events -->
+      <section id="custom-events" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-bolt"></i> Custom Events</h1>
+          <span class="plan-badge plan-badge-pro">PRO</span>
+        </div>
+        <p class="lead">Track custom user actions and business events with the Pro plan.</p>
+
+        <div class="plan-notice plan-notice-pro">
+          <div class="plan-notice-icon">
+            <i class="pi pi-star-fill"></i>
+          </div>
+          <div class="plan-notice-content">
+            <h4>Pro Feature</h4>
+            <p>Custom event tracking requires a <strong>Pro or Enterprise</strong> plan. <a routerLink="/pricing">Upgrade now</a> to unlock unlimited custom events.</p>
+          </div>
+        </div>
+
+        <h3>Simple STKAnalytics() API</h3>
+        <p>Use the convenient functional API for cleaner code:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['stk-api-simple'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['stk-api-simple'] }}</code></pre>
+        </div>
+
+        <h3>STKAnalytics() Advanced Usage</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['stk-api-identify'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['stk-api-identify'] }}</code></pre>
+        </div>
+
+        <h3>Full API (Alternative)</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['custom-event-example'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['custom-event-example'] }}</code></pre>
+        </div>
+
+        <h3>E-commerce Events</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['ecommerce-tracking'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['ecommerce-tracking'] }}</code></pre>
+        </div>
+
+        <h3>Force Send Batch</h3>
+        <p>Send queued events immediately (useful before navigation):</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['immediate-send'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['immediate-send'] }}</code></pre>
+        </div>
+      </section>
+
+      <!-- User Management -->
+      <section id="user-management" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-user"></i> User Management</h1>
+          <span class="plan-badge plan-badge-pro">PRO</span>
+        </div>
+        <p class="lead">Track authenticated users and maintain privacy.</p>
+
+        <h3>Setting User Identity</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['user-email-basic'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['user-email-basic'] }}</code></pre>
+        </div>
+
+        <h3>Integration Example</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['react-login-integration'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['react-login-integration'] }}</code></pre>
+        </div>
+
+        <div class="warning-box">
+          <h4><i class="pi pi-shield"></i> Privacy Considerations</h4>
+          <ul>
+            <li>Email is stored locally (localStorage) - never sent to servers</li>
+            <li>Only used to tag events as authenticated vs anonymous</li>
+            <li>Clear on logout to maintain privacy</li>
+            <li>GDPR compliant by design</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Campaign Tracking -->
+      <section id="promo-tracking" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-megaphone"></i> Campaign & Promo Tracking</h1>
+          <span class="plan-badge plan-badge-pro">PRO</span>
+        </div>
+        <p class="lead">Track marketing campaigns and promotional content using custom events.</p>
+        
+        <div class="plan-notice plan-notice-pro">
+          <div class="plan-notice-icon">
+            <i class="pi pi-star-fill"></i>
+          </div>
+          <div class="plan-notice-content">
+            <h4>Pro Feature - Custom Events</h4>
+            <p>Campaign tracking uses <strong>custom events</strong> (Pro plan required). Track impressions, clicks, and conversions for your marketing campaigns.</p>
+          </div>
+        </div>
+
+        <h3>Track Campaign Impressions & Clicks</h3>
+        <p>Simply add <code>data-track-impression</code> to any element - impressions AND clicks tracked automatically!</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['promo-custom-events'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['promo-custom-events'] }}</code></pre>
+        </div>
+
+        <h3>How It Works</h3>
+        <ul class="feature-list">
+          <li><i class="pi pi-check-circle"></i> <strong>Impressions:</strong> Tracked when 50% visible in viewport</li>
+          <li><i class="pi pi-check-circle"></i> <strong>Clicks:</strong> Tracked when user clicks anywhere inside element</li>
+          <li><i class="pi pi-check-circle"></i> <strong>No duplicates:</strong> One impression per page load</li>
+          <li><i class="pi pi-check-circle"></i> <strong>SPA-ready:</strong> Works with dynamically added content</li>
+          <li><i class="pi pi-check-circle"></i> <strong>Zero code:</strong> Just add the data attribute</li>
+        </ul>
+
+        <h3>Multiple Impressions Example</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['intersection-observer'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['intersection-observer'] }}</code></pre>
+        </div>
+
+        <h3>Manual Tracking (Advanced)</h3>
+        <p>For custom logic, use events directly:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['promo-manual-events'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['promo-manual-events'] }}</code></pre>
+        </div>
+
+        <h3>UTM Campaign Attribution</h3>
+        <p>Attribution is captured automatically from URL parameters (all plans):</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['email-utm-tracking'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['email-utm-tracking'] }}</code></pre>
+        </div>
+      </section>
+
+      <!-- Owner Exclusion -->
+      <section id="owner-exclusion" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-eye-slash"></i> Owner Exclusion</h1>
+          <span class="plan-badge plan-badge-free">FREE</span>
+        </div>
+        <p class="lead">Prevent your own activity from polluting your analytics data. Choose the method that fits your workflow.</p>
+
+        <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border-left: 4px solid #6366f1; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #818cf8;"><i class="pi pi-info-circle"></i> How it works</h4>
+          <p style="margin: 0; color: #94a3b8;">The owner exclusion flag is <strong>per-browser, in-memory</strong>. Each visitor's browser runs an independent copy of the SDK — enabling it for yourself never affects other users' tracking.</p>
+        </div>
+
+        <h3>Method 1 — One-time console command <span style="font-size:0.75rem; background:rgba(34,197,94,0.15); color:#4ade80; padding:0.2rem 0.5rem; border-radius:20px; vertical-align:middle;">Easiest</span></h3>
+        <p>Open your browser DevTools console on your site and run this once. It persists across all page refreshes automatically.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-console'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-console'] }}</code></pre>
+        </div>
+
+        <h3>Method 2 — After login (role-based)</h3>
+        <p>Check the authenticated user's role after login and call <code>setOwner()</code>. This is the most reliable approach for apps with user authentication.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-login'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-login'] }}</code></pre>
+        </div>
+
+        <h3>Method 3 — At init time</h3>
+        <p>Pass <code>excludeOwner: true</code> in your init call. Useful when you already know at page-load time (e.g. a separate admin domain).</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-init'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-init'] }}</code></pre>
+        </div>
+
+        <h3>Method 4 — localStorage flag</h3>
+        <p>Set <code>stk_is_owner</code> in localStorage manually. The SDK reads it automatically on every page load — no code changes needed in your app.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-localstorage'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-localstorage'] }}</code></pre>
+        </div>
+
+        <h3>Method 5 — Environment / hostname check</h3>
+        <p>Automatically suppress tracking on <code>localhost</code> or staging environments so development activity never reaches your dashboard.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-env'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-env'] }}</code></pre>
+        </div>
+
+        <div class="warning-box">
+          <h4><i class="pi pi-exclamation-triangle"></i> Important Notes</h4>
+          <ul>
+            <li>The flag is in-memory — it resets on page refresh unless you use <code>persist: true</code>, <code>disableTracking()</code>, or the localStorage methods.</li>
+            <li>Suppression is silent — no errors, no console warnings (unless debug mode is on).</li>
+            <li>All event types are suppressed: page views, clicks, custom events, everything.</li>
+            <li>Call <code>enableTracking()</code> or <code>setOwner(false)</code> to undo at any time.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Debugging -->
+      <section id="debugging" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-code"></i> Debugging</h1>
+          <span class="plan-badge plan-badge-free">FREE</span>
+        </div>
+        <p class="lead">Troubleshoot and verify your analytics implementation.</p>
+
+        <h3>Enable Debug Mode</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['debug-configuration'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['debug-configuration'] }}</code></pre>
+        </div>
+
+        <h3>Console Output</h3>
+        <div class="console-output">
+          <div class="log-line success">[Analytics] Initialized with config: {{ '{' }}...{{ '}' }}</div>
+          <div class="log-line info">[Analytics] Page view tracked</div>
+          <div class="log-line info">[Analytics] Event sent: button_click</div>
+          <div class="log-line warning">[Analytics] Batch sent (3 events)</div>
+        </div>
+
+        <h3>Troubleshooting Checklist</h3>
+        <ul class="checklist">
+          <li><i class="pi pi-check"></i> Verify script loads without 404 errors</li>
+          <li><i class="pi pi-check"></i> Look for initialization message in console</li>
+          <li><i class="pi pi-check"></i> Confirm events appear in debug logs</li>
+          <li><i class="pi pi-check"></i> Check network tab for API requests</li>
+          <li><i class="pi pi-check"></i> Ensure CORS allows api.simpletrack.dev</li>
+        </ul>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" class="doc-section">
+        <h1><i class="pi pi-question-circle"></i> FAQ</h1>
+        <p class="lead">Common questions and answers.</p>
+
+        <p-accordion [multiple]="true">
+          @for (faq of faqItems; track faq.question; let idx = $index) {
+            <p-accordion-panel [value]="idx.toString()">
+              <p-accordion-header>
+                <span class="faq-header">
+                  <i class="pi pi-question-circle"></i>
+                  <span>{{ faq.question }}</span>
+                </span>
+              </p-accordion-header>
+              <p-accordion-content>
+                <p>{{ faq.answer }}</p>
+              </p-accordion-content>
+            </p-accordion-panel>
+          }
+        </p-accordion>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="dashboard" class="doc-section">
+        <h1><i class="pi pi-chart-bar"></i> Dashboard Analytics</h1>
+        <p class="lead">Real-time insights and comprehensive reporting.</p>
+
+        <p-message severity="info" [text]="'We are building a comprehensive analytics dashboard. Stay tuned for updates!'" 
+                   styleClass="w-full">
+          <ng-template pTemplate>
+            <div class="flex align-items-center gap-2">
+              <i class="pi pi-wrench" style="font-size: 1.5rem"></i>
+              <div>
+                <h4 style="margin: 0 0 0.5rem 0">Coming Soon!</h4>
+                <p style="margin: 0">We're building a comprehensive analytics dashboard. Stay tuned for updates!</p>
+              </div>
+            </div>
+          </ng-template>
+        </p-message>
+
+        <h3>Planned Features</h3>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <i class="pi pi-users"></i>
+            <h4>Live Visitors</h4>
+            <p>Real-time active users</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-eye"></i>
+            <h4>Page Views</h4>
+            <p>Most popular pages</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-map"></i>
+            <h4>Geographic Data</h4>
+            <p>Audience location</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-mobile"></i>
+            <h4>Device Analytics</h4>
+            <p>Mobile vs desktop</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>

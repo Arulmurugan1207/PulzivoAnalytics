@@ -1,0 +1,822 @@
+.settings-container {
+  padding: 0;
+
+  // Custom Tab Navigation Styling
+  .settings-tabs-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0;
+    overflow-x: auto;
+    
+    .tab-btn {
+      border: none !important;
+      background: transparent !important;
+      color: #6b7280 !important;
+      padding: 1rem 1.5rem !important;
+      border-radius: 0 !important;
+      border-bottom: 2px solid transparent !important;
+      transition: all 0.3s ease !important;
+      white-space: nowrap;
+      font-weight: 500;
+      box-shadow: none !important;
+      
+      &:hover:not(.active) {
+        background: rgba(79, 70, 229, 0.05) !important;
+        color: #4f46e5 !important;
+        border-bottom-color: #e5e7eb !important;
+      }
+      
+      &.active {
+        background: transparent !important;
+        color: #4f46e5 !important;
+        border-bottom-color: #4f46e5 !important;
+        font-weight: 600;
+      }
+      
+      .p-button-icon {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  .settings-tab-content {
+    min-height: 400px;
+  }
+}
+
+// Tab Content Sections
+.profile-section,
+.security-section,
+.privacy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// Profile Section
+.profile-section {
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px 8px 0 0;
+
+    .avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+
+      .user-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        object-fit: cover;
+      }
+
+      ::ng-deep .user-avatar-placeholder {
+        width: 120px !important;
+        height: 120px !important;
+        font-size: 3rem !important;
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: white !important;
+      }
+
+      ::ng-deep .avatar-upload {
+        .p-button {
+          background: rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          color: white;
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.3);
+          }
+        }
+      }
+    }
+
+    .profile-info {
+      flex: 1;
+
+      h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 600;
+      }
+
+      .user-email {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      ::ng-deep .role-tag {
+        font-weight: 600;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+      }
+    }
+  }
+}
+
+// Form Styles
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    input, textarea, ::ng-deep .p-dropdown {
+      width: 100%;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+// Security Section
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .card-header {
+    h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1f2937;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+  }
+
+  .security-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem 0;
+    gap: 1rem;
+
+    .security-info {
+      flex: 1;
+      min-width: 0;
+
+      h4 {
+        margin: 0 0 0.5rem 0;
+        color: #1f2937;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 0.875rem;
+        line-height: 1.4;
+      }
+    }
+
+    .security-actions {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    // Responsive design for smaller screens
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+
+      .security-actions {
+        align-self: stretch;
+
+        button {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .session-info {
+    .session-device {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+
+      i {
+        color: #6b7280;
+      }
+    }
+
+    .session-location {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+  }
+}
+
+// Privacy Section
+.privacy-section {
+  .card-header {
+    h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1f2937;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+
+  .data-controls {
+    .data-action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+
+      &.danger {
+        .action-info {
+          h4 {
+            color: #dc2626;
+          }
+        }
+      }
+
+      .action-info {
+        flex: 1;
+
+        h4 {
+          margin: 0 0 0.25rem 0;
+          color: #1f2937;
+        }
+
+        p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+}
+
+// Form Styles
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    input, textarea, ::ng-deep .p-dropdown {
+      width: 100%;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+// Dialog Styles
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.permissions-info {
+  padding: 0.75rem;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  
+  p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+}
+
+.delete-confirmation {
+  display: flex;
+  gap: 1rem;
+
+  .warning-icon {
+    flex-shrink: 0;
+    
+    i {
+      font-size: 2rem;
+      color: #dc2626;
+    }
+  }
+
+  .warning-content {
+    flex: 1;
+
+    h3 {
+      margin: 0 0 1rem 0;
+      color: #1f2937;
+    }
+
+    p {
+      margin: 0 0 1.5rem 0;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+
+    .consequences {
+      h4 {
+        margin: 0 0 0.5rem 0;
+        color: #1f2937;
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 1rem;
+        color: #6b7280;
+        font-size: 0.875rem;
+        line-height: 1.5;
+
+        li {
+          margin-bottom: 0.25rem;
+        }
+      }
+    }
+  }
+}
+
+.two-factor-setup {
+  .setup-step {
+    margin-bottom: 2rem;
+
+    h3 {
+      margin: 0 0 0.5rem 0;
+      color: #1f2937;
+    }
+
+    p {
+      margin: 0 0 1rem 0;
+      color: #4b5563;
+    }
+
+    .qr-code {
+      text-align: center;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      
+      img {
+        max-width: 200px;
+      }
+    }
+
+    .backup-codes {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+
+      code {
+        padding: 0.5rem;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        text-align: center;
+      }
+    }
+  }
+}
+
+.permissions-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+
+  .permission-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    input[type="checkbox"] {
+      margin: 0;
+    }
+
+    label {
+      margin: 0;
+      font-weight: normal;
+      cursor: pointer;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .settings-container {
+    ::ng-deep .p-tabview {
+      .p-tabview-nav {
+        .p-tabview-nav-link {
+          padding: 0.75rem 1rem;
+          font-size: 0.875rem;
+        }
+      }
+    }
+  }
+
+  .profile-section {
+    .profile-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-action {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+
+    button {
+      align-self: stretch;
+    }
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+
+    button {
+      align-self: stretch;
+    }
+  }
+}
+
+// Table Overrides
+::ng-deep .p-datatable {
+  .p-datatable-tbody > tr > td {
+    padding: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .text-center {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+  }
+}
+
+// Card Overrides
+::ng-deep .p-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #f3f4f6;
+
+  .p-card-header {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .p-card-content {
+    padding-top: 0;
+  }
+}
+
+// Dialog Styling
+::ng-deep .change-password-dialog {
+  .p-dialog {
+    max-width: 450px;
+    width: 90vw;
+  }
+
+  .p-dialog-content {
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #374151;
+      font-size: 0.875rem;
+    }
+
+    .p-password {
+      width: 100%;
+      
+      .p-inputtext {
+        width: 100%;
+      }
+    }
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+
+    @media (max-width: 480px) {
+      flex-direction: column;
+      
+      button {
+        width: 100%;
+      }
+    }
+  }
+
+  .p-message {
+    margin-top: 0.75rem;
+  }
+}
+
+::ng-deep .delete-account-dialog {
+  .p-dialog {
+    max-width: 500px;
+    width: 90vw;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .p-inputtext {
+      width: 100%;
+    }
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+}
+
+
+::ng-deep .delete-account-dialog {
+  .delete-account-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .warning-icon {
+      color: #ef4444;
+      font-size: 2rem;
+      margin-top: 0.25rem;
+    }
+
+    .warning-content {
+      flex: 1;
+
+      h3 {
+        margin: 0 0 1rem 0;
+        color: #dc2626;
+        font-size: 1.25rem;
+      }
+
+      p {
+        margin: 0 0 1rem 0;
+        color: #374151;
+        line-height: 1.6;
+
+        &:last-of-type {
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+        }
+      }
+
+      .delete-confirmation-input {
+        width: 100%;
+        margin-bottom: 1rem;
+      }
+    }
+  }
+
+  .dialog-buttons .p-button-danger {
+    background: #ef4444;
+    border-color: #ef4444;
+
+    &:hover:not(:disabled) {
+      background: #dc2626;
+      border-color: #dc2626;
+    }
+  }
+}
+
+// Analytics preferences styling
+.analytics-section {
+  .current-plan-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+
+    .plan-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      ::ng-deep .p-tag {
+        font-weight: 600;
+      }
+
+      span {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+      }
+    }
+
+    .plan-description {
+      flex: 1;
+      margin: 0;
+      color: #374151;
+      line-height: 1.5;
+
+      a {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 500;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+
+  .analytics-features {
+    h4 {
+      margin: 0 0 0.5rem 0;
+      color: #111827;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+
+    .features-description {
+      margin: 0 0 1.5rem 0;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .features-grid {
+      display: grid;
+      gap: 1rem;
+      
+      .feature-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          border-color: #d1d5db;
+          background: #f9fafb;
+        }
+
+        .feature-checkbox {
+          margin-top: 0.125rem;
+          
+          ::ng-deep .p-checkbox {
+            .p-checkbox-box {
+              border-color: #d1d5db;
+              
+              &.p-highlight {
+                background: #4f46e5;
+                border-color: #4f46e5;
+              }
+            }
+          }
+        }
+
+        .feature-info {
+          flex: 1;
+
+          .feature-label {
+            display: block;
+            font-weight: 500;
+            color: #111827;
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+          }
+
+          .feature-description {
+            margin: 0;
+            color: #6b7280;
+            font-size: 0.8125rem;
+            line-height: 1.4;
+          }
+        }
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+
+    ::ng-deep .p-button {
+      &:first-child {
+        background: #4f46e5;
+        border-color: #4f46e5;
+
+        &:hover:not(:disabled) {
+          background: #4338ca;
+          border-color: #4338ca;
+        }
+      }
+    }
+  }
+}

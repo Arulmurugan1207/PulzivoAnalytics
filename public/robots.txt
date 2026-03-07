@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Block private/dashboard routes from indexing
+Disallow: /dashboard/
+Disallow: /reset-password/
+
+Sitemap: https://simpletrack.dev/sitemap.xml

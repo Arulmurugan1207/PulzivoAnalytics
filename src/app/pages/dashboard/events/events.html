@@ -1,0 +1,328 @@
+<!-- Toolbar -->
+<div class="events-toolbar">
+  @if (availableApiKeys.length > 0) {
+    <div class="key-selector">
+      <label>API Key</label>
+      <p-select
+        [options]="availableApiKeys"
+        [(ngModel)]="selectedApiKey"
+        (ngModelChange)="onApiKeyChange()"
+        optionLabel="name"
+        optionValue="apiKey"
+        placeholder="Select API Key"
+        [style]="{ width: '300px' }">
+        <ng-template #selectedItem let-item>
+          <span>{{ item.name }} <span style="color: #94a3b8; font-size: 0.8rem;">({{ item.apiKey }})</span></span>
+        </ng-template>
+        <ng-template #item let-item>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <span>{{ item.name }}</span>
+            <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
+          </div>
+        </ng-template>
+      </p-select>
+    </div>
+  }
+  <div class="toolbar-title">
+    <h2>Events &amp; Interactions</h2>
+    <span class="total-badge">{{ totalEvents | number }} total events</span>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-row">
+  @if (loading.breakdown) {
+    @for (i of [1,2,3,4,5]; track i) {
+      <div class="summary-card skeleton-card">
+        <p-skeleton width="40px" height="40px" borderRadius="10px"></p-skeleton>
+        <div>
+          <p-skeleton width="60px" height="1.5rem" styleClass="mb-1"></p-skeleton>
+          <p-skeleton width="80px" height="0.9rem"></p-skeleton>
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="summary-card">
+      <div class="summary-icon red"><i class="pi pi-bolt"></i></div>
+      <div>
+        <div class="summary-value">{{ summary.rageClicks | number }}</div>
+        <div class="summary-label">Rage Clicks</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon orange"><i class="pi pi-times-circle"></i></div>
+      <div>
+        <div class="summary-value">{{ summary.deadClicks | number }}</div>
+        <div class="summary-label">Dead Clicks</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon green"><i class="pi pi-check-circle"></i></div>
+      <div>
+        <div class="summary-value">{{ summary.formSubmits | number }}</div>
+        <div class="summary-label">Form Submits</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon yellow"><i class="pi pi-times"></i></div>
+      <div>
+        <div class="summary-value">{{ summary.formAbandons | number }}</div>
+        <div class="summary-label">Form Abandons</div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon blue"><i class="pi pi-pencil"></i></div>
+      <div>
+        <div class="summary-value">{{ summary.formFocuses | number }}</div>
+        <div class="summary-label">Form Focuses</div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- Charts Row -->
+<div class="charts-row">
+  <!-- Event Frequency Chart -->
+  <div class="chart-card wide">
+    <div class="card-header">
+      <h3>Event Frequency</h3>
+      <span class="card-sub">Top 15 event types by count</span>
+      @if (loading.breakdown) {
+        <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
+      }
+    </div>
+    @if (loading.breakdown) {
+      <p-skeleton width="100%" height="240px"></p-skeleton>
+    } @else {
+      <div class="chart-wrap">
+        <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
+      </div>
+    }
+  </div>
+
+  <!-- Custom Events -->
+  <div class="chart-card">
+    <div class="card-header">
+      <h3>Custom Events</h3>
+      <span class="card-sub">Your app's tracked events</span>
+    </div>
+    @if (loading.breakdown) {
+      <div class="list-skeleton">
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="skeleton-row">
+            <p-skeleton width="60%" height="1.1rem"></p-skeleton>
+            <p-skeleton width="20%" height="1rem"></p-skeleton>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="data-list">
+        @for (evt of customEvents; track evt.name) {
+          <div class="data-row">
+            <div class="data-main">
+              <i class="pi pi-star-fill event-dot custom"></i>
+              <span class="event-name">{{ formatEventName(evt.name) }}</span>
+            </div>
+            <div class="data-metric">
+              <div class="bar-wrap">
+                <div class="bar-fill" [style.width.%]="evt.percentage"></div>
+              </div>
+              <span class="count-badge">{{ evt.count | number }}</span>
+            </div>
+          </div>
+        }
+        @if (customEvents.length === 0) {
+          <div class="no-data">No custom events tracked yet.<br>
+            <small>Use <code>STKAnalytics.trackEvent('your_event', data)</code></small>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Top Clicks & All Events Tables Row -->
+<div class="tables-row">
+  <!-- Top Clicked Elements -->
+  <div class="data-card">
+    <div class="card-header">
+      <h3>Top Clicked Elements</h3>
+    </div>
+    @if (loading.breakdown) {
+      <div class="list-skeleton">
+        @for (i of [1,2,3,4,5]; track i) {
+          <div class="skeleton-row">
+            <p-skeleton width="55%" height="1.1rem"></p-skeleton>
+            <p-skeleton width="25%" height="1rem"></p-skeleton>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="data-list">
+        @for (click of topClicks; track click.element) {
+          <div class="data-row">
+            <div class="data-main">
+              <i class="pi pi-hand-point-right event-dot"></i>
+              <div class="click-info">
+                <span class="element-name">{{ click.element }}</span>
+                <span class="page-hint">{{ click.page }}</span>
+              </div>
+            </div>
+            <div class="data-metric">
+              <span class="count-badge">{{ click.count | number }}</span>
+            </div>
+          </div>
+        }
+        @if (topClicks.length === 0) {
+          <div class="no-data">No click data yet</div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- All Event Types -->
+  <div class="data-card">
+    <div class="card-header">
+      <h3>All Event Types</h3>
+    </div>
+    @if (loading.breakdown) {
+      <div class="list-skeleton">
+        @for (i of [1,2,3,4,5,6,7]; track i) {
+          <div class="skeleton-row">
+            <p-skeleton width="50%" height="1.1rem"></p-skeleton>
+            <p-skeleton width="30%" height="1rem"></p-skeleton>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="data-list">
+        @for (evt of events; track evt.name) {
+          <div class="data-row">
+            <div class="data-main">
+              <p-tag [value]="formatEventName(evt.name)" [severity]="getEventTagStyle(evt.name)" styleClass="event-tag"></p-tag>
+            </div>
+            <div class="data-metric">
+              <div class="bar-wrap">
+                <div class="bar-fill" [style.width.%]="evt.percentage"></div>
+              </div>
+              <span class="count-badge">{{ evt.count | number }}</span>
+            </div>
+          </div>
+        }
+        @if (events.length === 0) {
+          <div class="no-data">No events recorded yet</div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Event History Table -->
+<div class="history-card">
+  <div class="card-header">
+    <h3>Event History</h3>
+    <span class="total-badge">{{ historyTotal | number }} records</span>
+    @if (loading.history) {
+      <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
+    }
+  </div>
+
+  <!-- Filters -->
+  <div class="history-filters">
+    <div class="search-wrap">
+      <i class="pi pi-search search-icon"></i>
+      <input
+        type="text"
+        pInputText
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearch()"
+        placeholder="Search by page, user ID, or event..."
+        class="search-input" />
+      @if (searchQuery) {
+        <button class="clear-btn" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      }
+    </div>
+    <p-select
+      [options]="eventTypeOptions"
+      [(ngModel)]="filterEventType"
+      (ngModelChange)="onFilterChange()"
+      placeholder="Filter by type"
+      [style]="{ width: '200px' }">
+    </p-select>
+  </div>
+
+  <!-- Table -->
+  @if (loading.history) {
+    <div class="table-skeleton">
+      @for (i of [1,2,3,4,5,6,7,8]; track i) {
+        <div class="table-skeleton-row">
+          <p-skeleton width="130px" height="1rem"></p-skeleton>
+          <p-skeleton width="100px" height="1.4rem" borderRadius="20px"></p-skeleton>
+          <p-skeleton width="180px" height="1rem"></p-skeleton>
+          <p-skeleton width="100px" height="1rem"></p-skeleton>
+          <p-skeleton width="80px" height="1rem"></p-skeleton>
+          <p-skeleton width="60px" height="1rem"></p-skeleton>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="history-table-wrap">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Page</th>
+            <th>User ID</th>
+            <th>Country</th>
+            <th>Device</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (evt of historyEvents; track evt.id) {
+            <tr>
+              <td class="time-cell">{{ formatTime(evt.timestamp) }}</td>
+              <td>
+                <p-tag [value]="formatEventName(evt.event_name)" [severity]="getEventTagStyle(evt.event_name)" styleClass="event-tag"></p-tag>
+              </td>
+              <td class="page-cell" [title]="evt.page || ''">{{ evt.page || '—' }}</td>
+              <td class="user-cell">{{ evt.user_id || '—' }}</td>
+              <td>{{ evt.country || '—' }}</td>
+              <td>
+                @if (evt.device) {
+                  <span class="device-cell"><i [class]="getDeviceIcon(evt.device)"></i> {{ evt.device }}</span>
+                } @else {
+                  <span>—</span>
+                }
+              </td>
+            </tr>
+          }
+          @if (historyEvents.length === 0) {
+            <tr>
+              <td colspan="6" class="empty-row">No events found</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (historyPages > 1) {
+      <div class="pagination">
+        <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(historyPage - 1)">
+          <i class="pi pi-chevron-left"></i>
+        </button>
+        @for (p of pagesArray; track p) {
+          @if (p === -1) {
+            <span class="page-ellipsis">…</span>
+          } @else {
+            <button class="page-btn" [class.active]="historyPage === p" (click)="goToPage(p)">{{ p }}</button>
+          }
+        }
+        <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPage + 1)">
+          <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+    }
+  }
+</div>

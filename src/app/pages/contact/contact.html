@@ -1,0 +1,153 @@
+<div class="contact-page">
+  <!-- Hero Section -->
+  <section class="contact-hero">
+    <div class="hero-background">
+      <div class="hero-gradient"></div>
+      <div class="hero-pattern"></div>
+    </div>
+    <div class="container">
+      <div class="hero-content fade-in">
+        <div class="hero-badge">
+          <i class="pi pi-headphones"></i>
+          <span>24/7 Support Available</span>
+        </div>
+        <h1 class="hero-title">
+          We're Here to <span class="gradient-text">Help</span>
+        </h1>
+        <p class="hero-subtitle">Get expert support, ask questions, or share your feedback. Our team is ready to assist you.</p>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <i class="pi pi-clock"></i>
+            <div>
+              <strong>24 hours</strong>
+              <span>Response Time</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <i class="pi pi-users"></i>
+            <div>
+              <strong>10,000+</strong>
+              <span>Happy Users</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <i class="pi pi-star-fill"></i>
+            <div>
+              <strong>4.9/5</strong>
+              <span>Satisfaction</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <section class="contact-content">
+    <div class="container">
+      <div class="contact-grid">
+        <!-- Contact Info & Support -->
+        <div class="info-section">
+          <!-- Contact Methods -->
+          <p-card styleClass="info-card contact-card">
+            <ng-template pTemplate="header">
+              <div class="card-header">
+                <div class="header-icon">
+                  <i class="pi pi-send"></i>
+                </div>
+                <div>
+                  <h3>Get in Touch</h3>
+                  <p>Choose your preferred way to reach us</p>
+                </div>
+              </div>
+            </ng-template>
+
+            <div class="contact-methods">
+              @for (method of contactMethods; track method.title) {
+                <div class="contact-method-item">
+                  <div class="method-icon">
+                    <i class="pi" [ngClass]="method.icon"></i>
+                  </div>
+                  <div class="method-content">
+                    <h4>{{ method.title }}</h4>
+                    @if (method.link) {
+                      <a [href]="method.link" class="method-link">
+                        <span>{{ method.value }}</span>
+                        <i class="pi pi-arrow-right"></i>
+                      </a>
+                    } @else {
+                      <p>{{ method.value }}</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </p-card>
+
+          <!-- Support Features -->
+          <p-card styleClass="info-card support-card">
+            <ng-template pTemplate="header">
+              <div class="card-header">
+                <div class="header-icon support-icon">
+                  <i class="pi pi-wrench"></i>
+                </div>
+                <div>
+                  <h3>How We Can Help</h3>
+                  <p>Expert support for all your needs</p>
+                </div>
+              </div>
+            </ng-template>
+
+            <div class="support-features">
+              @for (feature of supportFeatures; track feature.title) {
+                <div class="support-feature-item">
+                  <div class="feature-icon">
+                    <i class="pi" [ngClass]="feature.icon"></i>
+                  </div>
+                  <div class="feature-content">
+                    <h4>{{ feature.title }}</h4>
+                    <p>{{ feature.description }}</p>
+                  </div>
+                </div>
+              }
+            </div>
+          </p-card>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p-divider></p-divider>
+
+  <!-- FAQ Section -->
+  <section class="faq-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="header-badge">
+          <i class="pi pi-book"></i>
+          <span>Knowledge Base</span>
+        </div>
+        <h2>Frequently Asked <span class="gradient-text">Questions</span></h2>
+        <p>Find quick answers to common questions about SimpleTrack</p>
+      </div>
+
+      <div class="faq-content">
+        <p-accordion [multiple]="true">
+          @for (faq of faqs; track faq.question; let idx = $index) {
+            <p-accordion-panel [value]="idx.toString()">
+              <p-accordion-header>
+                <span class="faq-question">
+                  <i class="pi pi-question-circle"></i>
+                  <span>{{ faq.question }}</span>
+                </span>
+              </p-accordion-header>
+              <p-accordion-content>
+                <p>{{ faq.answer }}</p>
+              </p-accordion-content>
+            </p-accordion-panel>
+          }
+        </p-accordion>
+      </div>
+    </div>
+  </section>
+</div>

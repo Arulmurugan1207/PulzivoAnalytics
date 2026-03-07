@@ -1,0 +1,97 @@
+<p-dialog 
+  [(visible)]="visible" 
+  [modal]="true" 
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{width: '450px'}"
+  styleClass="sign-up-dialog"
+  (onHide)="hide()">
+  
+  <ng-template pTemplate="header">
+    <div class="dialog-header">
+      <h2>Create Account</h2>
+      <p>Get started with SimpleTrack</p>
+    </div>
+  </ng-template>
+
+  <div class="sign-up-content">
+    <div class="input-group">
+      <label for="name">Full Name</label>
+      <input 
+        pInputText 
+        id="name" 
+        type="text" 
+        [(ngModel)]="name"
+        placeholder="John Doe"
+        class="w-full" />
+    </div>
+
+    <div class="input-group">
+      <label for="email">Email</label>
+      <input 
+        pInputText 
+        id="email" 
+        type="email" 
+        [(ngModel)]="email"
+        placeholder="your@email.com"
+        class="w-full" />
+    </div>
+
+    <div class="input-group">
+      <label for="password">Password</label>
+      <p-password 
+        [(ngModel)]="password"
+        [feedback]="true"
+        [toggleMask]="true"
+        placeholder="Create a password"
+        class="w-full"
+        inputStyleClass="w-full" />
+    </div>
+
+    <div class="input-group">
+      <label for="confirmPassword">Confirm Password</label>
+      <p-password 
+        [(ngModel)]="confirmPassword"
+        [feedback]="false"
+        [toggleMask]="true"
+        placeholder="Confirm your password"
+        class="w-full"
+        inputStyleClass="w-full" />
+    </div>
+
+    <div class="terms-group">
+      <p-checkbox 
+        [(ngModel)]="acceptTerms" 
+        [binary]="true" 
+        inputId="terms" />
+      <label for="terms" class="terms-label">
+        I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>
+      </label>
+    </div>
+
+    <button 
+      pButton 
+      type="button" 
+      label="Create Account" 
+      [loading]="loading"
+      [disabled]="!acceptTerms"
+      (click)="onSignUp()"
+      class="sign-up-btn"></button>
+
+    <p-divider align="center">
+      <span class="divider-text">OR</span>
+    </p-divider>
+
+    <button 
+      pButton 
+      type="button" 
+      label="Continue with Google" 
+      icon="pi pi-google"
+      class="p-button-outlined google-btn"></button>
+
+    <div class="signin-link">
+      Already have an account? 
+      <a (click)="onSwitchToSignIn()">Sign in</a>
+    </div>
+  </div>
+</p-dialog>

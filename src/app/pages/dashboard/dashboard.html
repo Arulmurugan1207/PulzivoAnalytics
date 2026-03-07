@@ -1,0 +1,121 @@
+<div class="dashboard-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
+    <div class="sidebar-header">
+      <div class="sidebar-brand" (click)="goHome()">
+        <i class="pi pi-chart-line"></i>
+        @if (!sidebarCollapsed) {
+          <span>SimpleTrack</span>
+        }
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Home link -->
+      <a class="nav-item" (click)="goHome()">
+        <i class="pi pi-arrow-left"></i>
+        @if (!sidebarCollapsed) {
+          <span>Back to Home</span>
+        }
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Analytics section -->
+      <div class="nav-section-label">
+        @if (!sidebarCollapsed) { Analytics }
+      </div>
+      <a class="nav-item" routerLink="/dashboard/overview" routerLinkActive="active">
+        <i class="pi pi-home"></i>
+        @if (!sidebarCollapsed) { <span>Overview</span> }
+      </a>
+      <a class="nav-item" routerLink="/dashboard/api-keys" routerLinkActive="active">
+        <i class="pi pi-key"></i>
+        @if (!sidebarCollapsed) { <span>API Keys</span> }
+      </a>
+      @if (canAccessUsers()) {
+        <a class="nav-item" routerLink="/dashboard/users" routerLinkActive="active">
+          <i class="pi pi-users"></i>
+          @if (!sidebarCollapsed) { <span>Users</span> }
+        </a>
+      }
+      @if (canAccessReports()) {
+        <a class="nav-item" routerLink="/dashboard/reports" routerLinkActive="active">
+          <i class="pi pi-chart-bar"></i>
+          @if (!sidebarCollapsed) { <span>Reports</span> }
+        </a>
+      }
+      @if (canAccessReports()) {
+        <a class="nav-item" routerLink="/dashboard/events" routerLinkActive="active">
+          <i class="pi pi-bolt"></i>
+          @if (!sidebarCollapsed) { <span>Events</span> }
+        </a>
+      }
+
+      <div class="nav-divider"></div>
+
+      <!-- Account section -->
+      <div class="nav-section-label">
+        @if (!sidebarCollapsed) { Account }
+      </div>
+      @if (canAccessPlans()) {
+        <a class="nav-item" routerLink="/dashboard/plans" routerLinkActive="active">
+          <i class="pi pi-credit-card"></i>
+          @if (!sidebarCollapsed) { <span>Plans</span> }
+        </a>
+      }
+      @if (canAccessBilling()) {
+        <a class="nav-item" routerLink="/dashboard/billing" routerLinkActive="active">
+          <i class="pi pi-receipt"></i>
+          @if (!sidebarCollapsed) { <span>Billing</span> }
+        </a>
+      }
+      <a class="nav-item" routerLink="/dashboard/settings" routerLinkActive="active">
+        <i class="pi pi-cog"></i>
+        @if (!sidebarCollapsed) { <span>Settings</span> }
+      </a>
+
+      <div class="nav-divider"></div>
+
+      <!-- Support section
+      <div class="nav-section-label">
+        @if (!sidebarCollapsed) { Support }
+      </div>
+      <a class="nav-item" [class.active]="activeTab === 'help'" (click)="setActiveTab('help')">
+        <i class="pi pi-question-circle"></i>
+        @if (!sidebarCollapsed) { <span>Help</span> }
+      </a> -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="collapse-btn" (click)="sidebarCollapsed = !sidebarCollapsed">
+        <i class="pi" [class.pi-chevron-left]="!sidebarCollapsed" [class.pi-chevron-right]="sidebarCollapsed"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-panel" [class.sidebar-collapsed]="sidebarCollapsed">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title">{{ getTabTitle() }}</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="user-greeting">
+          <span class="greeting-text">Welcome back,</span>
+          <span class="greeting-name">{{ user?.firstname }}</span>
+          <span class="role-badge" [class]="'role-badge-' + userRole">
+            {{ userRole | uppercase }}
+          </span>
+        </div>
+        <span class="date-text">{{ getTodayInfo() }}</span>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="content-area">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

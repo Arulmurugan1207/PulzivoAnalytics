@@ -1,0 +1,650 @@
+.plans-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.plans-header {
+  margin-bottom: 3rem;
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .title-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .header-icon {
+      font-size: 3rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-color);
+    }
+
+    .subtitle {
+      margin: 0.25rem 0 0 0;
+      color: var(--text-color-secondary);
+      font-size: 0.95rem;
+    }
+  }
+
+  .current-plan-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--surface-card);
+    border-radius: 50px;
+    border: 1px solid var(--surface-border);
+    flex-wrap: wrap;
+
+    .badge-label {
+      font-size: 0.9rem;
+      color: var(--text-color-secondary);
+      font-weight: 500;
+    }
+
+    ::ng-deep .plan-tag {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.4rem 1rem;
+    }
+
+    .pending-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 193, 7, 0.1);
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #f59e0b;
+      font-weight: 500;
+
+      i {
+        font-size: 0.9rem;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+    }
+  }
+}
+
+/* Billing Cycle Toggle */
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface-card);
+  border-radius: 50px;
+  border: 1px solid var(--surface-border);
+  width: fit-content;
+  margin: 0 auto;
+
+  .toggle-label {
+    font-size: 0.95rem;
+    color: var(--text-color-secondary);
+    font-weight: 500;
+    transition: color 0.3s ease;
+
+    &.active {
+      color: var(--text-color);
+      font-weight: 600;
+    }
+
+    .discount-badge {
+      display: inline-block;
+      margin-left: 0.5rem;
+      padding: 0.2rem 0.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 600;
+      border-radius: 12px;
+    }
+  }
+
+  .cycle-toggle-btn {
+    position: relative;
+    width: 48px;
+    height: 24px;
+    background: var(--surface-border);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+
+    &:hover {
+      background: var(--surface-hover);
+    }
+
+    .toggle-slider {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      transition: transform 0.3s ease;
+
+      &.yearly {
+        transform: translateX(24px);
+      }
+    }
+  }
+}
+
+/* Plans Grid */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.plan-card {
+  position: relative;
+  background: var(--surface-card);
+  border: 2px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+  }
+
+  &.popular {
+    border-color: #667eea;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+
+    .plan-header {
+      .plan-name {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    }
+  }
+
+  &.current {
+    border-color: #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+
+    .plan-action ::ng-deep .plan-btn {
+      opacity: 0.5;
+    }
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    i {
+      font-size: 0.7rem;
+    }
+  }
+
+  .current-badge {
+    position: absolute;
+    top: -12px;
+    right: 20px;
+    background: #10b981;
+    color: white;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+
+    i {
+      font-size: 0.7rem;
+    }
+  }
+
+  .plan-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+
+    .plan-name {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 1rem 0;
+      color: var(--text-color);
+    }
+
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+
+      .price-currency {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-color-secondary);
+      }
+
+      .price-amount {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--text-color);
+        line-height: 1;
+      }
+
+      .price-period {
+        font-size: 1rem;
+        color: var(--text-color-secondary);
+        margin-left: 0.25rem;
+      }
+    }
+
+    .monthly-equiv {
+      font-size: 0.85rem;
+      color: var(--text-color-secondary);
+      margin: 0.25rem 0 0.75rem 0;
+    }
+
+    .plan-description {
+      font-size: 0.95rem;
+      color: var(--text-color-secondary);
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  .plan-limits {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--surface-ground);
+    border-radius: 12px;
+
+    .limit-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      i {
+        font-size: 1.25rem;
+        color: #667eea;
+      }
+
+      span {
+        font-size: 0.9rem;
+        color: var(--text-color);
+
+        strong {
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .plan-features {
+    flex: 1;
+    margin-bottom: 1.5rem;
+
+    .features-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-color);
+      margin: 0 0 0.75rem 0;
+    }
+
+    .features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      .feature-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        font-size: 0.9rem;
+        color: var(--text-color-secondary);
+
+        i {
+          color: #10b981;
+          font-size: 0.85rem;
+          margin-top: 0.2rem;
+          flex-shrink: 0;
+        }
+
+        span {
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+
+  .plan-action {
+    ::ng-deep .plan-btn {
+      width: 100%;
+      justify-content: center;
+      font-weight: 600;
+      padding: 0.75rem;
+      font-size: 1rem;
+    }
+  }
+}
+
+/* Additional Info */
+.additional-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 3rem;
+
+  .info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+
+    &.highlight-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+
+    i {
+      font-size: 1.75rem;
+      color: #667eea;
+      margin-top: 0.25rem;
+    }
+
+    h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-color-secondary);
+      line-height: 1.5;
+    }
+  }
+}
+
+/* Confirmation Dialog */
+::ng-deep .confirm-dialog {
+  .p-dialog-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+
+    .p-dialog-title {
+      color: white;
+      font-weight: 600;
+    }
+  }
+
+  .p-dialog-content {
+    padding: 2rem;
+  }
+}
+
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+
+  .dialog-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 1.75rem;
+      color: white;
+    }
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+  }
+
+  .plan-comparison {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface-ground);
+    border-radius: 12px;
+    width: 100%;
+
+    .comparison-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .label {
+        font-size: 0.85rem;
+        color: var(--text-color-secondary);
+        font-weight: 500;
+      }
+
+      .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-color);
+      }
+    }
+
+    .comparison-arrow {
+      color: #667eea;
+      font-size: 1.25rem;
+    }
+  }
+
+  .price-info {
+    text-align: center;
+
+    p {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--text-color);
+
+      strong {
+        font-size: 1.25rem;
+        color: #667eea;
+      }
+    }
+  }
+
+  .request-info {
+    width: 100%;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+
+    i {
+      color: #3b82f6;
+      font-size: 1.25rem;
+      margin-top: 0.125rem;
+      flex-shrink: 0;
+    }
+
+    div {
+      flex: 1;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      line-height: 1.5;
+
+      &:first-child {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+    }
+  }
+
+  .warning-message {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 8px;
+    width: 100%;
+
+    i {
+      color: #eab308;
+      font-size: 1.25rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      line-height: 1.5;
+    }
+  }
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+
+  ::ng-deep .p-button {
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .plans-container {
+    padding: 1rem;
+  }
+
+  .plans-header {
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .current-plan-badge {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    .title-section {
+      .header-icon {
+        font-size: 2rem;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .billing-toggle {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .additional-info {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-content {
+    .plan-comparison {
+      flex-direction: column;
+      gap: 1rem;
+
+      .comparison-arrow {
+        transform: rotate(90deg);
+      }
+    }
+  }
+
+  .dialog-actions {
+    flex-direction: column;
+    
+    ::ng-deep .p-button {
+      width: 100%;
+    }
+  }
+}
