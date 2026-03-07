@@ -62,11 +62,23 @@
         </div>
       </p-popover>
     </div>
+    @if (isOwner) {
+      <div class="owner-badge">
+        <i class="pi pi-shield"></i>
+        <span>Owner View — All Keys</span>
+      </div>
+    }
+  } @else {
+    <div class="no-keys-toolbar-msg">
+      <i class="pi pi-key"></i>
+      <span>No API keys found — <a routerLink="/dashboard/api-keys">create one</a> to start tracking</span>
+    </div>
   }
 </div>
 
 <!-- Main Content with Tabs -->
 <div class="overview-container">
+  @if (availableApiKeys.length > 0) {
   <!-- Tab Navigation -->
   <div class="tab-navigation">
     @for (tab of overviewTabs; track tab.id) {
@@ -682,4 +694,18 @@
     }
 
   </div>
+  } @else {
+    <!-- No API Keys empty state -->
+    <div class="no-keys-empty-state">
+      <div class="empty-icon">
+        <i class="pi pi-chart-bar"></i>
+      </div>
+      <h2>No data to display</h2>
+      <p>You don't have any API keys yet. Create an API key, add the tracking script to your website, and your analytics will appear here.</p>
+      <a routerLink="/dashboard/api-keys" class="create-key-btn">
+        <i class="pi pi-plus"></i>
+        Create API Key
+      </a>
+    </div>
+  }
 </div>

@@ -2216,3 +2216,102 @@
   margin-left: auto;
   margin-right: 0.5rem;
 }
+
+// ── Owner badge ──
+.owner-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #92400e;
+
+  .pi-shield {
+    font-size: 0.85rem;
+    color: #d97706;
+  }
+}
+
+// ── No-keys toolbar message ──
+.no-keys-toolbar-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748b;
+
+  .pi-key {
+    color: #94a3b8;
+  }
+
+  a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ── No-keys empty state (main content) ──
+.no-keys-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 2rem;
+  text-align: center;
+
+  .empty-icon {
+    width: 80px;
+    height: 80px;
+    background: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+
+    .pi-chart-bar {
+      font-size: 2rem;
+      color: #94a3b8;
+    }
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 0.75rem;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #64748b;
+    max-width: 420px;
+    line-height: 1.6;
+    margin: 0 0 1.75rem;
+  }
+
+  .create-key-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #3b82f6;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    &:hover { background: #2563eb; }
+
+    .pi-plus { font-size: 0.85rem; }
+  }
+}

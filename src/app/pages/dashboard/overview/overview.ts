@@ -42,7 +42,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule],
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -112,6 +112,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   availableApiKeys: ApiKey[] = [];
   selectedApiKey = '';
+  isOwner = false;
 
   // Date range picker
   @ViewChild('datePopover') datePopover!: Popover;
@@ -233,6 +234,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     if (user?.role === 'owner') {
       console.log('👑 Overview: Owner detected - granting enterprise access');
       this.userPlan = 'enterprise';
+      this.isOwner = true;
     }
   }
 
@@ -322,10 +324,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.selectedApiKey = this.availableApiKeys[0].apiKey;
             this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
             this.loadAllData();
+          } else if (this.availableApiKeys.length === 0) {
+            // No API keys: user has no data to view
+            this.selectedApiKey = '';
+            this.apiKeysService.setSelectedApiKey(null);
+            this.clearAllData();
           }
           this.cdr.markForCheck();
         },
-        error: () => { this.availableApiKeys = []; this.cdr.markForCheck(); }
+        error: () => { this.availableApiKeys = []; this.clearAllData(); this.cdr.markForCheck(); }
       })
     );
   }
