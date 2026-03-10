@@ -2,7 +2,7 @@
 import { Title } from '@angular/platform-browser';
 import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
 
-const APP_NAME = 'Pulzivo';
+const APP_NAME = 'Pulzivo Analytics';
 
 @Injectable({ providedIn: 'root' })
 export class AppTitleStrategy extends TitleStrategy {

@@ -44,10 +44,10 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute) {
     this.meta.updateTag({ name: 'description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/docs' });
-    this.meta.updateTag({ property: 'og:title', content: 'Documentation | Pulzivo' });
+      this.meta.updateTag({ property: 'og:title', content: 'Documentation | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'og:description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/docs' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | Pulzivo' });
+      this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
   }
 

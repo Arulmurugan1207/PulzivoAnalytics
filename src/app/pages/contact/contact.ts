@@ -85,10 +85,10 @@ export class Contact {
     });
     this.meta.updateTag({ name: 'description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/contact' });
-    this.meta.updateTag({ property: 'og:title', content: 'Contact | Pulzivo' });
+    this.meta.updateTag({ property: 'og:title', content: 'Contact | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'og:description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/contact' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'Contact | Pulzivo' });
+    this.meta.updateTag({ property: 'twitter:title', content: 'Contact | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
   }
 

@@ -40,10 +40,10 @@ export class Pricing {
   constructor(private authService: AuthService, private meta: Meta, private titleService: Title) {
     this.meta.updateTag({ name: 'description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow. No hidden fees.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/pricing' });
-    this.meta.updateTag({ property: 'og:title', content: 'Pricing | Pulzivo' });
+      this.meta.updateTag({ property: 'og:title', content: 'Pricing | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'og:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/pricing' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo' });
+      this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
   }
 
