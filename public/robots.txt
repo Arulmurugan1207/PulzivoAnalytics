@@ -1,5 +1,5 @@
-# SimpleTrack Analytics - robots.txt
-# https://simpletrack.dev
+﻿# Pulzivo Analytics - robots.txt
+# https://pulzivo.com
 
 User-agent: *
 Allow: /
@@ -21,4 +21,4 @@ Allow: /$
 
 Crawl-delay: 10
 
-Sitemap: https://simpletrack.dev/sitemap.xml
+Sitemap: https://pulzivo.com/sitemap.xml

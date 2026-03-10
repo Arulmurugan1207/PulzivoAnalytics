@@ -1,10 +1,10 @@
-/**
- * SimpleTrack Analytics SDK
+﻿/**
+ * Pulzivo Analytics SDK
  * Standalone analytics library for any HTML/JavaScript application
  *
  * Usage:
  * <script
- *   src="https://simpletrack.dev/stk-analytics.min.js"
+ *   src="https://pulzivo.com/pulzivo-analytics.min.js"
  *   data-api-key="YOUR_API_KEY"
  *   data-api-url="https://your-api-endpoint.com/analytics/log"
  *   data-batch-interval="5000"
@@ -56,16 +56,16 @@
   let rateLimitBackoff = 0;
   let lastRateLimitTime = 0;
 
-  // Owner exclusion flag — set via init({ excludeOwner: true }), STKAnalytics.setOwner(true),
-  // or by setting localStorage key 'stk_is_owner' = 'true' in the browser.
+  // Owner exclusion flag — set via init({ excludeOwner: true }), PulzioAnalytics.setOwner(true),
+  // or by setting localStorage key 'plz_is_owner' = 'true' in the browser.
   let isOwner = (function() {
-    try { return localStorage.getItem('stk_is_owner') === 'true'; } catch(e) { return false; }
+    try { return localStorage.getItem('plz_is_owner') === 'true'; } catch(e) { return false; }
   })();
   let ownerOverride = null;
 
   function readOwnerFlagFromStorage() {
     try {
-      return localStorage.getItem('stk_is_owner') === 'true';
+      return localStorage.getItem('plz_is_owner') === 'true';
     } catch (e) {
       return false;
     }
@@ -1083,7 +1083,7 @@
     },
 
     // Mark the current user as the site owner — all tracking is suppressed.
-    // Call after login: STKAnalytics.setOwner(user.role === 'owner')
+    // Call after login: PulzioAnalytics.setOwner(user.role === 'owner')
     // Or pass init({ excludeOwner: true }) to suppress immediately.
     // Pass persist=true to save to localStorage so it survives page refreshes.
     setOwner: function(flag, persist = false) {
@@ -1091,8 +1091,8 @@
       isOwner = ownerOverride;
       if (persist) {
         try {
-          if (isOwner) localStorage.setItem('stk_is_owner', 'true');
-          else localStorage.removeItem('stk_is_owner');
+          if (isOwner) localStorage.setItem('plz_is_owner', 'true');
+          else localStorage.removeItem('plz_is_owner');
         } catch(e) {}
       }
       if (isOwner) {
@@ -1102,9 +1102,9 @@
     },
 
     // Permanently disable tracking for this browser (survives page refreshes).
-    // Useful for devs/admins: run STKAnalytics.disableTracking() once in the console.
+    // Useful for devs/admins: run PulzioAnalytics.disableTracking() once in the console.
     disableTracking: function() {
-      try { localStorage.setItem('stk_is_owner', 'true'); } catch(e) {}
+      try { localStorage.setItem('plz_is_owner', 'true'); } catch(e) {}
       ownerOverride = true;
       isOwner = true;
       clearQueuedEvents('disableTracking()');
@@ -1113,7 +1113,7 @@
 
     // Re-enable tracking for this browser after disableTracking() was called.
     enableTracking: function() {
-      try { localStorage.removeItem('stk_is_owner'); } catch(e) {}
+      try { localStorage.removeItem('plz_is_owner'); } catch(e) {}
       ownerOverride = false;
       isOwner = false;
       if (config.debug) console.log('[Analytics] Tracking re-enabled for this browser.');
@@ -1133,7 +1133,7 @@
       // For custom events, check if plan allows it
       if (isCustomEvent && !hasFeature('custom_events')) {
         if (config.debug) {
-          console.warn('[Analytics] Custom event tracking requires Pro or Enterprise plan. Upgrade at simpletrack.io/pricing');
+          console.warn('[Analytics] Custom event tracking requires Pro or Enterprise plan. Upgrade at Pulzivo.io/pricing');
         }
         return;
       }
@@ -1281,43 +1281,43 @@
   };
 
   // Make it available globally as object
-  window.STKAnalytics = Analytics;
+  window.PulzioAnalytics = Analytics;
   
-  // Make STKAnalytics callable as a function for easier API
-  // STKAnalytics('event', 'name', data) or STKAnalytics.trackEvent('name', data)
-  const originalAnalytics = window.STKAnalytics;
-  window.STKAnalytics = function(command, ...args) {
+  // Make PulzioAnalytics callable as a function for easier API
+  // PulzioAnalytics('event', 'name', data) or PulzioAnalytics.trackEvent('name', data)
+  const originalAnalytics = window.PulzioAnalytics;
+  window.PulzioAnalytics = function(command, ...args) {
     if (typeof command === 'string') {
       switch (command) {
         case 'event':
-          // STKAnalytics('event', 'button_clicked', { button_id: 'signup' })
+          // PulzioAnalytics('event', 'button_clicked', { button_id: 'signup' })
           const [eventName, eventData] = args;
           return originalAnalytics.trackEvent(eventName, eventData || {});
         case 'identify':
-          // STKAnalytics('identify', 'user@example.com')
+          // PulzioAnalytics('identify', 'user@example.com')
           return originalAnalytics.setUserEmail(args[0]);
         case 'page_view':
-          // STKAnalytics('page_view', 'Page Title', '/path')
+          // PulzioAnalytics('page_view', 'Page Title', '/path')
           return originalAnalytics.trackPageView(args[0], args[1]);
         case 'page':
-          // STKAnalytics('page', '/custom-page')
+          // PulzioAnalytics('page', '/custom-page')
           return originalAnalytics.trackNavigation(args[0], args[1] || {});
         default:
-          console.warn('[STKAnalytics] Unknown command:', command);
+          console.warn('[PulzioAnalytics] Unknown command:', command);
       }
     } else if (typeof command === 'function') {
-      // STKAnalytics(() => { ... }) - Execute when ready
+      // PulzioAnalytics(() => { ... }) - Execute when ready
       if (isInitialized) {
         command();
       } else {
-        setTimeout(() => window.STKAnalytics(command), 100);
+        setTimeout(() => window.PulzioAnalytics(command), 100);
       }
     }
   };
   
   // Copy all methods to the function so it works as both function and object
   Object.keys(originalAnalytics).forEach(key => {
-    window.STKAnalytics[key] = originalAnalytics[key];
+    window.PulzioAnalytics[key] = originalAnalytics[key];
   });
 
   // Get configuration from script tag data attributes
@@ -1327,7 +1327,7 @@
     let analyticsScript = null;
 
     for (let script of scripts) {
-      if (script.src && script.src.includes('stk-analytics') && script.getAttribute('data-api-key')) {
+      if (script.src && script.src.includes('pulzivo-analytics') && script.getAttribute('data-api-key')) {
         analyticsScript = script;
         break;
       }

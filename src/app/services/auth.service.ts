@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
@@ -117,9 +117,9 @@ export class AuthService {
     // Clear legacy keys from old auth system
     localStorage.removeItem('currentUser');
     localStorage.removeItem('userEmail');
-    // NOTE: stk_is_owner is intentionally NOT cleared here.
+    // NOTE: plz_is_owner is intentionally NOT cleared here.
     // It is a browser-level "do not track this device" flag.
-    // Only STKAnalytics.enableTracking() should remove it.
+    // Only PulzioAnalytics.enableTracking() should remove it.
 
     // Redirect to home page after logout (unless explicitly prevented)
     if (redirect) {
@@ -129,15 +129,15 @@ export class AuthService {
 
   /**
    * Tells the analytics SDK whether the current browser user is the site owner.
-   * Only activates (sets stk_is_owner) when role is 'owner' — never clears it.
-   * Clearing is done exclusively via STKAnalytics.enableTracking() in the browser.
+   * Only activates (sets plz_is_owner) when role is 'owner' — never clears it.
+   * Clearing is done exclusively via PulzioAnalytics.enableTracking() in the browser.
    */
   applyOwnerTracking(role: string | undefined): void {
     if (role !== 'owner') return;
     const win = window as any;
-    if (win.STKAnalytics?.setOwner) {
-      // persist=true writes stk_is_owner to localStorage so it survives page refreshes
-      win.STKAnalytics.setOwner(true, true);
+    if (win.PulzioAnalytics?.setOwner) {
+      // persist=true writes plz_is_owner to localStorage so it survives page refreshes
+      win.PulzioAnalytics.setOwner(true, true);
     }
   }
 

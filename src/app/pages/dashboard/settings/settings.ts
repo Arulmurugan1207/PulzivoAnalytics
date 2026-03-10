@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+﻿import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -414,7 +414,7 @@ export class DashboardSettings implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `simpletrack-data-${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `Pulzivo-data-${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         window.URL.revokeObjectURL(url);
         
@@ -601,9 +601,9 @@ export class DashboardSettings implements OnInit {
       // Update the signal
       this.enabledFeatures.set(enabledFeatures);
       
-      // Notify analytics SDK if it exists (use STKAnalytics global)
-      if ((window as any).STKAnalytics && (window as any).STKAnalytics.updatePreferences) {
-        (window as any).STKAnalytics.updatePreferences(formValue);
+      // Notify analytics SDK if it exists (use PulzioAnalytics global)
+      if ((window as any).PulzioAnalytics && (window as any).PulzioAnalytics.updatePreferences) {
+        (window as any).PulzioAnalytics.updatePreferences(formValue);
       }
       
       this.loading.set(false);

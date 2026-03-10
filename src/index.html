@@ -1,40 +1,40 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>SimpleTrack.dev</title>
+  <title>Pulzivo</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="SimpleTrack is a lightweight, privacy-focused web analytics SDK. Track page views, clicks, custom events, and user journeys — no cookie banners required.">
-  <meta name="keywords" content="web analytics, privacy-focused analytics, lightweight analytics SDK, page view tracking, custom event tracking, click tracking, simpletrack, cookieless analytics, javascript analytics">
-  <meta name="author" content="SimpleTrack Analytics">
+  <meta name="description" content="Pulzivo is a lightweight, privacy-focused web analytics SDK. Track page views, clicks, custom events, and user journeys — no cookie banners required.">
+  <meta name="keywords" content="web analytics, privacy-focused analytics, lightweight analytics SDK, page view tracking, custom event tracking, click tracking, Pulzivo, cookieless analytics, javascript analytics">
+  <meta name="author" content="Pulzivo Analytics">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#6366f1">
-  <meta name="application-name" content="SimpleTrack">
-  <meta name="generator" content="SimpleTrack Analytics Platform">
+  <meta name="application-name" content="Pulzivo">
+  <meta name="generator" content="Pulzivo Analytics Platform">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://simpletrack.dev/">
-  <meta property="og:site_name" content="SimpleTrack">
-  <meta property="og:title" content="SimpleTrack — Privacy-First Web Analytics">
+  <meta property="og:url" content="https://pulzivo.com/">
+  <meta property="og:site_name" content="Pulzivo">
+  <meta property="og:title" content="Pulzivo — Privacy-First Web Analytics">
   <meta property="og:description" content="Lightweight, cookieless web analytics SDK. Track page views, clicks, and custom events in minutes. No cookie banners required.">
-  <meta property="og:image" content="https://simpletrack.dev/og-image.png">
+  <meta property="og:image" content="https://pulzivo.com/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale" content="en_US">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@simpletrack">
-  <meta name="twitter:url" content="https://simpletrack.dev/">
-  <meta name="twitter:title" content="SimpleTrack — Privacy-First Web Analytics">
+  <meta name="twitter:site" content="@Pulzivo">
+  <meta name="twitter:url" content="https://pulzivo.com/">
+  <meta name="twitter:title" content="Pulzivo — Privacy-First Web Analytics">
   <meta name="twitter:description" content="Lightweight, cookieless web analytics SDK. Track page views, clicks, and custom events in minutes.">
-  <meta name="twitter:image" content="https://simpletrack.dev/og-image.png">
-  <meta name="twitter:image:alt" content="SimpleTrack Analytics Dashboard">
+  <meta name="twitter:image" content="https://pulzivo.com/og-image.png">
+  <meta name="twitter:image:alt" content="Pulzivo Analytics Dashboard">
 
   <!-- Canonical -->
-  <link rel="canonical" href="https://simpletrack.dev/">
+  <link rel="canonical" href="https://pulzivo.com/">
 
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -45,15 +45,15 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "SimpleTrack Analytics SDK",
+    "name": "Pulzivo Analytics SDK",
     "description": "Zero-config web analytics SDK for modern applications with automatic tracking, custom events, and comprehensive reporting capabilities.",
-    "url": "https://simpletrack.dev/analytics-sdk",
+    "url": "https://pulzivo.com/analytics-sdk",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web Browser",
     "programmingLanguage": "JavaScript",
     "fileSize": "5KB",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-    "author": { "@type": "Organization", "name": "SimpleTrack Analytics" },
+    "author": { "@type": "Organization", "name": "Pulzivo Analytics" },
     "featureList": [
       "Zero-configuration setup",
       "Automatic page view tracking",
@@ -66,7 +66,7 @@
       "Batch event sending",
       "Debug mode"
     ],
-    "screenshot": "https://simpletrack.dev/assets/analytics-sdk-preview.png"
+    "screenshot": "https://pulzivo.com/assets/analytics-sdk-preview.png"
   }
   </script>
 
@@ -83,7 +83,7 @@
       },
       {
         "@type": "Question",
-        "name": "Is the SimpleTrack Analytics SDK free?",
+        "name": "Is the Pulzivo Analytics SDK free?",
         "acceptedAnswer": { "@type": "Answer", "text": "The SDK is free and open-source (MIT licensed). Hosting and report access may have associated costs." }
       },
       {
@@ -94,12 +94,12 @@
       {
         "@type": "Question",
         "name": "Does it work with React/Vue/Angular?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Yes! Use window.STKAnalytics in components - no wrapper code needed." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Yes! Use window.PulzioAnalytics in components - no wrapper code needed." }
       },
       {
         "@type": "Question",
         "name": "How do I track custom events?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Use window.STKAnalytics.trackEvent('event_name', { data }) anywhere in your code." }
+        "acceptedAnswer": { "@type": "Answer", "text": "Use window.PulzioAnalytics.trackEvent('event_name', { data }) anywhere in your code." }
       }
     ]
   }
@@ -107,12 +107,12 @@
 </head>
 <body>
   <app-root></app-root>
-  <!-- SimpleTrack Analytics -->
+  <!-- Pulzivo Analytics -->
   <script>
     (function() {
       var isProd = window.location.hostname !== 'localhost';
       var s = document.createElement('script');
-      s.src = isProd ? './stk-analytics.min.js' : './stk-analytics.js';
+      s.src = isProd ? './pulzivo-analytics.min.js' : './pulzivo-analytics.js';
       s.dataset.apiKey    = isProd ? 'STK-1A6S9'  : 'STK-HEBB9';
       s.dataset.apiUrl    = isProd
         ? 'https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log'

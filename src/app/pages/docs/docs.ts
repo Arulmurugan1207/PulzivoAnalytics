@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, AfterViewChecked } from '@angular/core';
+﻿import { Component, signal, OnInit, OnDestroy, AfterViewChecked } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -18,7 +18,7 @@ hljs.registerLanguage('javascript', javascript);
 hljs.registerLanguage('xml', xml);
 hljs.registerLanguage('bash', bash);
 
-declare const STKAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
+declare const PulzioAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
 
 interface NavItem {
   id: string;
@@ -35,20 +35,20 @@ interface NavItem {
   styleUrl: './docs.scss',
 })
 export class Docs implements OnInit, OnDestroy, AfterViewChecked {
-  script = `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
+  script = `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
   copied = signal(false);
   activeSection = signal('getting-started');
   private observer?: IntersectionObserver;
   private highlighted = false;
 
   constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute) {
-    this.meta.updateTag({ name: 'description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/docs' });
-    this.meta.updateTag({ property: 'og:title', content: 'Documentation | SimpleTrack' });
-    this.meta.updateTag({ property: 'og:description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://simpletrack.dev/docs' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | SimpleTrack' });
-    this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+    this.meta.updateTag({ name: 'description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/docs' });
+    this.meta.updateTag({ property: 'og:title', content: 'Documentation | Pulzivo' });
+    this.meta.updateTag({ property: 'og:description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
+    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/docs' });
+    this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | Pulzivo' });
+    this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for the Pulzivo Analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
   }
 
   configOptions = [
@@ -98,7 +98,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
 
   faqItems = [
     {
-      question: 'How small is SimpleTrack?',
+      question: 'How small is Pulzivo?',
       answer: 'Just 5KB gzipped - smaller than a typical image. Zero dependencies, zero bloat.'
     },
     {
@@ -111,11 +111,11 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Can I track custom events?',
-      answer: 'Yes! Custom event tracking is available on Pro and Enterprise plans. Use STKAnalytics() or STKAnalytics.trackEvent() to track any custom event.'
+      answer: 'Yes! Custom event tracking is available on Pro and Enterprise plans. Use PulzioAnalytics() or PulzioAnalytics.trackEvent() to track any custom event.'
     },
     {
       question: 'How do I view my data?',
-      answer: 'Access your real-time dashboard at simpletrack.dev/dashboard with beautiful charts and insights.'
+      answer: 'Access your real-time dashboard at Pulzivo/dashboard with beautiful charts and insights.'
     }
   ];
 
@@ -151,12 +151,12 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   codeBlocks: { [key: string]: string } = {
-    'script-tag': `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
+    'script-tag': `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
     'complete-html': `<!DOCTYPE html>
 <html>
 <head>
   <title>My Website</title>
-  <script src="https://simpletrack.dev/stk-analytics.min.js" 
+  <script src="https://pulzivo.com/pulzivo-analytics.min.js" 
           data-api-key="my-website"></script>
 </head>
 <body>
@@ -165,18 +165,18 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
 </html>`,
     'component-integration': `// Angular/React/Vue component
 handleButtonClick() {
-  window.STKAnalytics.trackEvent('button_click', {
+  window.PulzioAnalytics.trackEvent('button_click', {
     button: 'signup',
     page: 'home'
   });
 }`,
     'vanilla-js-events': `// Vanilla JavaScript
 document.querySelector('#myButton').addEventListener('click', () => {
-  window.STKAnalytics.trackEvent('button_click', {
+  window.PulzioAnalytics.trackEvent('button_click', {
     button: 'signup'
   });
 });`,
-    'config-options-example': `<script src="https://simpletrack.dev/stk-analytics.min.js"
+    'config-options-example': `<script src="https://pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
         data-api-url="https://your-api-endpoint.com/analytics/log"
         data-batch-interval="15000"
@@ -187,88 +187,88 @@ document.querySelector('#myButton').addEventListener('click', () => {
     'data-click-attributes': `<button data-click="signup-button">Sign Up</button>
 <a href="/pricing" data-click="pricing-link">View Pricing</a>
 <div data-click="hero-banner" class="banner">...</div>`,
-    'custom-event-example': `window.STKAnalytics.trackEvent('video_play', {
+    'custom-event-example': `window.PulzioAnalytics.trackEvent('video_play', {
   video_id: 'intro-tutorial',
   duration: 120
 })`,
-    'stk-api-simple': `// Simple STKAnalytics() API (recommended)
-STKAnalytics('event', 'button_clicked', { button_id: 'signup' });
-STKAnalytics('event', 'video_play', { video_id: 'intro' });
-STKAnalytics('event', 'download', { file: 'whitepaper.pdf' });`,
+    'stk-api-simple': `// Simple PulzioAnalytics() API (recommended)
+PulzioAnalytics('event', 'button_clicked', { button_id: 'signup' });
+PulzioAnalytics('event', 'video_play', { video_id: 'intro' });
+PulzioAnalytics('event', 'download', { file: 'whitepaper.pdf' });`,
     'stk-api-identify': `// User identification
-STKAnalytics('identify', 'user@example.com');
+PulzioAnalytics('identify', 'user@example.com');
 
 // Track page view
-STKAnalytics('page', '/custom-page');
+PulzioAnalytics('page', '/custom-page');
 
 // Execute when ready
-STKAnalytics(() => {
+PulzioAnalytics(() => {
   console.log('Analytics ready!');
 });`,
     'ecommerce-tracking': `// Product view
-window.STKAnalytics.trackEvent('product_view', {
+window.PulzioAnalytics.trackEvent('product_view', {
   product_id: 'SKU-123',
   name: 'Widget Pro',
   price: 49.99
 });
 
 // Add to cart
-window.STKAnalytics.trackEvent('add_to_cart', {
+window.PulzioAnalytics.trackEvent('add_to_cart', {
   product_id: 'SKU-123',
   quantity: 2,
   value: 99.98
 });`,
     'immediate-send': `async function handleFormSubmit(e) {
   e.preventDefault();
-  window.STKAnalytics.trackEvent('form_submit', { form: 'contact' });
-  await window.STKAnalytics.sendBatch();
+  window.PulzioAnalytics.trackEvent('form_submit', { form: 'contact' });
+  await window.PulzioAnalytics.sendBatch();
   // Now safe to navigate away
 }`,
     'owner-console': `// Run once in your browser console to permanently
 // disable tracking for yourself on this device:
-STKAnalytics.disableTracking();
+PulzioAnalytics.disableTracking();
 
 // Undo it anytime:
-STKAnalytics.enableTracking();`,
+PulzioAnalytics.enableTracking();`,
     'owner-login': `// Call after your own login resolves:
 const user = await getCurrentUser();
-STKAnalytics.setOwner(user.role === 'owner' || user.role === 'admin');
+PulzioAnalytics.setOwner(user.role === 'owner' || user.role === 'admin');
 
 // With persistence across page refreshes (saves to localStorage):
-STKAnalytics.setOwner(true, true); // second arg = persist`,
+PulzioAnalytics.setOwner(true, true); // second arg = persist`,
     'owner-init': `// Suppress tracking from the very first event:
-STKAnalytics.init({
+PulzioAnalytics.init({
   apiKey: 'your-key',
   excludeOwner: true
 });`,
     'owner-localstorage': `// Set the flag manually in your browser console once:
-localStorage.setItem('stk_is_owner', 'true');
+localStorage.setItem('plz_is_owner', 'true');
 // Reload — the SDK reads this automatically on every page load.
 
 // Remove to re-enable tracking:
-localStorage.removeItem('stk_is_owner');`,
+localStorage.removeItem('plz_is_owner');`,
     'owner-env': `// Automatically suppress tracking on localhost / staging:
 const isLocalDev = location.hostname === 'localhost'
                || location.hostname === '127.0.0.1'
                || location.hostname.endsWith('.staging.example.com');
 
-STKAnalytics.init({
+PulzioAnalytics.init({
   apiKey: 'your-key',
   excludeOwner: isLocalDev
 });`,
     'user-email-basic': `// On login
-window.STKAnalytics.setUserEmail('user@example.com');
+window.PulzioAnalytics.setUserEmail('user@example.com');
 
 // On logout
-window.STKAnalytics.clearUserEmail();`,
+window.PulzioAnalytics.clearUserEmail();`,
     'react-login-integration': `function LoginForm() {
   const handleLogin = async (email) => {
     await loginUser(email);
-    window.STKAnalytics.setUserEmail(email);
+    window.PulzioAnalytics.setUserEmail(email);
   };
   
   const handleLogout = () => {
-    window.STKAnalytics.clearUserEmail();
+    window.PulzioAnalytics.clearUserEmail();
     logoutUser();
   };
 }`,
@@ -286,7 +286,7 @@ window.STKAnalytics.clearUserEmail();`,
 <!-- Click: tracked when user clicks anywhere inside banner -->`,
     'promo-manual-events': `// Manual tracking (if needed)
 // Track impression
-STKAnalytics('event', 'impression', {
+PulzioAnalytics('event', 'impression', {
   impression_id: 'custom-banner',
   impression_name: 'Custom Banner',
   category: 'promo',
@@ -294,7 +294,7 @@ STKAnalytics('event', 'impression', {
 });
 
 // Track click
-STKAnalytics('event', 'impression_click', {
+PulzioAnalytics('event', 'impression_click', {
   impression_id: 'custom-banner',
   impression_name: 'Custom Banner',
   category: 'promo'
@@ -316,7 +316,7 @@ STKAnalytics('event', 'impression_click', {
 <!-- SDK automatically tracks when 50% visible -->`,
     'email-utm-tracking': `// URL: https://yoursite.com?utm_source=email&utm_campaign=summer-sale
 // Attribution is automatically captured on page load`,
-    'debug-configuration': `<script src="https://simpletrack.dev/stk-analytics.min.js"
+    'debug-configuration': `<script src="https://pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="my-website"
         data-debug="true"></script>`,
   };
@@ -346,8 +346,8 @@ STKAnalytics('event', 'impression_click', {
 
   private trackCodeCopy(section: string) {
     try {
-      if (typeof STKAnalytics !== 'undefined') {
-        STKAnalytics('event', 'code_copy', { section });
+      if (typeof PulzioAnalytics !== 'undefined') {
+        PulzioAnalytics('event', 'code_copy', { section });
       }
     } catch (_) {}
   }

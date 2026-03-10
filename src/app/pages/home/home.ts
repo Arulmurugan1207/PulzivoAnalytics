@@ -20,34 +20,34 @@ hljs.registerLanguage('javascript', javascript);
   styleUrl: './home.scss',
 })
 export class Home implements AfterViewChecked {
-  script = `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
+  script = `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
 
   jsSnippet = `// Track a custom event
-STKAnalytics('event', 'button_click', { label: 'signup-cta' });
+PulzioAnalytics('event', 'button_click', { label: 'signup-cta' });
 
 // Identify a user
-STKAnalytics('identify', 'user@example.com');
+PulzioAnalytics('identify', 'user@example.com');
 
 // Track a page view manually
-STKAnalytics('page', '/checkout');
+PulzioAnalytics('page', '/checkout');
 
 // Exclude yourself (owner) from stats
-STKAnalytics.setOwner(true);
+PulzioAnalytics.setOwner(true);
 
 // Send queued events immediately
-STKAnalytics.sendBatch();`;
+PulzioAnalytics.sendBatch();`;
 
   copied = signal(false);
   activeTab = signal<'html' | 'js'>('html');
   private highlighted = false;
 
   constructor(private meta: Meta, private titleService: Title) {
-    this.meta.updateTag({ name: 'description', content: 'SimpleTrack provides powerful, lightweight analytics tracking for websites and applications. Monitor user behavior, page views, clicks, and more with easy integration.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/' });
-    this.meta.updateTag({ property: 'og:title', content: 'SimpleTrack – Analytics for Everyone' });
+    this.meta.updateTag({ name: 'description', content: 'Pulzivo provides powerful, lightweight analytics tracking for websites and applications. Monitor user behavior, page views, clicks, and more with easy integration.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
+    this.meta.updateTag({ property: 'og:title', content: 'Pulzivo – Analytics for Everyone' });
     this.meta.updateTag({ property: 'og:description', content: 'Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://simpletrack.dev/' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'SimpleTrack – Analytics for Everyone' });
+    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/' });
+    this.meta.updateTag({ property: 'twitter:title', content: 'Pulzivo – Analytics for Everyone' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.' });
   }
 

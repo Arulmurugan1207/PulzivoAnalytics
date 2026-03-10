@@ -1,5 +1,5 @@
-{
-  "name": "simpletrack-prime-ng",
+﻿{
+  "name": "Pulzivo-prime-ng",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -7,7 +7,7 @@
     "build": "ng build && npm run minify:analytics",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "minify:analytics": "terser public/stk-analytics.js -o public/stk-analytics.min.js --compress --mangle"
+    "minify:analytics": "terser public/pulzivo-analytics.js -o public/pulzivo-analytics.min.js --compress --mangle"
   },
   "prettier": {
     "printWidth": 100,

@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+﻿import { Component, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -38,8 +38,8 @@ export class Contact {
     {
       icon: 'pi-envelope',
       title: 'Email',
-      value: 'support@simpletrack.dev',
-      link: 'mailto:support@simpletrack.dev'
+      value: 'support@Pulzivo',
+      link: 'mailto:support@Pulzivo'
     },
     {
       icon: 'pi-clock',
@@ -83,13 +83,13 @@ export class Contact {
       subject: ['', [Validators.required, Validators.minLength(5)]],
       message: ['', [Validators.required, Validators.minLength(20)]]
     });
-    this.meta.updateTag({ name: 'description', content: 'Get in touch with the SimpleTrack team. We\'re here to help with questions, feedback, and support.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/contact' });
-    this.meta.updateTag({ property: 'og:title', content: 'Contact | SimpleTrack' });
-    this.meta.updateTag({ property: 'og:description', content: 'Get in touch with the SimpleTrack team. We\'re here to help with questions, feedback, and support.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://simpletrack.dev/contact' });
-    this.meta.updateTag({ property: 'twitter:title', content: 'Contact | SimpleTrack' });
-    this.meta.updateTag({ property: 'twitter:description', content: 'Get in touch with the SimpleTrack team. We\'re here to help with questions, feedback, and support.' });
+    this.meta.updateTag({ name: 'description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
+    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/contact' });
+    this.meta.updateTag({ property: 'og:title', content: 'Contact | Pulzivo' });
+    this.meta.updateTag({ property: 'og:description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
+    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/contact' });
+    this.meta.updateTag({ property: 'twitter:title', content: 'Contact | Pulzivo' });
+    this.meta.updateTag({ property: 'twitter:description', content: 'Get in touch with the Pulzivo team. We\'re here to help with questions, feedback, and support.' });
   }
 
   onSubmit() {
@@ -119,12 +119,12 @@ export class Contact {
 
   faqs: FAQ[] = [
     {
-      question: 'How is SimpleTrack different from Google Analytics?',
-      answer: 'SimpleTrack is lightweight (5KB vs 45KB+), privacy-focused, and requires zero configuration. It works out of the box without complex setup or cookie banners.'
+      question: 'How is Pulzivo different from Google Analytics?',
+      answer: 'Pulzivo is lightweight (5KB vs 45KB+), privacy-focused, and requires zero configuration. It works out of the box without complex setup or cookie banners.'
     },
     {
       question: 'Do I need to write any code?',
-      answer: 'No! Just add one script tag to your HTML. SimpleTrack automatically tracks page views, clicks, and user interactions. Custom events are optional.'
+      answer: 'No! Just add one script tag to your HTML. Pulzivo automatically tracks page views, clicks, and user interactions. Custom events are optional.'
     },
     {
       question: 'Is it really free?',

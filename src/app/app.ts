@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+﻿import { Component, signal, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
@@ -13,7 +13,7 @@ import { AuthService } from './services/auth.service';
   styleUrl: './app.scss'
 })
 export class App implements OnInit {
-  protected readonly title = signal('simpletrack-prime-ng');
+  protected readonly title = signal('Pulzivo-prime-ng');
 
   constructor(private authService: AuthService, private router: Router) {}
 
