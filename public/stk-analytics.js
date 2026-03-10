@@ -61,6 +61,37 @@
   let isOwner = (function() {
     try { return localStorage.getItem('stk_is_owner') === 'true'; } catch(e) { return false; }
   })();
+  let ownerOverride = null;
+
+  function readOwnerFlagFromStorage() {
+    try {
+      return localStorage.getItem('stk_is_owner') === 'true';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function clearQueuedEvents(reason) {
+    if (eventQueue.length > 0 && config.debug) {
+      console.log('[Analytics] Clearing queued events:', eventQueue.length, reason ? `(${reason})` : '');
+    }
+    eventQueue = [];
+  }
+
+  function syncOwnerMode() {
+    const ownerFromStorage = readOwnerFlagFromStorage();
+    const nextOwnerState = ownerOverride === null ? ownerFromStorage : ownerOverride;
+    if (nextOwnerState !== isOwner) {
+      isOwner = nextOwnerState;
+      if (isOwner) {
+        clearQueuedEvents('owner mode enabled');
+      }
+      if (config.debug) {
+        console.log('[Analytics] Owner mode synced from storage:', isOwner ? 'ON' : 'OFF');
+      }
+    }
+    return isOwner;
+  }
 
   // User preferences for analytics features
   let userPreferences = {};
@@ -262,6 +293,8 @@
 
   // Queue event
   function queueEvent(eventName, data = {}) {
+    syncOwnerMode();
+
     // Suppress all tracking for the site owner
     if (isOwner) {
       if (config.debug) console.log('[Analytics] Owner mode active - event suppressed:', eventName);
@@ -329,6 +362,8 @@
 
   // Send batch
   async function sendBatch() {
+    syncOwnerMode();
+
     // Only log batch check if there are events to send or if debug is enabled
     if (eventQueue.length > 0 || config.debug) {
       console.log('[Analytics] Batch timer check - Events in queue:', eventQueue.length);
@@ -507,6 +542,11 @@
     // Track page exit - use sendBeacon for reliability
     if (hasFeature('page_exit')) {
       window.addEventListener('pagehide', () => {
+      syncOwnerMode();
+      if (isOwner) {
+        clearQueuedEvents('owner mode active during pagehide');
+        return;
+      }
       const timeOnPage = Date.now() - startTime;
       queueEvent('page_exit', {
         time_on_page: timeOnPage,
@@ -986,7 +1026,10 @@
       config = { ...config, ...options };
 
       // Apply owner exclusion from init options
-      if (config.excludeOwner) isOwner = true;
+      if (config.excludeOwner) {
+        ownerOverride = true;
+        isOwner = true;
+      }
 
       // Check if API key is provided
       if (!config.apiKey || config.apiKey.trim() === '') {
@@ -1044,12 +1087,16 @@
     // Or pass init({ excludeOwner: true }) to suppress immediately.
     // Pass persist=true to save to localStorage so it survives page refreshes.
     setOwner: function(flag, persist = false) {
-      isOwner = !!flag;
+      ownerOverride = !!flag;
+      isOwner = ownerOverride;
       if (persist) {
         try {
           if (isOwner) localStorage.setItem('stk_is_owner', 'true');
           else localStorage.removeItem('stk_is_owner');
         } catch(e) {}
+      }
+      if (isOwner) {
+        clearQueuedEvents('setOwner(true)');
       }
       if (config.debug) console.log('[Analytics] Owner mode:', isOwner ? 'ON (tracking suppressed)' : 'OFF (tracking active)');
     },
@@ -1058,13 +1105,16 @@
     // Useful for devs/admins: run STKAnalytics.disableTracking() once in the console.
     disableTracking: function() {
       try { localStorage.setItem('stk_is_owner', 'true'); } catch(e) {}
+      ownerOverride = true;
       isOwner = true;
+      clearQueuedEvents('disableTracking()');
       if (config.debug) console.log('[Analytics] Tracking permanently disabled for this browser. Call enableTracking() to undo.');
     },
 
     // Re-enable tracking for this browser after disableTracking() was called.
     enableTracking: function() {
       try { localStorage.removeItem('stk_is_owner'); } catch(e) {}
+      ownerOverride = false;
       isOwner = false;
       if (config.debug) console.log('[Analytics] Tracking re-enabled for this browser.');
     },
