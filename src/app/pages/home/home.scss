@@ -378,207 +378,49 @@ h2 {
   margin-top: 1.5rem;
 }
 
-.comparison-section {
-  padding: 2.5rem 0;
-  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+// ---- Why Pulzivo Teaser ----
+.why-teaser {
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
 }
 
-.comparison-table {
-  max-width: 900px;
-  margin: 0 auto;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(15,23,42,0.08);
-  overflow-x: auto; // allow horizontal scroll on small screens
-  -webkit-overflow-scrolling: touch;
-}
-
-.comparison-row {
-  display: grid;
-  grid-template-columns: 2fr repeat(3, 1fr);
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border-bottom: 1px solid rgba(15,23,42,0.08);
-}
-
-.comparison-row.header {
-  background: rgba(15,23,42,0.02);
-  font-weight: 700;
-}
-
-.comparison-row:last-child {
-  border-bottom: none;
-}
-
-.comparison-cell {
-  text-align: center;
-  padding: 0.5rem;
-}
-
-.comparison-cell:first-child {
-  text-align: left;
-  font-weight: 600;
-}
-
-.comparison-cell.highlight {
-  color: var(--bright-blue);
-  font-weight: 700;
-}
-
-// ---- Web vs Product Analytics ----
-.analytics-types-section {
-  padding: 2.5rem 0;
-  background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
-}
-
-.analytics-types-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1.5rem;
-  align-items: start;
+.why-teaser-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
   max-width: 860px;
-  margin: 0 auto 1.5rem auto;
-}
-
-.analytics-type-card {
+  margin: 0 auto;
   background: #fff;
   border-radius: 16px;
-  padding: 1.75rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 1.75rem 2rem;
+  box-shadow: 0 4px 20px rgba(15,23,42,0.06);
+  border: 1px solid rgba(99,102,241,0.12);
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1);
-  }
-
-  h3 {
-    font-size: 1.375rem;
-    font-weight: 700;
-    margin: 0.75rem 0 0.25rem 0;
-  }
-}
-
-.type-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  i {
+  h2 {
     font-size: 1.5rem;
-    color: var(--bright-blue);
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    text-align: left;
+    span { color: var(--bright-blue); }
   }
 
-  &.accent {
-    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-
-    i {
-      color: #16a34a;
-    }
-  }
-}
-
-.type-tagline {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-  font-style: italic;
-}
-
-.type-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem 0;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0;
+  p {
+    color: var(--muted);
     font-size: 0.9375rem;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.04);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    i {
-      color: #16a34a;
-      font-size: 0.75rem;
-      flex-shrink: 0;
-    }
+    margin: 0;
   }
 }
 
-.type-audience {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin: 0;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.06);
-}
-
-.analytics-type-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-top: 4rem;
-
-  span {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--bright-blue), #7c3aed);
-    color: #fff;
-    font-size: 1.5rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-  }
-}
-
-.analytics-types-note {
-  max-width: 600px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, #eff6ff, #faf5ff);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-radius: 12px;
-  padding: 1rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  text-align: center;
-  justify-content: center;
-  font-weight: 500;
-  color: #1e40af;
-
-  i {
-    font-size: 1.25rem;
-    flex-shrink: 0;
-    color: var(--bright-blue);
-  }
+.why-teaser-text {
+  flex: 1;
 }
 
 @media (max-width: 640px) {
-  .analytics-types-grid {
-    grid-template-columns: 1fr;
-    max-width: 100%;
-  }
-
-  .analytics-type-divider {
-    padding-top: 0;
-
-    span {
-      transform: rotate(90deg);
-    }
+  .why-teaser-inner {
+    flex-direction: column;
+    text-align: center;
+    h2 { text-align: center; }
   }
 }
 

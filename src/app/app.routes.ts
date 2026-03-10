@@ -4,7 +4,7 @@ import { AuthGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    title: 'Drop One Line, Watch Your Analytics Shine | Home',
+    title: 'Home',
     loadComponent: () => import('./pages/home/home').then(m => m.Home)
   },
   {
@@ -21,6 +21,11 @@ export const routes: Routes = [
     path: 'features',
     title: 'Features',
     loadComponent: () => import('./pages/features/features').then(m => m.Features)
+  },
+  {
+    path: 'why-pulzivo',
+    title: 'Why Pulzivo',
+    loadComponent: () => import('./pages/why-pulzivo/why-pulzivo').then(m => m.WhyPulzivo)
   },
   {
     path: 'use-cases',

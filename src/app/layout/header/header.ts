@@ -41,6 +41,7 @@ export class Header implements OnInit, OnDestroy {
 
   readonly navItems: NavItem[] = [
     { label: 'Home', path: '/' },
+    { label: 'Why Pulzivo', path: '/why-pulzivo' },
     { label: 'Pricing', path: '/pricing' },
     { label: 'Docs', path: '/docs' },
     { label: 'Contact', path: '/contact' },
