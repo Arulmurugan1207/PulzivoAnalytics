@@ -65,6 +65,9 @@ export class AuthService {
             user: response.user,
             expiresAt: expirationTime
           }));
+          // Clear legacy keys from old auth system
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('userEmail');
           this.applyOwnerTracking(response.user.role);
         } else {
           console.warn('Signup response missing user.token:', response);
@@ -89,6 +92,9 @@ export class AuthService {
             user: response.user,
             expiresAt: expirationTime
           }));
+          // Clear legacy keys in case a different account was previously logged in
+          localStorage.removeItem('currentUser');
+          localStorage.removeItem('userEmail');
           this.applyOwnerTracking(response.user.role);
         } else {
           console.warn('Signin response missing user.token:', response);
@@ -108,9 +114,12 @@ export class AuthService {
     localStorage.removeItem('apiKeyTracking');
     localStorage.removeItem('rememberedEmail');
     localStorage.removeItem('token');
-
-    // Re-enable tracking when logging out (next visitor won't be suppressed)
-    this.applyOwnerTracking(undefined);
+    // Clear legacy keys from old auth system
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('userEmail');
+    // NOTE: stk_is_owner is intentionally NOT cleared here.
+    // It is a browser-level "do not track this device" flag.
+    // Only STKAnalytics.enableTracking() should remove it.
 
     // Redirect to home page after logout (unless explicitly prevented)
     if (redirect) {
@@ -120,12 +129,15 @@ export class AuthService {
 
   /**
    * Tells the analytics SDK whether the current browser user is the site owner.
-   * When role === 'owner', all event tracking is silently suppressed for this session.
+   * Only activates (sets stk_is_owner) when role is 'owner' — never clears it.
+   * Clearing is done exclusively via STKAnalytics.enableTracking() in the browser.
    */
   applyOwnerTracking(role: string | undefined): void {
+    if (role !== 'owner') return;
     const win = window as any;
     if (win.STKAnalytics?.setOwner) {
-      win.STKAnalytics.setOwner(role === 'owner');
+      // persist=true writes stk_is_owner to localStorage so it survives page refreshes
+      win.STKAnalytics.setOwner(true, true);
     }
   }
 

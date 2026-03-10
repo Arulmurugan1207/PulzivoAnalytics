@@ -33,7 +33,7 @@ export class App implements OnInit {
       console.log('User data:', userData);
       // Restore owner tracking flag so the SDK suppresses events for the owner
       // even after a page refresh (flag is in-memory, not persisted)
-      this.authService.applyOwnerTracking(userData?.user?.role);
+      this.authService.applyOwnerTracking(userData?.role);
     }
   }
 }
