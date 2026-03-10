@@ -1,58 +1,57 @@
-<section class="use-cases-page">
+<!-- Hero -->
+<section class="uc-hero">
   <div class="container">
-    <h1>🎯 Use Cases & Custom Events</h1>
-    <p class="subtitle">Track conversions, forms, and custom actions</p>
+    <div class="uc-hero-badge">🎯 Use Cases</div>
+    <h1>What can you track with SimpleTrack?</h1>
+    <p class="uc-hero-sub">From zero-config page views to custom conversion events — here's everything you can measure out of the box.</p>
+  </div>
+</section>
 
-    <div class="use-case">
-      <h2>📊 Custom Events</h2>
-      <p>Track any custom interaction or conversion:</p>
-      <pre class="code-block">
-// Track button clicks
-window.STKAnalytics.trackEvent('button_click', &#123; button: 'signup' &#125;);
-
-// Track form submissions
-window.STKAnalytics.trackEvent('form_submit', &#123; form: 'contact' &#125;);
-
-// Track purchases
-window.STKAnalytics.trackEvent('purchase', &#123; 
-  amount: 99, 
-  plan: 'pro',
-  currency: 'USD'
-&#125;);</pre>
+<!-- Cards grid -->
+<section class="uc-grid-section">
+  <div class="container">
+    <div class="uc-grid">
+      @for (uc of useCases; track uc.title) {
+        <div class="uc-card">
+          <div class="uc-card-top">
+            <div class="uc-icon-wrap">
+              <i class="pi {{ uc.icon }}"></i>
+            </div>
+            <p-tag [value]="uc.tag" [severity]="uc.tagSeverity" class="uc-plan-tag"></p-tag>
+          </div>
+          <h2>{{ uc.title }}</h2>
+          <p class="uc-desc">{{ uc.description }}</p>
+          <ul class="uc-highlights">
+            @for (h of uc.highlights; track h) {
+              <li><i class="pi pi-check-circle"></i> {{ h }}</li>
+            }
+          </ul>
+          <a class="uc-cta"
+             routerLink="/docs"
+             [fragment]="uc.docsSection"
+             [queryParams]="{utm_source: 'use-cases', utm_medium: 'card', utm_campaign: uc.campaign}">
+            See in docs <i class="pi pi-arrow-right"></i>
+          </a>
+        </div>
+      }
     </div>
+  </div>
+</section>
 
-    <div class="use-case">
-      <h2>👥 User Identification</h2>
-      <p>Track authenticated users and their journey:</p>
-      <pre class="code-block">
-// Identify a logged-in user
-window.STKAnalytics.identifyUser('user_123', &#123;
-  email: 'user@example.com',
-  plan: 'pro',
-  signupDate: '2024-01-15'
-&#125;);</pre>
-    </div>
-
-    <div class="use-case">
-      <h2>📢 Campaign Tracking</h2>
-      <p>Track promo impressions and clicks:</p>
-      <pre class="code-block">
-// Track promo impression
-window.STKAnalytics.trackPromoImpression('promo_123');
-
-// Track promo click
-window.STKAnalytics.trackPromoClick('promo_123', 'learn_more');</pre>
-    </div>
-
-    <div class="use-case">
-      <h2>⚡ Performance Monitoring</h2>
-      <p>Automatically tracked metrics:</p>
-      <ul>
-        <li>Page load times</li>
-        <li>Time to interactive</li>
-        <li>First contentful paint</li>
-        <li>Largest contentful paint</li>
-      </ul>
+<!-- Bottom CTA -->
+<section class="uc-bottom-cta">
+  <div class="container text-center">
+    <h2>Ready to start tracking?</h2>
+    <p>Set up in 60 seconds — no credit card required.</p>
+    <div class="uc-cta-actions">
+      <button pButton type="button" label="Read the Docs" icon="pi pi-book" iconPos="left"
+              routerLink="/docs"
+              [queryParams]="{utm_source: 'use-cases', utm_medium: 'bottom-cta', utm_campaign: 'read-docs'}"
+              size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="View Pricing" icon="pi pi-tag" iconPos="left"
+              routerLink="/pricing"
+              [queryParams]="{utm_source: 'use-cases', utm_medium: 'bottom-cta', utm_campaign: 'view-pricing'}"
+              severity="secondary" size="large"></button>
     </div>
   </div>
 </section>

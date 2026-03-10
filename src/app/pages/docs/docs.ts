@@ -1,4 +1,4 @@
-import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, AfterViewChecked } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -8,7 +8,17 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import xml from 'highlight.js/lib/languages/xml';
+import bash from 'highlight.js/lib/languages/bash';
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('bash', bash);
+
+declare const STKAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
 
 interface NavItem {
   id: string;
@@ -24,14 +34,14 @@ interface NavItem {
   templateUrl: './docs.html',
   styleUrl: './docs.scss',
 })
-export class Docs implements OnInit, OnDestroy {
+export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   script = `<script src="https://simpletrack.dev/stk-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
   copied = signal(false);
   activeSection = signal('getting-started');
   private observer?: IntersectionObserver;
+  private highlighted = false;
 
-  constructor(private meta: Meta, private titleService: Title) {
-    this.titleService.setTitle('Documentation | SimpleTrack');
+  constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute) {
     this.meta.updateTag({ name: 'description', content: 'Complete documentation for the SimpleTrack analytics SDK. Zero-config setup, automatic tracking, custom events, and more.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/docs' });
     this.meta.updateTag({ property: 'og:title', content: 'Documentation | SimpleTrack' });
@@ -49,22 +59,40 @@ export class Docs implements OnInit, OnDestroy {
       description: 'Your unique API key for authentication' 
     },
     { 
-      attribute: 'data-auto-track', 
-      type: 'Boolean', 
+      attribute: 'data-api-url', 
+      type: 'String', 
       required: false, 
-      description: 'Enable/disable automatic page view tracking (default: true)' 
-    },
-    { 
-      attribute: 'data-batch-size', 
-      type: 'Number', 
-      required: false, 
-      description: 'Number of events to batch before sending (default: 10)' 
+      description: 'Override the default API endpoint URL' 
     },
     { 
       attribute: 'data-batch-interval', 
       type: 'Number', 
       required: false, 
-      description: 'Milliseconds between batch sends (default: 5000)' 
+      description: 'Milliseconds between batch sends (default: 15000)' 
+    },
+    { 
+      attribute: 'data-debug', 
+      type: 'Boolean', 
+      required: false, 
+      description: 'Enable debug logging to console — events are logged but NOT sent to the server (default: false)' 
+    },
+    { 
+      attribute: 'data-disable-page-views', 
+      type: 'Flag', 
+      required: false, 
+      description: 'Add this attribute to disable automatic page view tracking' 
+    },
+    { 
+      attribute: 'data-disable-clicks', 
+      type: 'Flag', 
+      required: false, 
+      description: 'Add this attribute to disable automatic click tracking' 
+    },
+    { 
+      attribute: 'data-disable-scroll', 
+      type: 'Flag', 
+      required: false, 
+      description: 'Add this attribute to disable automatic scroll depth tracking' 
     }
   ];
 
@@ -149,11 +177,13 @@ document.querySelector('#myButton').addEventListener('click', () => {
   });
 });`,
     'config-options-example': `<script src="https://simpletrack.dev/stk-analytics.min.js"
-        data-api-key="my-website"
-        data-batch-interval="60000"
+        data-api-key="YOUR_API_KEY"
+        data-api-url="https://your-api-endpoint.com/analytics/log"
+        data-batch-interval="15000"
         data-debug="true"
-        data-disable-scroll="false"
-        data-disable-clicks="false"></script>`,
+        data-disable-scroll
+        data-disable-clicks></script>`,
+    'config-options-note': 'Flag attributes (data-disable-*) disable a feature when present. Omit them to keep tracking enabled.',
     'data-click-attributes': `<button data-click="signup-button">Sign Up</button>
 <a href="/pricing" data-click="pricing-link">View Pricing</a>
 <div data-click="hero-banner" class="banner">...</div>`,
@@ -296,6 +326,7 @@ STKAnalytics('event', 'impression_click', {
       await navigator.clipboard.writeText(this.script);
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
+      this.trackCodeCopy('script-tag');
     } catch (e) {
       console.error('Copy failed', e);
     }
@@ -304,6 +335,8 @@ STKAnalytics('event', 'impression_click', {
   async copyCode(code: string) {
     try {
       await navigator.clipboard.writeText(code);
+      const section = Object.entries(this.codeBlocks).find(([, v]) => v === code)?.[0] ?? 'unknown';
+      this.trackCodeCopy(section);
       return true;
     } catch (e) {
       console.error('Copy failed', e);
@@ -311,16 +344,42 @@ STKAnalytics('event', 'impression_click', {
     }
   }
 
+  private trackCodeCopy(section: string) {
+    try {
+      if (typeof STKAnalytics !== 'undefined') {
+        STKAnalytics('event', 'code_copy', { section });
+      }
+    } catch (_) {}
+  }
+
   scrollToSection(sectionId: string) {
     this.activeSection.set(sectionId);
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const headerOffset = 72; // fixed header height + breathing room
+      const top = element.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
   }
 
   ngOnInit() {
     this.setupScrollObserver();
+    // Scroll to fragment from URL (e.g. /docs?utm_...#custom-events)
+    const fragment = this.route.snapshot.fragment;
+    if (fragment) {
+      // Wait for DOM + highlight.js to finish before scrolling
+      setTimeout(() => this.scrollToSection(fragment), 300);
+    }
+  }
+
+  ngAfterViewChecked() {
+    if (!this.highlighted) {
+      const blocks = document.querySelectorAll('pre code:not(.hljs)');
+      if (blocks.length > 0) {
+        blocks.forEach(block => hljs.highlightElement(block as HTMLElement));
+        this.highlighted = true;
+      }
+    }
   }
 
   ngOnDestroy() {

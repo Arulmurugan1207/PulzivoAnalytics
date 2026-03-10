@@ -4,21 +4,39 @@ import { AuthGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    title: 'SimpleTrack – Analytics for Everyone',
+    title: 'Drop One Line, Watch Your Analytics Shine | Home',
     loadComponent: () => import('./pages/home/home').then(m => m.Home)
   },
-  
   {
     path: 'pricing',
-    title: 'Pricing | SimpleTrack',
+    title: 'Pricing',
     loadComponent: () => import('./pages/pricing/pricing').then(m => m.Pricing)
   },
   {
     path: 'docs',
-    title: 'Documentation | SimpleTrack',
+    title: 'Documentation',
     loadComponent: () => import('./pages/docs/docs').then(m => m.Docs)
   },
-  
+  {
+    path: 'features',
+    title: 'Features',
+    loadComponent: () => import('./pages/features/features').then(m => m.Features)
+  },
+  {
+    path: 'use-cases',
+    title: 'Use Cases',
+    loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
+  },
+  {
+    path: 'blog',
+    title: 'Blog',
+    loadComponent: () => import('./pages/blog/blog').then(m => m.Blog)
+  },
+  {
+    path: 'contact',
+    title: 'Contact',
+    loadComponent: () => import('./pages/contact/contact').then(m => m.Contact)
+  },
   {
     path: 'dashboard',
     loadComponent: () => import('./pages/dashboard/dashboard').then(m => m.Dashboard),
@@ -31,54 +49,49 @@ export const routes: Routes = [
       },
       {
         path: 'overview',
-        title: 'Overview | SimpleTrack',
+        title: 'Overview',
         loadComponent: () => import('./pages/dashboard/overview/overview').then(m => m.DashboardOverview)
       },
       {
         path: 'api-keys',
-        title: 'API Keys | SimpleTrack',
+        title: 'API Keys',
         loadComponent: () => import('./pages/dashboard/api-keys/api-keys').then(m => m.DashboardApiKeys)
       },
       {
         path: 'users',
-        title: 'Users | SimpleTrack',
+        title: 'Users',
         loadComponent: () => import('./pages/dashboard/users/users').then(m => m.DashboardUsersComponent)
       },
       {
         path: 'reports',
-        title: 'Reports | SimpleTrack',
+        title: 'Reports',
         loadComponent: () => import('./pages/dashboard/reports/reports').then(m => m.DashboardReports)
       },
       {
         path: 'plans',
-        title: 'Plans | SimpleTrack',
+        title: 'Plans',
         loadComponent: () => import('./pages/dashboard/plans/plans').then(m => m.DashboardPlans)
       },
       {
         path: 'billing',
-        title: 'Billing | SimpleTrack',
+        title: 'Billing',
         loadComponent: () => import('./pages/dashboard/billing/billing').then(m => m.DashboardBilling)
       },
       {
         path: 'events',
-        title: 'Events | SimpleTrack',
+        title: 'Events',
         loadComponent: () => import('./pages/dashboard/events/events').then(m => m.DashboardEvents)
       },
       {
         path: 'settings',
-        title: 'Settings | SimpleTrack',
+        title: 'Settings',
         loadComponent: () => import('./pages/dashboard/settings/settings').then(m => m.DashboardSettings)
       }
     ]
   },
   {
-    path: 'contact',
-    title: 'Contact | SimpleTrack',
-    loadComponent: () => import('./pages/contact/contact').then(m => m.Contact)
-  },
-  {
     path: 'reset-password/:token',
-    title: 'Reset Password | SimpleTrack',
+    title: 'Reset Password',
     loadComponent: () => import('./pages/reset-password/reset-password').then(m => m.ResetPassword)
   }
 ];

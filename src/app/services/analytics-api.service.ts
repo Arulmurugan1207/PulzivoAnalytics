@@ -7,6 +7,11 @@ import { UserAPIKeysResponse, APIKey } from './api-key.model';
 import { ApiKeysService } from './api-keys.service';
 import { environment } from '../../environments/environment';
 
+export interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,16 +24,21 @@ export class AnalyticsAPIService {
     private apiKeysService: ApiKeysService
   ) { }
 
+  private buildDateParams(dateRange?: DateRange): string {
+    if (!dateRange) return '';
+    return `&startDate=${dateRange.startDate.toISOString()}&endDate=${dateRange.endDate.toISOString()}`;
+  }
+
   /**
    * Fetch real analytics data from your backend
    * Replace these endpoints with your actual API endpoints
    */
-  getRealtimeMetrics(): Observable<any> {
+  getRealtimeMetrics(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
       return of({});
     }
-    return this.http.get(`${this.apiUrl}/analytics/metrics?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/metrics?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of({});
@@ -36,12 +46,12 @@ export class AnalyticsAPIService {
     );
   }
 
-  getPageViewsData(timeRange: string = '7d'): Observable<any> {
+  getPageViewsData(timeRange: string = '7d', dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
       return of([]);
     }
-    return this.http.get(`${this.apiUrl}/analytics/page-views?range=${timeRange}&apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/page-views?range=${timeRange}&apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of([]);
@@ -71,12 +81,12 @@ export class AnalyticsAPIService {
     );
   }
 
-  getGeographicData(): Observable<any> {
+  getGeographicData(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
       return of([]);
     }
-    return this.http.get(`${this.apiUrl}/analytics/geographic?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/geographic?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of([]);
@@ -84,12 +94,12 @@ export class AnalyticsAPIService {
     );
   }
 
-  getDeviceBreakdown(): Observable<any> {
+  getDeviceBreakdown(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
       return of({});
     }
-    return this.http.get(`${this.apiUrl}/analytics/device-breakdown?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/device-breakdown?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of({});
@@ -97,12 +107,13 @@ export class AnalyticsAPIService {
     );
   }
 
-  getPageViewsTrend(): Observable<any> {
+  getPageViewsTrend(dateRange?: DateRange, period?: string): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
       return of([]);
     }
-    return this.http.get(`${this.apiUrl}/analytics/page-views-trend?apiKey=${selectedApiKey}`).pipe(
+    const periodParam = period ? `&period=${period}` : '';
+    return this.http.get(`${this.apiUrl}/analytics/page-views-trend?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}${periodParam}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of([]);
@@ -123,39 +134,39 @@ export class AnalyticsAPIService {
     );
   }
 
-  getTopPages(): Observable<any> {
+  getTopPages(dateRange?: DateRange, page = 1, limit = 10): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) {
-      return of([]);
+      return of({ pages: [], total: 0, totalPageViews: 0 });
     }
-    return this.http.get(`${this.apiUrl}/analytics/top-pages?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/top-pages?apiKey=${selectedApiKey}&page=${page}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
-        return of([]);
+        return of({ pages: [], total: 0, totalPageViews: 0 });
       })
     );
   }
 
-  getTrafficSources(): Observable<any> {
+  getTrafficSources(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({});
-    return this.http.get(`${this.apiUrl}/analytics/traffic-sources?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/traffic-sources?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => of({}))
     );
   }
 
-  getBrowserBreakdown(): Observable<any> {
+  getBrowserBreakdown(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({});
-    return this.http.get(`${this.apiUrl}/analytics/browser-breakdown?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/browser-breakdown?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => of({}))
     );
   }
 
-  getWebVitals(): Observable<any> {
+  getWebVitals(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({});
-    return this.http.get(`${this.apiUrl}/analytics/web-vitals?apiKey=${selectedApiKey}`).pipe(
+    return this.http.get(`${this.apiUrl}/analytics/web-vitals?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => of({}))
     );
   }
@@ -176,6 +187,24 @@ export class AnalyticsAPIService {
     if (search) params.set('search', search);
     return this.http.get(`${this.apiUrl}/analytics/event-history?${params}`).pipe(
       catchError(() => of({ events: [], total: 0, eventTypes: [] }))
+    );
+  }
+
+  getClicksBreakdown(dateRange?: DateRange, page = 1, limit = 10): Observable<{ clicks: any[]; total: number }> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ clicks: [], total: 0 });
+    return this.http.get<any>(`${this.apiUrl}/analytics/events-breakdown?apiKey=${selectedApiKey}&clicksPage=${page}&clicksLimit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      map(res => ({ clicks: res?.topClicks ?? [], total: res?.topClicksTotal ?? 0 })),
+      catchError(() => of({ clicks: [], total: 0 }))
+    );
+  }
+
+  getCustomEventsBreakdown(dateRange?: DateRange, page = 1, limit = 10): Observable<{ customEvents: any[]; total: number }> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ customEvents: [], total: 0 });
+    return this.http.get<any>(`${this.apiUrl}/analytics/events-breakdown?apiKey=${selectedApiKey}&customEventsPage=${page}&customEventsLimit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      map(res => ({ customEvents: res?.customEvents ?? [], total: res?.customEventsTotal ?? 0 })),
+      catchError(() => of({ customEvents: [], total: 0 }))
     );
   }
 

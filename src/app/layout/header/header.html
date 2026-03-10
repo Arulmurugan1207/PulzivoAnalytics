@@ -1,39 +1,72 @@
-<p-menubar [model]="items">
-  <ng-template pTemplate="start">
-    <a class="logo" routerLink="/" (click)="trackLogoClick()">simpletrack.dev</a>
-  </ng-template>
+﻿<header class="site-header" [class.menu-open]="mobileMenuOpen()">
 
-  <ng-template pTemplate="end">
-    @if (!isLoggedIn) {
-      <button pButton type="button" label="Get Started" class="cta" (click)="openSignUp()"></button>
-      <button pButton type="button" label="Sign in" class="p-button-text" (click)="openSignIn()"></button>
-    }
-    
-    @if (isLoggedIn) {
-      <div class="user-menu" (click)="toggleUserMenu($event)">
-        <p-avatar 
-          [label]="userInitials" 
-          shape="circle" 
-          styleClass="user-avatar">
-        </p-avatar>
-        <div class="user-info">
-          <span class="user-name">{{ userName }}</span>
-        </div>
-        <i class="pi pi-chevron-down chevron-icon"></i>
-        <p-menu #userMenu [model]="userMenuItems" [popup]="true" appendTo="body" styleClass="user-dropdown-menu"></p-menu>
-      </div>
-    }
-  </ng-template>
-</p-menubar>
+  <!-- ===== Top bar ===== -->
+  <div class="header-inner container">
 
-<app-sign-in 
-  (switchToSignUp)="onSwitchToSignUp()" 
+    <!-- Hamburger (mobile left) -->
+    <button class="hamburger" (click)="toggleMobileMenu()" [attr.aria-expanded]="mobileMenuOpen()" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <!-- Logo -->
+    <a class="brand" routerLink="/" [queryParams]="{utm_source: 'header', utm_medium: 'nav', utm_campaign: 'logo'}" (click)="mobileMenuOpen.set(false)" data-click="logo">
+      <span class="brand-name">simpletrack<span class="brand-accent">.dev</span></span>
+    </a>
+
+    <!-- Desktop nav -->
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      @for (item of navItems; track item.path) {
+        <a [routerLink]="item.path" class="nav-link" [class.active]="isActive(item.path)">
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <!-- Desktop actions -->
+    <div class="header-actions">
+      @if (!isLoggedIn) {
+        <button class="btn-ghost desktop-only" (click)="openSignIn()">Sign In</button>
+        <button class="btn-primary desktop-only" (click)="openSignUp()">Get Started</button>
+        <button class="icon-btn mobile-only" (click)="openSignIn()" aria-label="Sign In" title="Sign In">
+          <i class="pi pi-sign-in"></i>
+        </button>
+        <button class="icon-btn icon-btn--accent mobile-only" (click)="openSignUp()" aria-label="Get Started" title="Get Started">
+          <i class="pi pi-user-plus"></i>
+        </button>
+      } @else {
+        <button class="btn-primary desktop-only" routerLink="/dashboard">Dashboard</button>
+        <button class="avatar-btn" (click)="toggleUserMenu($event)" aria-label="User menu">
+          <p-avatar [label]="userInitials" styleClass="user-avatar" shape="circle" />
+        </button>
+        <p-menu #userMenu [model]="userMenuItems" [popup]="true" appendTo="body" />
+      }
+    </div>
+
+  </div>
+
+  <!-- ===== Mobile drawer ===== -->
+  <div class="mobile-drawer" [class.open]="mobileMenuOpen()" role="navigation" aria-label="Mobile navigation">
+    <nav class="mobile-nav">
+      @for (item of navItems; track item.path) {
+        <a [routerLink]="item.path" class="mobile-nav-link" [class.active]="isActive(item.path)"
+           (click)="mobileMenuOpen.set(false)">
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+  </div>
+
+</header>
+
+<!-- Modals -->
+<app-sign-in
+  (switchToSignUp)="onSwitchToSignUp()"
   (switchToForgotPassword)="onSwitchToForgotPassword()"
   (signInSuccess)="onSignInSuccess($event)">
 </app-sign-in>
 
-<app-sign-up 
-  (switchToSignIn)="onSwitchToSignIn()" 
+<app-sign-up
+  (switchToSignIn)="onSwitchToSignIn()"
   (signUpSuccess)="onSignUpSuccess()">
 </app-sign-up>
 

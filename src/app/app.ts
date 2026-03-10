@@ -1,4 +1,6 @@
 import { Component, signal, OnInit } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { AuthService } from './services/auth.service';
@@ -13,9 +15,15 @@ import { AuthService } from './services/auth.service';
 export class App implements OnInit {
   protected readonly title = signal('simpletrack-prime-ng');
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   ngOnInit() {
+    // Scroll to top on every route change
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0; // Safari fallback
+    });
+
     // Check if user is logged in on app load
     const isLoggedIn = this.authService.isAuthenticated();
     console.log('App loaded - User logged in:', isLoggedIn);

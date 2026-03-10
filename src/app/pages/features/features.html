@@ -1,11 +1,67 @@
-<section class="features">
+<!-- Hero -->
+<section class="feat-hero">
   <div class="container">
-    <h2>Features</h2>
-    <ul>
-      <li>Zero config auto-tracking</li>
-      <li>5KB SDK</li>
-      <li>Custom events and user tracking</li>
-      <li>Privacy-first data collection</li>
-    </ul>
+    <div class="feat-hero-badge">⚡ Features</div>
+    <h1>Everything you need.<br><span class="feat-gradient">Nothing you don't.</span></h1>
+    <p class="feat-hero-sub">A full-featured analytics SDK in 5KB. Auto-tracking, custom events, privacy-first — all available from one script tag.</p>
+    <div class="feat-hero-actions">
+      <button pButton type="button" label="Get Started Free" icon="pi pi-arrow-right" iconPos="right"
+              routerLink="/docs"
+              [queryParams]="{utm_source: 'features', utm_medium: 'hero', utm_campaign: 'get-started'}"
+              size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="See Pricing" icon="pi pi-tag" iconPos="left"
+              routerLink="/pricing"
+              [queryParams]="{utm_source: 'features', utm_medium: 'hero', utm_campaign: 'see-pricing'}"
+              severity="secondary" size="large"></button>
+    </div>
+  </div>
+</section>
+
+<!-- Feature categories -->
+@for (cat of categories; track cat.label) {
+  <section class="feat-category">
+    <div class="container">
+      <div class="feat-cat-header">
+        <div class="feat-cat-icon"><i class="pi {{ cat.icon }}"></i></div>
+        <h2>{{ cat.label }}</h2>
+      </div>
+      <div class="feat-grid">
+        @for (f of cat.features; track f.title) {
+          <div class="feat-card">
+            <div class="feat-card-top">
+              <div class="feat-icon-wrap"><i class="pi {{ f.icon }}"></i></div>
+              <p-tag [value]="f.tag" [severity]="f.tagSeverity"></p-tag>
+            </div>
+            <h3>{{ f.title }}</h3>
+            <p>{{ f.desc }}</p>
+            <a class="feat-cta"
+               routerLink="/docs"
+               [fragment]="f.docsSection"
+               [queryParams]="{utm_source: 'features', utm_medium: 'card', utm_campaign: f.campaign}">
+              See in docs <i class="pi pi-arrow-right"></i>
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+  <p-divider></p-divider>
+}
+
+<!-- Bottom CTA -->
+<section class="feat-bottom-cta">
+  <div class="container text-center">
+    <h2>Ready to add analytics to your site?</h2>
+    <p>One script tag. 60 seconds. Real data.</p>
+    <div class="feat-cta-actions">
+      <button pButton type="button" label="Read the Docs" icon="pi pi-book" iconPos="left"
+              routerLink="/docs"
+              [queryParams]="{utm_source: 'features', utm_medium: 'bottom-cta', utm_campaign: 'read-docs'}"
+              size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="View Pricing" icon="pi pi-tag" iconPos="left"
+              routerLink="/pricing"
+              [queryParams]="{utm_source: 'features', utm_medium: 'bottom-cta', utm_campaign: 'view-pricing'}"
+              severity="secondary" size="large"></button>
+    </div>
   </div>
 </section>

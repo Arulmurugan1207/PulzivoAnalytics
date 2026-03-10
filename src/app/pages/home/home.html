@@ -1,20 +1,37 @@
-<section class="hero">
+﻿<section class="hero">
   <div class="container">
-    <div class="hero-badge fade-in">🚀 The Simplest Analytics SDK on the Planet</div>
-    <h1 class="scale-in">Web Analytics Made <span class="gradient-text">Ridiculously Simple</span></h1>
-    <p class="subtitle fade-in" style="animation-delay: 0.2s">Stop wrestling with complex analytics. Get powerful insights in 60 seconds.</p>
-    <p class="description fade-in" style="animation-delay: 0.3s">Zero configuration • 5KB bundle • Auto-tracking • Privacy-first • Free forever tier</p>
-    
+    <div class="hero-badge fade-in">🚀 Simple web analytics · by design</div>
+    <h1 class="scale-in">Drop one line,<br><span class="gradient-text">watch your analytics shine.</span></h1>
+    <p class="subtitle fade-in" style="animation-delay: 0.2s">One script tag. No GDPR headaches. No bloat. Just data.</p>
+    <p class="description fade-in" style="animation-delay: 0.3s">Zero configuration &bull; 5KB bundle &bull; Auto-tracking &bull; Privacy-first &bull; Free forever tier</p>
+
     <div class="hero-actions slide-up" style="animation-delay: 0.4s">
-      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/docs" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/dashboard" class="pulse-on-hover"></button>
+      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'start-free'}" class="pulse-on-hover glow-button"></button>
+      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/dashboard" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'live-demo'}" class="pulse-on-hover"></button>
     </div>
 
     <div class="stats-row">
-      <div class="stat bounce-in" *ngFor="let stat of stats; let i = index" [style.animation-delay]="(0.6 + i * 0.1) + 's'">
-        <div class="stat-value">{{stat.value}}</div>
-        <div class="stat-label">{{stat.label}}</div>
-      </div>
+      @for (stat of stats; track stat.label; let i = $index) {
+        <div class="stat bounce-in" [style.animation-delay]="(0.6 + i * 0.1) + 's'">
+          <div class="stat-value">{{stat.value}}</div>
+          <div class="stat-label">{{stat.label}}</div>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Trusted by -->
+<section class="trusted-section">
+  <div class="container">
+    <p class="trusted-label">Trusted by websites using SimpleTrack</p>
+    <div class="trusted-logos">
+      <a href="https://freshechodaily.com?utm_source=simpletrack.dev&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
+        freshechodaily.com
+      </a>
+      <a href="https://tabletennistube.com?utm_source=simpletrack.dev&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
+        tabletennistube.com
+      </a>
     </div>
   </div>
 </section>
@@ -23,48 +40,56 @@
   <div class="container">
     <div class="install-header fade-in">
       <h2>Get Started in 3 Simple Steps</h2>
-      <p class="section-subtitle">Copy the script → Paste in your HTML → Start tracking automatically</p>
+      <p class="section-subtitle">Copy the script &rarr; Paste in your HTML &rarr; Done</p>
     </div>
 
     <div class="install-steps">
       <div class="step-card zoom-in" style="animation-delay: 0.1s">
         <div class="step-badge">1</div>
-        <div class="step-icon">📋</div>
+        <i class="pi pi-copy step-icon-pi"></i>
         <h3>Copy the script</h3>
-        <p>Grab your unique snippet in seconds. No config, no setup.</p>
+        <p>Grab your unique snippet. No account needed to try.</p>
       </div>
       <div class="step-card zoom-in" style="animation-delay: 0.2s">
         <div class="step-badge">2</div>
-        <div class="step-icon">🧩</div>
+        <i class="pi pi-code step-icon-pi"></i>
         <h3>Paste in your HTML</h3>
-        <p>Drop it in the <code>&lt;head&gt;</code> and you’re ready to go.</p>
+        <p>Drop it in the <code>&lt;head&gt;</code> — that's it.</p>
       </div>
       <div class="step-card zoom-in" style="animation-delay: 0.3s">
         <div class="step-badge">3</div>
-        <div class="step-icon">📈</div>
-        <h3>Start tracking</h3>
-        <p>Automatic page views, clicks, and sessions from day one.</p>
+        <i class="pi pi-chart-line step-icon-pi"></i>
+        <h3>Data flows in</h3>
+        <p>Page views, clicks, and sessions tracked automatically.</p>
       </div>
     </div>
 
+    <!-- Code snippet with tabs -->
     <div class="install-card slide-up" style="animation-delay: 0.2s">
+      <div class="code-tabs">
+        <button class="code-tab" [class.active]="activeTab() === 'html'" (click)="setTab('html')">HTML</button>
+        <button class="code-tab" [class.active]="activeTab() === 'js'" (click)="setTab('js')">JavaScript API</button>
+      </div>
       <div class="code-wrapper">
         <div class="code-bar">
           <span class="dot red"></span>
           <span class="dot yellow"></span>
           <span class="dot green"></span>
-          <span class="code-title">simpletrack.js</span>
+          <span class="code-title">{{ activeTab() === 'html' ? 'index.html' : 'app.js' }}</span>
         </div>
-        <button pButton type="button" 
-                [label]="copied() ? 'Copied!' : 'Copy'" 
-                [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" 
-                (click)="copyScript()"
-                [class.p-button-success]="copied()" 
-                class="copy-button pulse-on-hover"
+        <button pButton type="button"
+                [label]="copied() ? 'Copied!' : 'Copy'"
+                [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'"
+                (click)="copyActive()"
+                [class.p-button-success]="copied()"
+                class="copy-button"
                 size="small"></button>
-        <pre class="code-block"><code [textContent]="script"></code></pre>
+        @if (activeTab() === 'html') {
+          <pre class="code-block"><code class="language-html" [textContent]="script"></code></pre>
+        } @else {
+          <pre class="code-block"><code class="language-javascript" [textContent]="jsSnippet"></code></pre>
+        }
       </div>
-      
       <div class="install-footer">
         <div class="install-features">
           <p-tag value="Auto page tracking" icon="pi pi-check" severity="success"></p-tag>
@@ -72,7 +97,7 @@
           <p-tag value="User sessions" icon="pi pi-check" severity="success"></p-tag>
           <p-tag value="Zero config" icon="pi pi-check" severity="success"></p-tag>
         </div>
-        <button pButton type="button" label="Full Setup Guide" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" severity="secondary" class="pulse-on-hover"></button>
+        <button pButton type="button" label="Full Setup Guide" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'install', utm_campaign: 'setup-guide'}" severity="secondary"></button>
       </div>
     </div>
   </div>
@@ -82,19 +107,25 @@
 
 <section class="features-section">
   <div class="container">
-    <h2 class="fade-in">Why Developers Love SimpleTrack</h2>
+    <h2 class="fade-in">Why Developers Choose SimpleTrack</h2>
     <p class="section-subtitle fade-in" style="animation-delay: 0.1s">Everything you need. Nothing you don't.</p>
-    
+
     <div class="features-grid">
-      <p-card *ngFor="let feature of features; let i = index" class="feature-card zoom-in" [style.animation-delay]="(i * 0.1) + 's'">
-        <div class="feature-icon float-animation" [style.animation-delay]="(i * 0.2) + 's'">{{feature.icon}}</div>
-        <h3>{{feature.title}}</h3>
-        <p>{{feature.desc}}</p>
-      </p-card>
+      @for (feature of features; track feature.title; let i = $index) {
+        <a class="feature-card zoom-in" [style.animation-delay]="(i * 0.07) + 's'"
+           [routerLink]="feature.link"
+           [queryParams]="{utm_source: 'home', utm_medium: 'features-grid', utm_campaign: feature.campaign}">
+          <div class="feature-icon-wrap">
+            <i class="pi {{ feature.icon }}"></i>
+          </div>
+          <h3>{{feature.title}}</h3>
+          <p>{{feature.desc}}</p>
+        </a>
+      }
     </div>
 
     <div class="view-more slide-up" style="animation-delay: 0.6s">
-      <button pButton type="button" label="Explore All Features" icon="pi pi-arrow-right" iconPos="right" routerLink="/features" class="p-button-outlined" size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="Explore All Features" icon="pi pi-arrow-right" iconPos="right" routerLink="/features" [queryParams]="{utm_source: 'home', utm_medium: 'features', utm_campaign: 'explore-features'}" class="p-button-outlined" size="large"></button>
     </div>
   </div>
 </section>
@@ -104,8 +135,8 @@
 <section class="comparison-section">
   <div class="container">
     <h2 class="fade-in">SimpleTrack vs. The Competition</h2>
-    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">See why thousands of developers are switching</p>
-    
+    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">See why developers are switching</p>
+
     <div class="comparison-table scale-in" style="animation-delay: 0.2s">
       <div class="comparison-row header">
         <div class="comparison-cell"></div>
@@ -115,33 +146,33 @@
       </div>
       <div class="comparison-row">
         <div class="comparison-cell">Bundle Size</div>
-        <div class="comparison-cell highlight">5KB</div>
-        <div class="comparison-cell">45KB+</div>
-        <div class="comparison-cell">25-50KB</div>
+        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> 5KB</div>
+        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> 45KB+</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> 25–50KB</div>
       </div>
       <div class="comparison-row">
         <div class="comparison-cell">Setup Time</div>
-        <div class="comparison-cell highlight">60 seconds</div>
-        <div class="comparison-cell">30+ minutes</div>
-        <div class="comparison-cell">15-60 minutes</div>
+        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> 60 seconds</div>
+        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> 30+ minutes</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> 15–60 min</div>
       </div>
       <div class="comparison-row">
         <div class="comparison-cell">Privacy Compliant</div>
-        <div class="comparison-cell highlight">✓ Built-in</div>
-        <div class="comparison-cell">Complex</div>
-        <div class="comparison-cell">Varies</div>
+        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> Built-in</div>
+        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> Complex</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Varies</div>
       </div>
       <div class="comparison-row">
         <div class="comparison-cell">Auto-Tracking</div>
-        <div class="comparison-cell highlight">✓ Yes</div>
-        <div class="comparison-cell">Manual</div>
-        <div class="comparison-cell">Partial</div>
+        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> Yes</div>
+        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> Manual</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Partial</div>
       </div>
       <div class="comparison-row">
         <div class="comparison-cell">Free Tier</div>
-        <div class="comparison-cell highlight">10K events/mo</div>
-        <div class="comparison-cell">Limited</div>
-        <div class="comparison-cell">Varies</div>
+        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> 10K events/mo</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Limited</div>
+        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Varies</div>
       </div>
     </div>
   </div>
@@ -153,42 +184,42 @@
     <p class="section-subtitle fade-in" style="animation-delay: 0.1s">From page views to custom conversions</p>
 
     <div class="use-cases-grid">
-      <div class="use-case-card zoom-in" style="animation-delay: 0.1s">
-        <div class="use-case-icon float-animation">📄</div>
+      <a class="use-case-card zoom-in" [style.animation-delay]="'0.1s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'page-analytics'}">
+        <i class="pi pi-globe use-case-icon-pi"></i>
         <h3>Page Analytics</h3>
         <p>Views, time on page, bounce rate, navigation paths</p>
-      </div>
-      <div class="use-case-card zoom-in" style="animation-delay: 0.2s">
-        <div class="use-case-icon float-animation" style="animation-delay: 0.5s">🛒</div>
+      </a>
+      <a class="use-case-card zoom-in" [style.animation-delay]="'0.2s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'conversions'}">
+        <i class="pi pi-star use-case-icon-pi"></i>
         <h3>Conversions</h3>
         <p>Sign ups, purchases, form submissions, goals</p>
-      </div>
-      <div class="use-case-card zoom-in" style="animation-delay: 0.3s">
-        <div class="use-case-icon float-animation" style="animation-delay: 1s">👥</div>
+      </a>
+      <a class="use-case-card zoom-in" [style.animation-delay]="'0.3s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'user-behavior'}">
+        <i class="pi pi-users use-case-icon-pi"></i>
         <h3>User Behavior</h3>
         <p>Sessions, returning visitors, user journeys</p>
-      </div>
-      <div class="use-case-card zoom-in" style="animation-delay: 0.4s">
-        <div class="use-case-icon float-animation" style="animation-delay: 1.5s">📢</div>
+      </a>
+      <a class="use-case-card zoom-in" [style.animation-delay]="'0.4s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'campaigns'}">
+        <i class="pi pi-megaphone use-case-icon-pi"></i>
         <h3>Campaigns</h3>
         <p>UTM tracking, referral sources, promo performance</p>
-      </div>
+      </a>
     </div>
 
     <div class="cta-inline slide-up" style="animation-delay: 0.6s">
-      <button pButton type="button" label="See All Use Cases" icon="pi pi-arrow-right" iconPos="right" routerLink="/use-cases" size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="See All Use Cases" icon="pi pi-arrow-right" iconPos="right" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases', utm_campaign: 'see-all'}" size="large"></button>
     </div>
   </div>
 </section>
 
 <section class="cta-section">
   <div class="container text-center">
-    <h2 class="scale-in">Ready to Get Better Analytics?</h2>
-    <p class="fade-in" style="animation-delay: 0.2s">Join 10,000+ developers who trust SimpleTrack for powerful, privacy-first analytics.</p>
+    <h2 class="scale-in">Start tracking in 60 seconds.</h2>
+    <p class="fade-in" style="animation-delay: 0.2s">No credit card. No complex setup. Just paste one script tag.</p>
     <div class="cta-actions slide-up" style="animation-delay: 0.4s">
-      <button pButton type="button" label="Start Free — No Credit Card" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" size="large" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="View Pricing" routerLink="/pricing" class="p-button-text" size="large" class="pulse-on-hover"></button>
+      <button pButton type="button" label="Get Started Free" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'get-started'}" size="large" class="pulse-on-hover cta-btn-primary"></button>
+      <button pButton type="button" label="View Pricing" routerLink="/pricing" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'view-pricing'}" class="p-button-text cta-btn-ghost" size="large"></button>
     </div>
-    <p class="cta-note fade-in" style="animation-delay: 0.6s">Free tier includes 10,000 events/month • Upgrade anytime • Cancel anytime</p>
+    <p class="cta-note fade-in" style="animation-delay: 0.6s">10,000 events/month free &bull; Upgrade anytime &bull; Cancel anytime</p>
   </div>
 </section>

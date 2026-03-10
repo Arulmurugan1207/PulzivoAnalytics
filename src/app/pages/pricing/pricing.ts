@@ -38,7 +38,6 @@ export class Pricing {
   };
 
   constructor(private authService: AuthService, private meta: Meta, private titleService: Title) {
-    this.titleService.setTitle('Pricing | SimpleTrack');
     this.meta.updateTag({ name: 'description', content: 'Simple, transparent pricing for SimpleTrack analytics. Start free, upgrade as you grow. No hidden fees.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/pricing' });
     this.meta.updateTag({ property: 'og:title', content: 'Pricing | SimpleTrack' });

@@ -25,39 +25,29 @@
 
     <!-- Date Range Picker -->
     <div class="date-range-picker">
-      <button class="date-trigger" (click)="toggleDatePopover($event)">
+      <button class="date-trigger" (click)="datePopover.toggle($event)">
         <i class="pi pi-calendar"></i>
-        <span>{{ dateRangeLabel || 'Select date range' }}</span>
+        <span>{{ dateRangeLabel || 'Last 7 Days' }}</span>
         <i class="pi pi-chevron-down"></i>
       </button>
 
-      <p-popover #datePopover [style]="{ width: 'auto' }" styleClass="date-range-popover">
-        <div class="date-range-panel">
-          <!-- Presets sidebar -->
-          <div class="presets-sidebar">
+      <p-popover #datePopover styleClass="date-preset-popover">
+        <div class="preset-panel">
+          <div class="preset-header">
+            <span class="preset-title">Date Range</span>
+            @if (activePreset) {
+              <button class="preset-clear" (click)="clearDateRange(); datePopover.hide()">Clear</button>
+            }
+          </div>
+          <div class="preset-list">
             @for (preset of presets; track preset.label) {
               <button
-                class="preset-btn"
+                class="preset-item"
                 [class.active]="activePreset === preset.label"
-                (click)="applyPreset(preset.label)">
+                (click)="applyPreset(preset.label); datePopover.hide()">
                 {{ preset.label }}
               </button>
             }
-          </div>
-          <!-- Calendar -->
-          <div class="calendar-area">
-            <p-datepicker
-              [(ngModel)]="tempDateRange"
-              [selectionMode]="'range'"
-              [numberOfMonths]="2"
-              [inline]="true"
-              (onSelect)="onDateRangeChange($event)"
-              [showTime]="false">
-            </p-datepicker>
-            <div class="calendar-actions">
-              <button class="cancel-btn" (click)="datePopover.hide()">Cancel</button>
-              <button class="apply-btn" (click)="applyCustomDateRange()" [disabled]="!tempDateRange || tempDateRange.length !== 2">Apply</button>
-            </div>
           </div>
         </div>
       </p-popover>
@@ -79,29 +69,12 @@
 <!-- Main Content with Tabs -->
 <div class="overview-container">
   @if (availableApiKeys.length > 0) {
-  <!-- Tab Navigation -->
-  <div class="tab-navigation">
-    @for (tab of overviewTabs; track tab.id) {
-      <button
-        class="tab-btn"
-        [class.active]="activeTab === tab.id"
-        (click)="setActiveTab(tab.id)">
-        <i [class]="tab.icon"></i>
-        <span>{{ tab.label }}</span>
-      </button>
-    }
-  </div>
-
-  <!-- Tab Content -->
   <div class="tab-content">
-
-    <!-- Analytics Overview Tab -->
-    @if (activeTab === 'metrics') {
       <div class="metrics-grid">
         <!-- Key Metrics Cards -->
         <div class="metrics-row">
           <!-- Main Metrics -->
-          <div class="metric-card">
+          <div class="metric-card theme-blue">
             <div class="metric-header">
               <h3>Live Analytics</h3>
               @if (loadingStates.metrics) {
@@ -121,9 +94,9 @@
             }
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card theme-violet">
             <div class="metric-header">
-              <h3>Page Views</h3>
+              <h3>Total Page Views</h3>
               @if (loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
@@ -141,27 +114,7 @@
             }
           </div>
 
-          <div class="metric-card">
-            <div class="metric-header">
-              <h3>Conversion Rate</h3>
-              @if (loadingStates.metrics) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-              }
-            </div>
-            @if (loadingStates.metrics) {
-              <div class="metric-skeleton">
-                <p-skeleton width="50%" height="2rem" styleClass="mb-2"></p-skeleton>
-                <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
-                <p-skeleton width="70%" height="1rem"></p-skeleton>
-              </div>
-            } @else {
-              <div class="metric-value">{{ metrics.conversionRate | number:'1.1-1' }}%</div>
-              <div class="metric-label">Conversion Rate</div>
-              <div class="metric-change negative">-2.1% this week</div>
-            }
-          </div>
-
-          <div class="metric-card">
+          <div class="metric-card theme-rose">
             <div class="metric-header">
               <h3>Bounce Rate</h3>
               @if (loadingStates.metrics) {
@@ -180,14 +133,47 @@
               <div class="metric-change positive">-5.3% improvement</div>
             }
           </div>
+
+          <div class="metric-card theme-teal">
+            <div class="metric-header">
+              <h3>Unique Visitors</h3>
+              @if (loadingStates.metrics) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.metrics) {
+              <div class="metric-skeleton">
+                <p-skeleton width="50%" height="2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="40%" height="1rem"></p-skeleton>
+              </div>
+            } @else {
+              <div class="metric-value">{{ (metrics.uniqueVisitors ?? 0) | number }}</div>
+              <div class="metric-label">Unique Visitors Today</div>
+              <div class="metric-change neutral">distinct users since midnight</div>
+            }
+          </div>
         </div>
 
         <!-- Charts Row -->
         <div class="charts-row">
           <!-- Page Views Trend -->
-          <div class="chart-card">
+          <div class="chart-card theme-blue">
             <div class="card-header">
               <h3>Page Views Trend</h3>
+              @if (availableTrendPeriods.length > 1) {
+                <div class="trend-period-toggle">
+                  @for (p of availableTrendPeriods; track p.value) {
+                    <button
+                      class="period-btn"
+                      [class.active]="trendPeriod === p.value"
+                      (click)="setTrendPeriod(p.value)"
+                      [disabled]="loadingStates.pageViews">
+                      {{ p.label }}
+                    </button>
+                  }
+                </div>
+              }
               @if (loadingStates.pageViews) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
@@ -197,12 +183,14 @@
                 <p-skeleton width="100%" height="200px"></p-skeleton>
               </div>
             } @else {
-              <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
+              <div class="bar-chart-wrap">
+                <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
+              </div>
             }
           </div>
 
           <!-- Device Breakdown -->
-          <div class="chart-card">
+          <div class="chart-card theme-violet">
             <div class="card-header">
               <h3>Device Breakdown</h3>
               @if (loadingStates.devices) {
@@ -214,7 +202,26 @@
                 <p-skeleton width="100%" height="200px"></p-skeleton>
               </div>
             } @else {
-              <p-chart type="doughnut" [data]="doughnutChartData" [options]="doughnutChartOptions"></p-chart>
+              <div class="donut-chart-wrap">
+                <p-chart type="doughnut" [data]="doughnutChartData" [options]="doughnutChartOptions"></p-chart>
+              </div>
+              <div class="donut-legend">
+                <div class="donut-legend-item">
+                  <span class="donut-dot" style="background:#2a6df6"></span>
+                  <span>Desktop</span>
+                  <span class="donut-pct">{{ deviceBreakdown.desktopPercentage | number:'1.0-0' }}%</span>
+                </div>
+                <div class="donut-legend-item">
+                  <span class="donut-dot" style="background:#6f41ff"></span>
+                  <span>Mobile</span>
+                  <span class="donut-pct">{{ deviceBreakdown.mobilePercentage | number:'1.0-0' }}%</span>
+                </div>
+                <div class="donut-legend-item">
+                  <span class="donut-dot" style="background:#f59e0b"></span>
+                  <span>Tablet</span>
+                  <span class="donut-pct">{{ deviceBreakdown.tabletPercentage | number:'1.0-0' }}%</span>
+                </div>
+              </div>
             }
           </div>
         </div>
@@ -222,7 +229,7 @@
         <!-- Data Tables Row -->
         <div class="tables-row">
           <!-- Top Pages -->
-          <div class="data-card">
+          <div class="data-card theme-indigo">
             <div class="card-header">
               <h3>Top Pages</h3>
               @if (loadingStates.topPages) {
@@ -239,32 +246,43 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (page of topPages.slice(0, 5); track page.path) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <div class="page-info">
-                        @if (page.title) {
-                          <span class="page-title">{{ page.title }}</span>
-                        }
-                        <span class="page-path">{{ page.path }}</span>
-                      </div>
-                    </div>
-                    <div class="data-metric">
-                      <span class="views-count">{{ page.views | number }}</span>
-                      <span class="percentage">{{ page.percentage | number:'1.1-1' }}%</span>
-                    </div>
-                  </div>
-                }
-                @if (topPages.length === 0) {
-                  <div class="no-data-row">No page data yet</div>
-                }
-              </div>
+              <p-table
+                [value]="topPages"
+                [paginator]="true"
+                [rows]="topPagesRows"
+                [totalRecords]="topPagesTotal"
+                [rowsPerPageOptions]="[10, 25, 50]"
+                [lazy]="true"
+                [first]="(topPagesPage - 1) * topPagesRows"
+                (onPage)="onTopPageChange($event)"
+                styleClass="p-datatable-sm"
+                [loading]="loadingStates.topPages">
+                <ng-template #header>
+                  <tr>
+                    <th>Page</th>
+                    <th class="col-num">Views</th>
+                    <th class="col-num">%</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-page>
+                  <tr>
+                    <td class="page-cell">
+                      @if (page.title) {<div class="page-title">{{ page.title }}</div>}
+                      <div class="page-path">{{ page.path }}</div>
+                    </td>
+                    <td class="col-num">{{ page.views | number }}</td>
+                    <td class="col-num">{{ page.percentage | number:'1.1-1' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No page data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
 
           <!-- Geographic Data -->
-          <div class="data-card">
+          <div class="data-card theme-teal">
             <div class="card-header">
               <h3>Top Countries</h3>
               @if (loadingStates.geography) {
@@ -281,23 +299,25 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (geo of geoData.slice(0, 5); track geo.country) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <span class="country-flag">{{ geo.flag }}</span>
-                      <span class="country-name">{{ geo.country }}</span>
-                    </div>
-                    <div class="data-metric">
-                      <span class="visitors-count">{{ geo.visitors | number }}</span>
-                      <span class="percentage">{{ geo.percentage | number:'1.1-1' }}%</span>
-                    </div>
-                  </div>
-                }
-                @if (geoData.length === 0) {
-                  <div class="no-data-row">No geographic data yet</div>
-                }
-              </div>
+              <p-table [value]="geoData" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr>
+                    <th>Country</th>
+                    <th class="col-num">Visitors</th>
+                    <th class="col-num">%</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-geo>
+                  <tr>
+                    <td><span class="country-flag">{{ geo.flag }}</span> {{ geo.country }}</td>
+                    <td class="col-num">{{ geo.visitors | number }}</td>
+                    <td class="col-num">{{ geo.percentage | number:'1.1-1' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No geographic data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
         </div>
@@ -305,7 +325,7 @@
         <!-- Traffic Sources Row -->
         <div class="tables-row">
           <!-- Traffic Sources -->
-          <div class="data-card">
+          <div class="data-card theme-amber">
             <div class="card-header">
               <h3>Traffic Sources</h3>
               @if (loadingStates.trafficSources) {
@@ -322,28 +342,30 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (src of trafficSources.slice(0, 6); track src.source) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <i class="pi pi-globe source-icon"></i>
-                      <span class="source-name">{{ src.source }}</span>
-                    </div>
-                    <div class="data-metric">
-                      <span class="views-count">{{ src.visits | number }}</span>
-                      <span class="percentage">{{ src.percentage | number:'1.1-1' }}%</span>
-                    </div>
-                  </div>
-                }
-                @if (trafficSources.length === 0) {
-                  <div class="no-data-row">No referrer data yet</div>
-                }
-              </div>
+              <p-table [value]="trafficSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr>
+                    <th>Source</th>
+                    <th class="col-num">Visits</th>
+                    <th class="col-num">%</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-src>
+                  <tr>
+                    <td>{{ src.source }}</td>
+                    <td class="col-num">{{ src.visits | number }}</td>
+                    <td class="col-num">{{ src.percentage | number:'1.1-1' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No referrer data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
 
           <!-- UTM Campaigns -->
-          <div class="data-card">
+          <div class="data-card theme-orange">
             <div class="card-header">
               <h3>UTM Campaigns</h3>
               @if (loadingStates.trafficSources) {
@@ -360,28 +382,27 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (utm of utmSources.slice(0, 6); track utm.source) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <i class="pi pi-tag source-icon"></i>
-                      <div class="utm-info">
-                        <span class="source-name">{{ utm.source }}</span>
-                        @if (utm.campaign) {
-                          <span class="utm-campaign">{{ utm.campaign }}</span>
-                        }
-                      </div>
-                    </div>
-                    <div class="data-metric">
-                      <span class="views-count">{{ utm.visits | number }}</span>
-                      <span class="utm-medium">{{ utm.medium || '—' }}</span>
-                    </div>
-                  </div>
-                }
-                @if (utmSources.length === 0) {
-                  <div class="no-data-row">No UTM campaign data yet</div>
-                }
-              </div>
+              <p-table [value]="utmSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr>
+                    <th>Source</th>
+                    <th>Campaign</th>
+                    <th>Medium</th>
+                    <th class="col-num">Visits</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-utm>
+                  <tr>
+                    <td>{{ utm.source }}</td>
+                    <td>{{ utm.campaign || '—' }}</td>
+                    <td>{{ utm.medium || '—' }}</td>
+                    <td class="col-num">{{ utm.visits | number }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="4" class="no-data-row">No UTM campaign data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
         </div>
@@ -389,7 +410,7 @@
         <!-- Browser & OS Row -->
         <div class="tables-row">
           <!-- Browser Breakdown -->
-          <div class="data-card">
+          <div class="data-card theme-slate">
             <div class="card-header">
               <h3>Browsers</h3>
               @if (loadingStates.browsers) {
@@ -406,30 +427,30 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (browser of browsers.slice(0, 6); track browser.name) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <i class="pi pi-globe source-icon"></i>
-                      <span class="source-name">{{ browser.name }}</span>
-                    </div>
-                    <div class="data-metric">
-                      <div class="bar-wrap">
-                        <div class="bar-fill" [style.width.%]="browser.percentage"></div>
-                      </div>
-                      <span class="percentage">{{ browser.percentage | number:'1.0-0' }}%</span>
-                    </div>
-                  </div>
-                }
-                @if (browsers.length === 0) {
-                  <div class="no-data-row">No browser data yet</div>
-                }
-              </div>
+              <p-table [value]="browsers" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr>
+                    <th>Browser</th>
+                    <th class="col-bar">Share</th>
+                    <th class="col-num">%</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-browser>
+                  <tr>
+                    <td>{{ browser.name }}</td>
+                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="browser.percentage"></div></div></td>
+                    <td class="col-num">{{ browser.percentage | number:'1.0-0' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No browser data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
 
           <!-- OS Breakdown -->
-          <div class="data-card">
+          <div class="data-card theme-slate">
             <div class="card-header">
               <h3>Operating Systems</h3>
               @if (loadingStates.browsers) {
@@ -446,25 +467,118 @@
                 }
               </div>
             } @else {
-              <div class="data-list">
-                @for (os of operatingSystems.slice(0, 6); track os.name) {
-                  <div class="data-row">
-                    <div class="data-main">
-                      <i class="pi pi-desktop source-icon"></i>
-                      <span class="source-name">{{ os.name }}</span>
-                    </div>
-                    <div class="data-metric">
-                      <div class="bar-wrap">
-                        <div class="bar-fill" [style.width.%]="os.percentage"></div>
-                      </div>
-                      <span class="percentage">{{ os.percentage | number:'1.0-0' }}%</span>
-                    </div>
-                  </div>
-                }
-                @if (operatingSystems.length === 0) {
-                  <div class="no-data-row">No OS data yet</div>
-                }
-              </div>
+              <p-table [value]="operatingSystems" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr>
+                    <th>OS</th>
+                    <th class="col-bar">Share</th>
+                    <th class="col-num">%</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-os>
+                  <tr>
+                    <td>{{ os.name }}</td>
+                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="os.percentage"></div></div></td>
+                    <td class="col-num">{{ os.percentage | number:'1.0-0' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No OS data yet</td></tr>
+                </ng-template>
+              </p-table>
+            }
+          </div>
+        </div>
+
+        <!-- Clicks & Custom Events Row -->
+        <div class="tables-row">
+          <div class="chart-card theme-rose">
+            <div class="card-header">
+              <h3>Top Clicks</h3>
+              <span class="card-subtitle">Most clicked elements</span>
+              @if (loadingStates.clicks) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.clicks) {
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+              }
+            } @else {
+              <p-table
+                [value]="topClicks"
+                [paginator]="true"
+                [rows]="topClicksRows"
+                [totalRecords]="topClicksTotal"
+                [rowsPerPageOptions]="[10, 25, 50]"
+                [lazy]="true"
+                [first]="(topClicksPage - 1) * topClicksRows"
+                (onPage)="onTopClicksChange($event)"
+                styleClass="p-datatable-sm"
+                [loading]="loadingStates.clicks">
+                <ng-template #header>
+                  <tr>
+                    <th>Label</th>
+                    <th>Type</th>
+                    <th class="col-num">Count</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-click>
+                  <tr>
+                    <td class="truncate">{{ click.label }}</td>
+                    <td><p-tag [value]="click.clickType" severity="secondary" styleClass="text-xs"></p-tag></td>
+                    <td class="col-num">{{ click.count | number }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No click data yet — add <code>data-click="name"</code> to elements</td></tr>
+                </ng-template>
+              </p-table>
+            }
+          </div>
+
+          <div class="chart-card theme-emerald">
+            <div class="card-header">
+              <h3>Custom Events</h3>
+              <span class="card-subtitle">Application events fired</span>
+              @if (loadingStates.customEvents) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (loadingStates.customEvents) {
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+              }
+            } @else {
+              <p-table
+                [value]="customEvents"
+                [paginator]="true"
+                [rows]="customEventsRows"
+                [totalRecords]="customEventsTotal"
+                [rowsPerPageOptions]="[10, 25, 50]"
+                [lazy]="true"
+                [first]="(customEventsPage - 1) * customEventsRows"
+                (onPage)="onCustomEventsChange($event)"
+                styleClass="p-datatable-sm"
+                [loading]="loadingStates.customEvents">
+                <ng-template #header>
+                  <tr>
+                    <th>Event Name</th>
+                    <th>Last Seen</th>
+                    <th class="col-num">Count</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-ev>
+                  <tr>
+                    <td class="truncate">{{ ev.name }}</td>
+                    <td class="text-muted text-xs">{{ ev.lastSeen ? getTimeAgo(ev.lastSeen) : '—' }}</td>
+                    <td class="col-num">{{ ev.count | number }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No custom events yet — use <code>STKAnalytics('event', 'name', data)</code></td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
         </div>
@@ -585,115 +699,27 @@
                     <span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span>
                   </div>
                 </div>
+                <div class="session-stat">
+                  <div class="stat-icon orange"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Avg Time on Page</span>
+                    <span class="stat-value">{{ formatDuration(metrics.avgTimeOnPage ?? 0) }}</span>
+                  </div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon teal"><i class="pi pi-arrow-down"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Avg Scroll Depth</span>
+                    <span class="stat-value">{{ (metrics.avgScrollDepth ?? 0) | number:'1.0-0' }}%</span>
+                  </div>
+                </div>
               </div>
             }
           </div>
         </div>
       </div>
-    }
+    </div>
 
-    <!-- Live Events Tab -->
-    @if (activeTab === 'live') {
-      @if (showLiveEvents) {
-        <div class="live-events-container">
-          <div class="live-events-header">
-            <div class="live-events-title">
-              <h3>Live Events Stream</h3>
-              @if (isLiveEventsActive) {
-                <span class="live-dot active"></span>
-              } @else {
-                <span class="live-dot paused"></span>
-              }
-            </div>
-            <div class="live-events-controls">
-              <button 
-                type="button" 
-                class="control-btn" 
-                (click)="toggleLiveEvents()"
-                [title]="isLiveEventsActive ? 'Pause Live Events' : 'Resume Live Events'">
-                <i [class]="isLiveEventsActive ? 'pi pi-pause' : 'pi pi-play'"></i>
-              </button>
-              <button 
-                type="button" 
-                class="control-btn" 
-                (click)="clearLiveEvents()"
-                title="Clear Events">
-                <i class="pi pi-trash"></i>
-              </button>
-              <button 
-                type="button" 
-                class="control-btn" 
-                (click)="toggleLiveEventsVisibility()"
-                title="Hide Live Events">
-                <i class="pi pi-eye-slash"></i>
-              </button>
-            </div>
-          </div>
-
-          @if (loadingStates.liveEvents) {
-            <div class="events-loading">
-              @for (item of [1,2,3,4,5]; track item) {
-                <div class="event-skeleton">
-                  <p-skeleton width="40px" height="40px" borderRadius="50%" styleClass="mr-3"></p-skeleton>
-                  <div style="flex: 1;">
-                    <p-skeleton width="60%" height="1.2rem" styleClass="mb-1"></p-skeleton>
-                    <p-skeleton width="80%" height="1rem"></p-skeleton>
-                  </div>
-                  <p-skeleton width="60px" height="1rem"></p-skeleton>
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="events-list">
-              @for (event of realtimeEvents; track event.timestamp) {
-                <div class="event-row">
-                  <div class="event-icon-wrap">
-                    <i [class]="getEventIcon(event.event_name)"></i>
-                  </div>
-                  <div class="event-body">
-                    <span class="event-type">{{ event.event_name.replace('_', ' ') }}</span>
-                    <span class="event-detail">{{ event.data.page }} &middot; {{ event.data.user_type }} &middot; {{ event.data.country }}</span>
-                  </div>
-                  <span class="event-time">{{ getTimeAgo(event.timestamp) }}</span>
-                </div>
-              }
-              @if (realtimeEvents.length === 0) {
-                <div class="no-data">
-                  @if (isLiveEventsActive) {
-                    <div class="waiting-state">
-                      <i class="pi pi-spin pi-spinner"></i>
-                      <span>Waiting for real-time events...</span>
-                    </div>
-                  } @else {
-                    <div class="paused-state">
-                      <i class="pi pi-pause"></i>
-                      <span>Live events paused</span>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      } @else {
-        <div class="live-events-hidden">
-          <div class="hidden-notice">
-            <i class="pi pi-eye-slash"></i>
-            <span>Live Events Hidden</span>
-            <button 
-              type="button" 
-              class="show-btn"
-              (click)="toggleLiveEventsVisibility()"
-              title="Show Live Events">
-              <i class="pi pi-eye"></i>
-              Show Live Events
-            </button>
-          </div>
-        </div>
-      }
-    }
-
-  </div>
   } @else {
     <!-- No API Keys empty state -->
     <div class="no-keys-empty-state">

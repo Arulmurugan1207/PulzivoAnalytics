@@ -25,7 +25,6 @@
       <section id="getting-started" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-play"></i> Getting Started</h1>
-          <span class="plan-badge plan-badge-free">FREE</span>
         </div>
         <p class="lead">Quick setup guide to integrate SimpleTrack Analytics in under 60 seconds.</p>
         
@@ -92,6 +91,9 @@
             <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['component-integration'])" class="copy-btn" size="small"></button>
             <pre class="code-block"><code>{{ codeBlocks['component-integration'] }}</code></pre>
           </div>
+          <p-message severity="info" styleClass="mt-3">
+            <span><strong>TypeScript users:</strong> <code>STKAnalytics</code> is a runtime global — add <code>declare const STKAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;</code> at the top of any <code>.ts</code> file that calls it. This tells TypeScript the variable exists at runtime without importing anything.</span>
+          </p-message>
         </p-card>
       </section>
 
@@ -99,7 +101,6 @@
       <section id="configuration" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-cog"></i> Configuration Options</h1>
-          <span class="plan-badge plan-badge-free">FREE</span>
         </div>
         <p class="lead">Customize SimpleTrack behavior using data attributes.</p>
 
@@ -140,7 +141,6 @@
       <section id="automatic-tracking" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-chart-line"></i> Automatic Tracking</h1>
-          <span class="plan-badge plan-badge-pro">PRO</span>
         </div>
         <p class="lead">Zero-code analytics for common user interactions.</p>
 
@@ -167,19 +167,8 @@
       <section id="custom-events" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-bolt"></i> Custom Events</h1>
-          <span class="plan-badge plan-badge-pro">PRO</span>
         </div>
-        <p class="lead">Track custom user actions and business events with the Pro plan.</p>
-
-        <div class="plan-notice plan-notice-pro">
-          <div class="plan-notice-icon">
-            <i class="pi pi-star-fill"></i>
-          </div>
-          <div class="plan-notice-content">
-            <h4>Pro Feature</h4>
-            <p>Custom event tracking requires a <strong>Pro or Enterprise</strong> plan. <a routerLink="/pricing">Upgrade now</a> to unlock unlimited custom events.</p>
-          </div>
-        </div>
+        <p class="lead">Track custom user actions and business events.</p>
 
         <h3>Simple STKAnalytics() API</h3>
         <p>Use the convenient functional API for cleaner code:</p>
@@ -218,7 +207,6 @@
       <section id="user-management" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-user"></i> User Management</h1>
-          <span class="plan-badge plan-badge-pro">PRO</span>
         </div>
         <p class="lead">Track authenticated users and maintain privacy.</p>
 
@@ -249,19 +237,8 @@
       <section id="promo-tracking" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-megaphone"></i> Campaign & Promo Tracking</h1>
-          <span class="plan-badge plan-badge-pro">PRO</span>
         </div>
         <p class="lead">Track marketing campaigns and promotional content using custom events.</p>
-        
-        <div class="plan-notice plan-notice-pro">
-          <div class="plan-notice-icon">
-            <i class="pi pi-star-fill"></i>
-          </div>
-          <div class="plan-notice-content">
-            <h4>Pro Feature - Custom Events</h4>
-            <p>Campaign tracking uses <strong>custom events</strong> (Pro plan required). Track impressions, clicks, and conversions for your marketing campaigns.</p>
-          </div>
-        </div>
 
         <h3>Track Campaign Impressions & Clicks</h3>
         <p>Simply add <code>data-track-impression</code> to any element - impressions AND clicks tracked automatically!</p>
@@ -304,7 +281,6 @@
       <section id="owner-exclusion" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-eye-slash"></i> Owner Exclusion</h1>
-          <span class="plan-badge plan-badge-free">FREE</span>
         </div>
         <p class="lead">Prevent your own activity from polluting your analytics data. Choose the method that fits your workflow.</p>
 
@@ -363,7 +339,6 @@
       <section id="debugging" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-code"></i> Debugging</h1>
-          <span class="plan-badge plan-badge-free">FREE</span>
         </div>
         <p class="lead">Troubleshoot and verify your analytics implementation.</p>
 

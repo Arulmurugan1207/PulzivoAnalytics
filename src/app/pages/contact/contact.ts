@@ -83,7 +83,6 @@ export class Contact {
       subject: ['', [Validators.required, Validators.minLength(5)]],
       message: ['', [Validators.required, Validators.minLength(20)]]
     });
-    this.titleService.setTitle('Contact | SimpleTrack');
     this.meta.updateTag({ name: 'description', content: 'Get in touch with the SimpleTrack team. We\'re here to help with questions, feedback, and support.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://simpletrack.dev/contact' });
     this.meta.updateTag({ property: 'og:title', content: 'Contact | SimpleTrack' });

@@ -1,4 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import 'highlight.js/styles/atom-one-dark.css';
+
+// Ensure hljs code blocks use our dark background, not the theme default
+.hljs {
+  background: #0f172a !important;
+  padding: 0 !important;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
 
 :root {
   --bright-blue: #2a6df6;
@@ -17,18 +26,16 @@
   --hero-gradient: linear-gradient(90deg, var(--orange-red), var(--vivid-pink), var(--electric-violet));
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
-  scroll-behavior: smooth;
+  overflow-x: hidden; // prevent horizontal scrolling globally
 }
-html {
-  scroll-behavior: smooth;
-}
-html,body { height:100%; }
+html, body { min-height: 100%; }
 body {
+  overflow-x: hidden;
   margin: 0;
-  padding-top: 70px;
+  padding-top: 0;
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   background: var(--bg);
   color: var(--text);
@@ -38,8 +45,10 @@ body {
 
 .container {
   max-width: 1100px;
+  width: 100%;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 .site-header {

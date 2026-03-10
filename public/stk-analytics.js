@@ -32,7 +32,7 @@
   const PLAN_FEATURES = {
     free: ['page_views', 'clicks'],
     pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
-    enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
+    enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'web_vitals']
   };
 
   let currentPlan = 'free';
@@ -276,7 +276,8 @@
       return;
     }
 
-    const attribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+    // Use pre-captured attribution if provided, otherwise capture now
+    const attribution = data.attribution || (hasFeature('utm_attribution') ? getAttributionData() : {});
     const browserInfo = getBrowserInfo();
 
     const eventData = {
@@ -297,7 +298,7 @@
       time_on_page: 0,
       attribution: attribution,
       ...browserInfo,
-      ...data
+      ...Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'attribution'))  // Spread data but exclude attribution (already handled above)
     };
 
     // Store first visit
@@ -934,8 +935,11 @@
           lastPath = window.location.pathname;
           startTime = Date.now(); // Reset time on page
           maxScroll = 0; // Reset scroll tracking
-          queueEvent('page_view');
-          console.log('[Analytics] Page view tracked (popstate):', lastPath);
+          // Capture UTMs immediately before router strips query params,
+          // then delay so TitleStrategy can update document.title first
+          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
+          if (config.debug) console.log('[Analytics] Page view tracked (popstate):', lastPath);
         }
       });
 
@@ -947,8 +951,9 @@
           lastPath = window.location.pathname;
           startTime = Date.now();
           maxScroll = 0;
-          queueEvent('page_view');
-          console.log('[Analytics] Page view tracked (pushState):', lastPath);
+          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
+          if (config.debug) console.log('[Analytics] Page view tracked (pushState):', lastPath);
         }
       };
 
@@ -960,8 +965,9 @@
           lastPath = window.location.pathname;
           startTime = Date.now();
           maxScroll = 0;
-          queueEvent('page_view');
-          console.log('[Analytics] Page view tracked (replaceState):', lastPath);
+          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
+          if (config.debug) console.log('[Analytics] Page view tracked (replaceState):', lastPath);
         }
       };
     }
@@ -1092,6 +1098,14 @@
         action,
         label,
         ...data
+      });
+    },
+
+    // Track page view manually (use when autoTrackPageViews is disabled)
+    trackPageView: function(title, path) {
+      queueEvent('page_view', {
+        page: path || (window.location ? window.location.pathname : ''),
+        page_title: (title || '').replace(/\s*\|.*$/, '').trim()
       });
     },
 
@@ -1232,6 +1246,9 @@
         case 'identify':
           // STKAnalytics('identify', 'user@example.com')
           return originalAnalytics.setUserEmail(args[0]);
+        case 'page_view':
+          // STKAnalytics('page_view', 'Page Title', '/path')
+          return originalAnalytics.trackPageView(args[0], args[1]);
         case 'page':
           // STKAnalytics('page', '/custom-page')
           return originalAnalytics.trackNavigation(args[0], args[1] || {});
@@ -1293,6 +1310,15 @@
     // data-debug -> debug
     if (analyticsScript.getAttribute('data-debug')) {
       config.debug = analyticsScript.getAttribute('data-debug').toLowerCase() === 'true';
+    }
+
+    // data-plan -> plan (free, pro, enterprise)
+    if (analyticsScript.getAttribute('data-plan')) {
+      const plan = analyticsScript.getAttribute('data-plan');
+      if (PLAN_FEATURES[plan]) {
+        currentPlan = plan;
+        planFeatures = PLAN_FEATURES[plan];
+      }
     }
 
     // data-disable-page-views -> autoTrackPageViews

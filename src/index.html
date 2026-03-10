@@ -2,28 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>SimpleTrack SDK - Advanced Web Analytics & Tracking</title>
+  <title>SimpleTrack</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="SimpleTrack provides powerful, lightweight analytics tracking for websites and applications. Monitor user behavior, page views, clicks, and more with easy integration.">
-  <meta name="keywords" content="analytics, tracking, web analytics, user behavior, page views, click tracking, simpletrack, privacy-focused analytics">
-  <meta name="author" content="Arulmurugan1207">
-  <meta name="robots" content="index, follow">
-  <meta name="theme-color" content="#007bff">
+  <meta name="description" content="SimpleTrack is a lightweight, privacy-focused web analytics SDK. Track page views, clicks, custom events, and user journeys — no cookie banners required.">
+  <meta name="keywords" content="web analytics, privacy-focused analytics, lightweight analytics SDK, page view tracking, custom event tracking, click tracking, simpletrack, cookieless analytics, javascript analytics">
+  <meta name="author" content="SimpleTrack Analytics">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="application-name" content="SimpleTrack">
+  <meta name="generator" content="SimpleTrack Analytics Platform">
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://simpletrack.dev">
-  <meta property="og:title" content="SimpleTrack - Advanced Web Analytics & Tracking">
-  <meta property="og:description" content="Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.">
-  <meta property="og:image" content="https://simpletrack.dev/favicon.svg">
+  <meta property="og:url" content="https://simpletrack.dev/">
+  <meta property="og:site_name" content="SimpleTrack">
+  <meta property="og:title" content="SimpleTrack — Privacy-First Web Analytics">
+  <meta property="og:description" content="Lightweight, cookieless web analytics SDK. Track page views, clicks, and custom events in minutes. No cookie banners required.">
+  <meta property="og:image" content="https://simpletrack.dev/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_US">
 
   <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://simpletrack.dev">
-  <meta property="twitter:title" content="SimpleTrack - Advanced Web Analytics & Tracking">
-  <meta property="twitter:description" content="Powerful, lightweight analytics tracking for websites and applications. Monitor user behavior with easy integration.">
-  <meta property="twitter:image" content="https://simpletrack.dev/favicon.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@simpletrack">
+  <meta name="twitter:url" content="https://simpletrack.dev/">
+  <meta name="twitter:title" content="SimpleTrack — Privacy-First Web Analytics">
+  <meta name="twitter:description" content="Lightweight, cookieless web analytics SDK. Track page views, clicks, and custom events in minutes.">
+  <meta name="twitter:image" content="https://simpletrack.dev/og-image.png">
+  <meta name="twitter:image:alt" content="SimpleTrack Analytics Dashboard">
 
   <!-- Canonical -->
   <link rel="canonical" href="https://simpletrack.dev/">
@@ -99,17 +107,20 @@
 </head>
 <body>
   <app-root></app-root>
-  <!-- Analytics Script -->
+  <!-- SimpleTrack Analytics -->
   <script>
-    var isLocal = window.location.hostname === 'localhost';
-    var apiKey = isLocal ? 'STK-HEBB9' : 'STK-1A6S9';
-    var apiUrl = isLocal ? 'http://localhost:3004/analytics/log' : 'https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log';
-    var script = document.createElement('script');
-    script.src = (isLocal ? './stk-analytics.js' : './stk-analytics.min.js') + '?t=' + Date.now();
-    script.setAttribute('data-api-key', apiKey);
-    script.setAttribute('data-api-url', apiUrl);
-    script.setAttribute('data-batch-interval', '5000');
-    document.head.appendChild(script);
+    (function() {
+      var isProd = window.location.hostname !== 'localhost';
+      var s = document.createElement('script');
+      s.src = isProd ? './stk-analytics.min.js' : './stk-analytics.js';
+      s.dataset.apiKey    = isProd ? 'STK-1A6S9'  : 'STK-HEBB9';
+      s.dataset.apiUrl    = isProd
+        ? 'https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log'
+        : 'http://localhost:3004/analytics/log';
+      s.dataset.batchInterval = '5000';
+      //s.dataset.debug     = isProd ? 'false' : 'true';
+      document.head.appendChild(s);
+    })();
   </script>
 </body>
 </html>

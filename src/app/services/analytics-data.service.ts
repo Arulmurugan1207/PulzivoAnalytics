@@ -2,14 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, interval } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
-import { AnalyticsAPIService } from './analytics-api.service';
+import { AnalyticsAPIService, DateRange } from './analytics-api.service';
 import { ApiKeysService } from './api-keys.service';
 import { environment } from '../../environments/environment';
 
-export interface DateRange {
-  startDate: Date;
-  endDate: Date;
-}
+export type { DateRange };
 
 export interface AnalyticsMetrics {
   liveVisitors: number;
@@ -21,6 +18,9 @@ export interface AnalyticsMetrics {
     new: number;
     returning: number;
   };
+  uniqueVisitors?: number;
+  avgScrollDepth?: number;
+  avgTimeOnPage?: number;
 }
 
 export interface DeviceBreakdown {
@@ -132,7 +132,7 @@ export class AnalyticsDataService {
    * Get analytics metrics
    */
   getMetrics(dateRange?: DateRange, apiKey?: string): Observable<AnalyticsMetrics> {
-    return this.analyticsAPI.getRealtimeMetrics().pipe(
+    return this.analyticsAPI.getRealtimeMetrics(dateRange).pipe(
       map((data: any) => ({
         liveVisitors: data.liveVisitors || 0,
         totalPageViews: data.totalPageViews || 0,
@@ -156,7 +156,7 @@ export class AnalyticsDataService {
    * Get device breakdown data
    */
   getDeviceBreakdown(dateRange?: DateRange, apiKey?: string): Observable<DeviceBreakdown> {
-    return this.analyticsAPI.getDeviceBreakdown().pipe(
+    return this.analyticsAPI.getDeviceBreakdown(dateRange).pipe(
       map((data: any) => {
         // Handle new API format: {"devices":[{"device":"Desktop","count":174,"percentage":100}]}
         if (data && data.devices && Array.isArray(data.devices)) {
@@ -216,27 +216,17 @@ export class AnalyticsDataService {
   }
 
   /**
-   * Get top pages data
+   * Get top pages data with server-side pagination
    */
-  getTopPages(dateRange?: DateRange, apiKey?: string): Observable<PageData[]> {
-    return this.analyticsAPI.getTopPages().pipe(
-      map((data: any) => {
-        // Handle API response format: {"pages": [{"path": "/", "views": 172, "percentage": 45.2}, ...]}
-        if (data && data.pages && Array.isArray(data.pages)) {
-          return data.pages;
-        }
-        
-        // Handle direct array response
-        if (Array.isArray(data)) {
-          return data;
-        }
-        
-        // Return empty array if no valid data
-        return [];
-      }),
+  getTopPages(dateRange?: DateRange, page = 1, limit = 10): Observable<{ pages: PageData[]; total: number }> {
+    return this.analyticsAPI.getTopPages(dateRange, page, limit).pipe(
+      map((data: any) => ({
+        pages: Array.isArray(data?.pages) ? data.pages : [],
+        total: data?.total ?? 0
+      })),
       catchError(() => {
         console.warn('Failed to load top pages data');
-        return of([]);
+        return of({ pages: [], total: 0 });
       })
     );
   }
@@ -245,7 +235,7 @@ export class AnalyticsDataService {
    * Get geographic data
    */
   getGeographicData(dateRange?: DateRange, apiKey?: string): Observable<GeographicData[]> {
-    return this.analyticsAPI.getGeographicData().pipe(
+    return this.analyticsAPI.getGeographicData(dateRange).pipe(
       map((data: any) => {
         // Handle new API format: {"geographic": [{"country": "Unknown", "visitors": 172, "percentage": 98.85, "flag": "🏳️"}, ...]}
         if (data && data.geographic && Array.isArray(data.geographic)) {
@@ -262,8 +252,8 @@ export class AnalyticsDataService {
   /**
    * Get page views trend data
    */
-  getPageViewsTrend(dateRange?: DateRange, apiKey?: string): Observable<PageViewsTrendData[]> {
-    return this.analyticsAPI.getPageViewsTrend().pipe(
+  getPageViewsTrend(dateRange?: DateRange, period?: string, apiKey?: string): Observable<PageViewsTrendData[]> {
+    return this.analyticsAPI.getPageViewsTrend(dateRange, period).pipe(
       map((data: any) => {
         // Handle API format: {"trend":[{"date":"2025-11-30","pageViews":37}],"period":"daily"}
         if (data && data.trend && Array.isArray(data.trend)) {
@@ -334,8 +324,8 @@ export class AnalyticsDataService {
   /**
    * Get traffic sources / referrers
    */
-  getTrafficSources(): Observable<{ sources: TrafficSource[]; utmSources: UtmSource[]; totalVisits: number }> {
-    return this.analyticsAPI.getTrafficSources().pipe(
+  getTrafficSources(dateRange?: DateRange): Observable<{ sources: TrafficSource[]; utmSources: UtmSource[]; totalVisits: number }> {
+    return this.analyticsAPI.getTrafficSources(dateRange).pipe(
       map((data: any) => ({
         sources: data?.sources || [],
         utmSources: data?.utmSources || [],
@@ -348,8 +338,8 @@ export class AnalyticsDataService {
   /**
    * Get browser and OS breakdown
    */
-  getBrowserBreakdown(): Observable<{ browsers: BrowserData[]; operatingSystems: BrowserData[] }> {
-    return this.analyticsAPI.getBrowserBreakdown().pipe(
+  getBrowserBreakdown(dateRange?: DateRange): Observable<{ browsers: BrowserData[]; operatingSystems: BrowserData[] }> {
+    return this.analyticsAPI.getBrowserBreakdown(dateRange).pipe(
       map((data: any) => ({
         browsers: data?.browsers || [],
         operatingSystems: data?.operatingSystems || []
@@ -361,9 +351,9 @@ export class AnalyticsDataService {
   /**
    * Get Core Web Vitals
    */
-  getWebVitals(): Observable<WebVitals> {
+  getWebVitals(dateRange?: DateRange): Observable<WebVitals> {
     const empty: WebVitalMetric = { avg: null, p75: null, count: 0, rating: 'no-data' };
-    return this.analyticsAPI.getWebVitals().pipe(
+    return this.analyticsAPI.getWebVitals(dateRange).pipe(
       map((data: any) => (data?.vitals || { LCP: empty, FID: empty, CLS: empty }) as WebVitals),
       catchError(() => of({ LCP: empty, FID: empty, CLS: empty } as WebVitals))
     );

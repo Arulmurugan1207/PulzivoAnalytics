@@ -39,10 +39,24 @@ const PLAN_FEATURES: Record<string, string[]> = {
   enterprise: ['page_views', 'clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'csv_export', 'client_hints', 'api_access', 'json_export'],
 };
 
+export interface ClickData {
+  label: string;
+  clickType: string;
+  count: number;
+  page?: string;
+}
+
+export interface EventData {
+  name: string;
+  count: number;
+  lastSeen?: string;
+}
+
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule],
+
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,6 +80,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
   };
 
   topPages: PageData[] = [];
+  topPagesTotal = 0;
+  topPagesPage = 1;
+  topPagesRows = 10;
   geoData: GeographicData[] = [];
   pageViewsTrend: PageViewsTrendData[] = [];
   realtimeEvents: RealtimeEvent[] = [];
@@ -78,6 +95,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     FID: { avg: null, p75: null, count: 0, rating: 'no-data' },
     CLS: { avg: null, p75: null, count: 0, rating: 'no-data' }
   };
+  topClicks: ClickData[] = [];
+  topClicksTotal = 0;
+  topClicksPage = 1;
+  topClicksRows = 10;
+  customEvents: EventData[] = [];
+  customEventsTotal = 0;
+  customEventsPage = 1;
+  customEventsRows = 10;
   isLiveEventsActive = true;
   showLiveEvents = true;
   private liveEventsSubscription?: Subscription;
@@ -101,7 +126,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
     liveEvents: false,
     trafficSources: false,
     browsers: false,
-    webVitals: false
+    webVitals: false,
+    clicks: false,
+    customEvents: false
   };
   
   funnelLabels: string[] = [];
@@ -121,14 +148,21 @@ export class DashboardOverview implements OnInit, OnDestroy {
   activePreset = 'Last 7 Days';
   dateRangeLabel = '';
 
+  // Trend period: auto-set based on date range, can be overridden manually
+  trendPeriod: 'hourly' | 'daily' | 'weekly' | 'monthly' = 'daily';
+  availableTrendPeriods: { label: string; value: 'hourly' | 'daily' | 'weekly' | 'monthly' }[] = [];
+
   presets = [
-    { label: 'Today', range: () => this.getPresetRange('today') },
-    { label: 'Yesterday', range: () => this.getPresetRange('yesterday') },
-    { label: 'Last 7 Days', range: () => this.getPresetRange('last7') },
-    { label: 'Last 30 Days', range: () => this.getPresetRange('last30') },
-    { label: 'This Month', range: () => this.getPresetRange('thisMonth') },
-    { label: 'Last Month', range: () => this.getPresetRange('lastMonth') },
-    { label: 'Custom Range', range: () => null },
+    { label: 'Today',         range: () => this.getPresetRange('today') },
+    { label: 'Yesterday',     range: () => this.getPresetRange('yesterday') },
+    { label: 'This Week',     range: () => this.getPresetRange('thisWeek') },
+    { label: 'Last 7 Days',   range: () => this.getPresetRange('last7') },
+    { label: 'Last 30 Days',  range: () => this.getPresetRange('last30') },
+    { label: 'This Month',    range: () => this.getPresetRange('thisMonth') },
+    { label: 'Last Month',    range: () => this.getPresetRange('lastMonth') },
+    { label: 'Last 3 Months', range: () => this.getPresetRange('last3months') },
+    { label: 'This Year',     range: () => this.getPresetRange('thisYear') },
+    { label: 'Last Year',     range: () => this.getPresetRange('lastYear') },
   ];
 
   // PrimeNG chart data
@@ -197,6 +231,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
     console.log('   - sessions:', this.hasFeature('sessions'));
     this.loadApiKeys();
     this.applyPreset('Last 7 Days');
+    // availableTrendPeriods initialized by applyPreset → emitDateRange → computeAvailablePeriods
+    if (!this.availableTrendPeriods.length) {
+      const end = new Date();
+      const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      this.availableTrendPeriods = this.computeAvailablePeriods(start, end);
+    }
 
     this.subscriptions.add(
       this.dateRange$.subscribe(dateRange => {
@@ -278,10 +318,31 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleFont: { size: 12 },
+          bodyFont: { size: 13 },
+          padding: 10,
+          cornerRadius: 8,
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.parsed.y.toLocaleString()} views`
+          }
+        }
+      },
       scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
-        x: { ticks: { maxTicksLimit: 7 }, grid: { display: false } }
+        y: {
+          beginAtZero: true,
+          ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } },
+          grid: { color: '#f1f5f9' },
+          border: { display: false }
+        },
+        x: {
+          ticks: { maxTicksLimit: 7, color: '#94a3b8', font: { size: 11 } },
+          grid: { display: false },
+          border: { display: false }
+        }
       }
     };
 
@@ -351,7 +412,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // Load metrics
     this.subscriptions.add(
-      this.analyticsAPIService.getRealtimeMetrics().subscribe(data => {
+      this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe(data => {
         if (data && Object.keys(data).length > 0) { this.metrics = data; }
         this.cdr.markForCheck();
       })
@@ -359,8 +420,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // Load page views trend
     this.subscriptions.add(
-      this.analyticsAPIService.getPageViewsData('7d').subscribe(data => {
-        this.pageViewsTrend = data?.trend || [];
+      this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe(data => {
+        this.pageViewsTrend = Array.isArray(data) ? data : [];
         this.updateBarChart();
         this.cdr.markForCheck();
       })
@@ -371,14 +432,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.analyticsDataService.getDeviceBreakdown(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
         this.deviceBreakdown = data;
         this.updateDoughnutChart();
-        this.cdr.markForCheck();
-      })
-    );
-
-    // Load top pages
-    this.subscriptions.add(
-      this.analyticsDataService.getTopPages(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
-        this.topPages = Array.isArray(data) ? data : [];
         this.cdr.markForCheck();
       })
     );
@@ -488,6 +541,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
       FID: { avg: null, p75: null, count: 0, rating: 'no-data' },
       CLS: { avg: null, p75: null, count: 0, rating: 'no-data' }
     };
+    this.topClicks = [];
+    this.customEvents = [];
     this.updateBarChart();
     this.updateDoughnutChart();
   }
@@ -515,6 +570,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadingStates.trafficSources = true;
     this.loadingStates.browsers = true;
     this.loadingStates.webVitals = true;
+    this.loadingStates.clicks = true;
+    this.loadingStates.customEvents = true;
     this.cdr.markForCheck();
     
     try {
@@ -528,7 +585,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.loadConversionWithDelay(),
         this.loadTrafficSourcesWithDelay(),
         this.loadBrowsersWithDelay(),
-        this.loadWebVitalsWithDelay()
+        this.loadWebVitalsWithDelay(),
+        this.loadClicksWithDelay(),
+        this.loadCustomEventsWithDelay()
       ]);
     } catch (error) {
       console.error('Error loading analytics data:', error);
@@ -538,7 +597,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadMetricsWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getMetrics().subscribe({
+        this.analyticsDataService.getMetrics(this.currentDateRange ?? undefined).subscribe({
           next: (data: AnalyticsMetrics) => {
             this.metrics = data;
             this.loadingStates.metrics = false;
@@ -558,7 +617,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadPageViewsWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getPageViewsTrend().subscribe({
+        this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe({
           next: (data: PageViewsTrendData[]) => {
             this.pageViewsTrend = data;
             this.updateBarChart();
@@ -579,7 +638,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadDevicesWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getDeviceBreakdown().subscribe({
+        this.analyticsDataService.getDeviceBreakdown(this.currentDateRange ?? undefined).subscribe({
           next: (data: DeviceBreakdown) => {
             this.deviceBreakdown = data;
             this.updateDoughnutChart();
@@ -600,7 +659,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadGeographyWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getGeographicData().subscribe({
+        this.analyticsDataService.getGeographicData(this.currentDateRange ?? undefined).subscribe({
           next: (data: GeographicData[]) => {
             this.geoData = data;
             this.loadingStates.geography = false;
@@ -620,9 +679,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadTopPagesWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getTopPages().subscribe({
-          next: (data: PageData[]) => {
-            this.topPages = data;
+        this.analyticsDataService.getTopPages(this.currentDateRange ?? undefined, 1, this.topPagesRows).subscribe({
+          next: (res) => {
+            this.topPages = res.pages;
+            this.topPagesTotal = res.total;
+            this.topPagesPage = 1;
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
@@ -634,6 +695,26 @@ export class DashboardOverview implements OnInit, OnDestroy {
           }
         });
       }, 400 + Math.random() * 600);
+    });
+  }
+
+  onTopPageChange(event: any): void {
+    const page = Math.floor(event.first / event.rows) + 1;
+    const rows = event.rows;
+    this.topPagesPage = page;
+    this.topPagesRows = rows;
+    this.loadingStates.topPages = true;
+    this.cdr.markForCheck();
+    this.analyticsDataService.getTopPages(this.currentDateRange ?? undefined, page, rows).subscribe({
+      next: (res) => {
+        this.topPages = res.pages;
+        this.loadingStates.topPages = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingStates.topPages = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -661,10 +742,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadTrafficSourcesWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getTrafficSources().subscribe({
+        this.analyticsDataService.getTrafficSources(this.currentDateRange ?? undefined).subscribe({
           next: (data) => {
             this.trafficSources = data.sources || [];
-            this.utmSources = data.utmSources || [];
+            this.utmSources = (data.utmSources || []).filter((utm: any) =>
+              !!utm?.source && !!utm?.medium && !!utm?.campaign
+            );
             this.loadingStates.trafficSources = false;
             this.cdr.markForCheck();
             resolve();
@@ -682,7 +765,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadBrowsersWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getBrowserBreakdown().subscribe({
+        this.analyticsDataService.getBrowserBreakdown(this.currentDateRange ?? undefined).subscribe({
           next: (data) => {
             this.browsers = data.browsers || [];
             this.operatingSystems = data.operatingSystems || [];
@@ -703,7 +786,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   private async loadWebVitalsWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
-        this.analyticsDataService.getWebVitals().subscribe({
+        this.analyticsDataService.getWebVitals(this.currentDateRange ?? undefined).subscribe({
           next: (data: WebVitals) => {
             this.webVitals = data;
             this.loadingStates.webVitals = false;
@@ -717,6 +800,100 @@ export class DashboardOverview implements OnInit, OnDestroy {
           }
         });
       }, 1000 + Math.random() * 1000);
+    });
+  }
+
+  private async loadClicksWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsAPIService.getClicksBreakdown(this.currentDateRange ?? undefined, 1, this.topClicksRows).subscribe({
+          next: (res) => {
+            this.topClicks = res.clicks.map((d: any) => ({
+              label: d.label ? `${d.element || 'ELEMENT'}["${d.label}"]` : (d.element || 'unknown'),
+              clickType: 'click',
+              count: d.count || 0,
+              page: d.page || ''
+            }));
+            this.topClicksTotal = res.total;
+            this.topClicksPage = 1;
+            this.loadingStates.clicks = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.loadingStates.clicks = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 800 + Math.random() * 700);
+    });
+  }
+
+  onTopClicksChange(event: any): void {
+    const page = Math.floor(event.first / event.rows) + 1;
+    this.topClicksPage = page;
+    this.topClicksRows = event.rows;
+    this.loadingStates.clicks = true;
+    this.cdr.markForCheck();
+    this.analyticsAPIService.getClicksBreakdown(this.currentDateRange ?? undefined, page, event.rows).subscribe({
+      next: (res) => {
+        this.topClicks = res.clicks.map((d: any) => ({
+          label: d.label ? `${d.element || 'ELEMENT'}["${d.label}"]` : (d.element || 'unknown'),
+          clickType: 'click',
+          count: d.count || 0,
+          page: d.page || ''
+        }));
+        this.loadingStates.clicks = false;
+        this.cdr.markForCheck();
+      },
+      error: () => { this.loadingStates.clicks = false; this.cdr.markForCheck(); }
+    });
+  }
+
+  private async loadCustomEventsWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsAPIService.getCustomEventsBreakdown(this.currentDateRange ?? undefined, 1, this.customEventsRows).subscribe({
+          next: (res) => {
+            this.customEvents = res.customEvents.map((d: any) => ({
+              name: d.name || d.event_name || 'unknown',
+              count: d.count || 0,
+              lastSeen: d.last_seen || d.lastSeen
+            }));
+            this.customEventsTotal = res.total;
+            this.customEventsPage = 1;
+            this.loadingStates.customEvents = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.loadingStates.customEvents = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 900 + Math.random() * 800);
+    });
+  }
+
+  onCustomEventsChange(event: any): void {
+    const page = Math.floor(event.first / event.rows) + 1;
+    this.customEventsPage = page;
+    this.customEventsRows = event.rows;
+    this.loadingStates.customEvents = true;
+    this.cdr.markForCheck();
+    this.analyticsAPIService.getCustomEventsBreakdown(this.currentDateRange ?? undefined, page, event.rows).subscribe({
+      next: (res) => {
+        this.customEvents = res.customEvents.map((d: any) => ({
+          name: d.name || d.event_name || 'unknown',
+          count: d.count || 0,
+          lastSeen: d.last_seen || d.lastSeen
+        }));
+        this.loadingStates.customEvents = false;
+        this.cdr.markForCheck();
+      },
+      error: () => { this.loadingStates.customEvents = false; this.cdr.markForCheck(); }
     });
   }
 
@@ -751,7 +928,25 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartData = {
       ...this.barChartData,
       labels: this.pageViewsTrend.map(item => {
-        const date = new Date(item.date);
+        const raw = item.date;
+        if (this.trendPeriod === 'hourly') {
+          // Format: "2025-01-15T14:00" → "2 PM"
+          const d = new Date(raw + ':00');
+          return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+        }
+        if (this.trendPeriod === 'weekly') {
+          // Format: "2025-W05" — show as "Week 5"
+          const parts = raw.split('-W');
+          return parts.length === 2 ? `W${parts[1]}` : raw;
+        }
+        if (this.trendPeriod === 'monthly') {
+          // Format: "2025-01" → "Jan 25"
+          const [y, m] = raw.split('-');
+          const d = new Date(Number(y), Number(m) - 1, 1);
+          return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        }
+        // daily: "2025-01-15" → "Jan 15"
+        const date = new Date(raw + 'T00:00:00');
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }),
       datasets: [{
@@ -826,6 +1021,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
         ye.setHours(23, 59, 59, 999);
         return [y, ye];
       }
+      case 'thisWeek': {
+        const s = new Date(today);
+        const day = s.getDay(); // 0=Sun, 1=Mon...
+        s.setDate(s.getDate() - (day === 0 ? 6 : day - 1)); // Monday start
+        return [s, end];
+      }
       case 'last7': {
         const s = new Date(today);
         s.setDate(s.getDate() - 6);
@@ -843,6 +1044,18 @@ export class DashboardOverview implements OnInit, OnDestroy {
         const e = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
         return [s, e];
       }
+      case 'last3months': {
+        const s = new Date(today);
+        s.setMonth(s.getMonth() - 3);
+        return [s, end];
+      }
+      case 'thisYear':
+        return [new Date(today.getFullYear(), 0, 1), end];
+      case 'lastYear': {
+        const s = new Date(today.getFullYear() - 1, 0, 1);
+        const e = new Date(today.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+        return [s, e];
+      }
       default:
         return [new Date(today), end];
     }
@@ -850,7 +1063,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   applyPreset(label: string): void {
     this.activePreset = label;
-    if (label === 'Custom Range') return;
     const preset = this.presets.find(p => p.label === label);
     if (preset) {
       const range = preset.range();
@@ -912,11 +1124,41 @@ export class DashboardOverview implements OnInit, OnDestroy {
         startDate: this.dateRangeValue[0],
         endDate: this.dateRangeValue[1]
       };
+      this.trendPeriod = this.autoTrendPeriod(this.dateRangeValue[0], this.dateRangeValue[1]);
+      this.availableTrendPeriods = this.computeAvailablePeriods(this.dateRangeValue[0], this.dateRangeValue[1]);
       if (this.selectedApiKey) {
         this.loadAllData();
       }
       this.cdr.markForCheck();
     }
+  }
+
+  /** Returns the best default period for a given date range span */
+  private autoTrendPeriod(start: Date, end: Date): 'hourly' | 'daily' | 'weekly' | 'monthly' {
+    const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    if (days <= 2)   return 'hourly';
+    if (days <= 90)  return 'daily';
+    if (days <= 365) return 'weekly';
+    return 'monthly';
+  }
+
+  /** Returns which period buttons should be shown for a given span */
+  private computeAvailablePeriods(start: Date, end: Date): { label: string; value: 'hourly' | 'daily' | 'weekly' | 'monthly' }[] {
+    const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+    const all: { label: string; value: 'hourly' | 'daily' | 'weekly' | 'monthly'; minDays: number; maxDays: number }[] = [
+      { label: 'Hour',  value: 'hourly',  minDays: 0,   maxDays: 7 },
+      { label: 'Day',   value: 'daily',   minDays: 0,   maxDays: 180 },
+      { label: 'Week',  value: 'weekly',  minDays: 14,  maxDays: 730 },
+      { label: 'Month', value: 'monthly', minDays: 60,  maxDays: Infinity },
+    ];
+    return all
+      .filter(p => days >= p.minDays && days <= p.maxDays)
+      .map(({ label, value }) => ({ label, value }));
+  }
+
+  setTrendPeriod(period: 'hourly' | 'daily' | 'weekly' | 'monthly'): void {
+    this.trendPeriod = period;
+    this.loadPageViewsWithDelay();
   }
 
   toggleDatePopover(event: Event): void {

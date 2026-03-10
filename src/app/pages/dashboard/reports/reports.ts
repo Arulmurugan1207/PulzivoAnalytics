@@ -365,10 +365,10 @@ export class DashboardReports implements OnInit {
     });
 
     // Load top pages
-    this.analyticsDataService.getTopPages(dateRange, this.selectedApiKey).subscribe({
-      next: (data) => {
-        console.log('Top Pages Response:', data);
-        this.tableData = data;
+    this.analyticsDataService.getTopPages(dateRange).subscribe({
+      next: (res) => {
+        console.log('Top Pages Response:', res);
+        this.tableData = res.pages;
       },
       error: (error) => {
         console.error('Error loading top pages:', error);

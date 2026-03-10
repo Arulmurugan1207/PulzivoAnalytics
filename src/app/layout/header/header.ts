@@ -1,117 +1,111 @@
-import { Component, ViewChild, OnInit } from '@angular/core';
-import { RouterModule } from '@angular/router';
-import { MenubarModule } from 'primeng/menubar';
-import { ButtonModule } from 'primeng/button';
+﻿import { Component, OnInit, OnDestroy, ViewChild, HostListener, signal } from '@angular/core';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { AvatarModule } from 'primeng/avatar';
 import { Menu, MenuModule } from 'primeng/menu';
 import type { MenuItem } from 'primeng/api';
 
-import { SignIn } from "../../components/modals/sign-in/sign-in";
-import { SignUp } from "../../components/modals/sign-up/sign-up";
-import { Success } from "../../components/modals/success/success";
-import { ForgotPassword } from "../../components/modals/forgot-password/forgot-password";
+import { SignIn } from '../../components/modals/sign-in/sign-in';
+import { SignUp } from '../../components/modals/sign-up/sign-up';
+import { Success } from '../../components/modals/success/success';
+import { ForgotPassword } from '../../components/modals/forgot-password/forgot-password';
 import { AuthService } from '../../services/auth.service';
+
+interface NavItem {
+  label: string;
+  path: string;
+}
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterModule, MenubarModule, ButtonModule, AvatarModule, MenuModule, SignIn, SignUp, Success, ForgotPassword],
+  imports: [RouterModule, CommonModule, AvatarModule, MenuModule, SignIn, SignUp, Success, ForgotPassword],
   templateUrl: './header.html',
   styleUrls: ['./header.scss'],
 })
-export class Header implements OnInit {
+export class Header implements OnInit, OnDestroy {
   @ViewChild(SignIn) signInModal!: SignIn;
   @ViewChild(SignUp) signUpModal!: SignUp;
   @ViewChild(Success) successModal!: Success;
   @ViewChild(ForgotPassword) forgotPasswordModal!: ForgotPassword;
   @ViewChild('userMenu') userMenu!: Menu;
-  
+
+  mobileMenuOpen = signal(false);
   isLoggedIn = false;
   userName = '';
   userInitials = '';
-  
-  constructor(private authService: AuthService) {}
+  currentPath = '/';
+  private routerSub!: Subscription;
 
-  ngOnInit() {
-    // Check if user is already logged in on component load
-    this.checkAuthenticationStatus();
-  }
-
-  private checkAuthenticationStatus() {
-    if (this.authService.isAuthenticated()) {
-      const userData = this.authService.getUserData();
-      if (userData) {
-        this.setLoggedInUser(`${userData.firstname} ${userData.lastname}`);
-      }
-    }
-  }
-  
-  items: MenuItem[] = [
-    { label: 'Home', routerLink: '/', routerLinkActiveOptions: { exact: true } },
-    { label: 'Pricing', routerLink: '/pricing' },
-    { label: 'Docs', routerLink: '/docs' },
-    { label: 'Contact', routerLink: '/contact' }
+  readonly navItems: NavItem[] = [
+    { label: 'Home', path: '/' },
+    { label: 'Pricing', path: '/pricing' },
+    { label: 'Docs', path: '/docs' },
+    { label: 'Contact', path: '/contact' },
   ];
 
   userMenuItems: MenuItem[] = [
-    { 
-      label: 'Dashboard', 
-      icon: 'pi pi-th-large',
-      routerLink: '/dashboard'
-    },
-    { 
-      label: 'Account', 
-      icon: 'pi pi-user',
-      routerLink: '/account'
-    },
-    { 
-      separator: true 
-    },
-    { 
-      label: 'Logout', 
-      icon: 'pi pi-sign-out',
-      command: () => this.logout()
-    }
+    { label: 'Dashboard', icon: 'pi pi-th-large', routerLink: '/dashboard' },
+    { label: 'Account', icon: 'pi pi-user', routerLink: '/account' },
+    { separator: true },
+    { label: 'Logout', icon: 'pi pi-sign-out', command: () => this.logout() },
   ];
 
-  openSignIn() {
-    this.signInModal.show();
+  constructor(private authService: AuthService, private router: Router) {}
+
+  ngOnInit() {
+    this.currentPath = this.normalizePath(this.router.url);
+    this.routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe((e: any) => {
+        this.currentPath = this.normalizePath(e.urlAfterRedirects);
+        this.mobileMenuOpen.set(false); // close menu on navigation
+      });
+    if (this.authService.isAuthenticated()) {
+      const userData = this.authService.getUserData();
+      if (userData) this.setLoggedInUser(`${userData.firstname} ${userData.lastname}`);
+    }
   }
 
-  openSignUp() {
-    this.signUpModal.show();
+  private normalizePath(url: string): string {
+    return url.split('?')[0].split('#')[0];
   }
 
-  onSwitchToSignUp() {
-    this.signInModal.hide();
-    this.signUpModal.show();
+  isActive(path: string): boolean {
+    if (path === '/') return this.currentPath === '/';
+    return this.currentPath === path || this.currentPath.startsWith(path + '/');
   }
 
-  onSwitchToSignIn() {
-    this.signUpModal.hide();
-    this.signInModal.show();
+  toggleMobileMenu() {
+    this.mobileMenuOpen.update(v => !v);
   }
 
-  onSwitchToForgotPassword() {
-    this.signInModal.hide();
-    this.forgotPasswordModal.show();
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('app-header')) {
+      this.mobileMenuOpen.set(false);
+    }
   }
 
-  onBackToSignIn() {
-    this.forgotPasswordModal.hide();
-    this.signInModal.show();
-  }
+  openSignIn() { this.signInModal.show(); }
+  openSignUp() { this.signUpModal.show(); }
+
+  onSwitchToSignUp() { this.signInModal.hide(); this.signUpModal.show(); }
+  onSwitchToSignIn() { this.signUpModal.hide(); this.signInModal.show(); }
+  onSwitchToForgotPassword() { this.signInModal.hide(); this.forgotPasswordModal.show(); }
+  onBackToSignIn() { this.forgotPasswordModal.hide(); this.signInModal.show(); }
 
   onSignInSuccess(user: any) {
     this.signInModal.hide();
-    // Set user data from auth service
     this.setLoggedInUser(`${user.firstname} ${user.lastname}`);
     this.successModal.show('Welcome Back!', 'You have successfully signed in.');
   }
 
   onSignUpSuccess() {
     this.signUpModal.hide();
-    // Simulate getting user data - in real app, get from auth service
     this.setLoggedInUser('John Doe');
     this.successModal.show('Account Created!', 'Your account has been created successfully.');
   }
@@ -119,7 +113,7 @@ export class Header implements OnInit {
   setLoggedInUser(name: string) {
     this.isLoggedIn = true;
     this.userName = name;
-    this.userInitials = name.split(' ').map(n => n[0]).join('').toUpperCase();
+    this.userInitials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
   }
 
   logout() {
@@ -130,21 +124,10 @@ export class Header implements OnInit {
   }
 
   toggleUserMenu(event: Event) {
-    if (this.userMenu) {
-      this.userMenu.toggle(event);
-    }
+    if (this.userMenu) this.userMenu.toggle(event);
   }
 
-  trackLogoClick() {
-    const win = window as any;
-    if (win.STKAnalytics?.trackEvent) {
-      win.STKAnalytics.trackEvent('logo_click', {
-        utm_source: 'header',
-        utm_medium: 'navigation',
-        utm_campaign: 'logo',
-        utm_content: 'top_nav',
-        page: window.location.pathname
-      });
-    }
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe();
   }
 }

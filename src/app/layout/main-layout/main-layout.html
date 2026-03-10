@@ -1,7 +1,11 @@
 <div class="main-layout">
-  <app-header></app-header>
-  <main class="content">
+  @if (!isDashboardRoute()) {
+    <app-header></app-header>
+  }
+  <main class="content" [class.content-dashboard]="isDashboardRoute()">
     <router-outlet></router-outlet>
   </main>
-  <app-footer></app-footer>
+  @if (!isDashboardRoute()) {
+    <app-footer></app-footer>
+  }
 </div>

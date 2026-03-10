@@ -147,6 +147,8 @@ $sidebar-collapsed: 64px;
 .main-panel {
   flex: 1;
   margin-left: $sidebar-width;
+  width: calc(100% - #{$sidebar-width});
+  min-width: 0;
   transition: margin-left 0.25s ease;
   display: flex;
   flex-direction: column;
@@ -154,6 +156,7 @@ $sidebar-collapsed: 64px;
 
   &.sidebar-collapsed {
     margin-left: $sidebar-collapsed;
+    width: calc(100% - #{$sidebar-collapsed});
   }
 }
 
@@ -246,6 +249,7 @@ $sidebar-collapsed: 64px;
 .content-area {
   flex: 1;
   padding: 1.5rem;
+  min-width: 0;
 }
 
 // ── Placeholder Cards ──
@@ -286,6 +290,7 @@ $sidebar-collapsed: 64px;
 
   .main-panel {
     margin-left: $sidebar-collapsed;
+    width: calc(100% - #{$sidebar-collapsed});
   }
 
   .nav-section-label,
@@ -299,5 +304,38 @@ $sidebar-collapsed: 64px;
     .date-text {
       display: none;
     }
+  }
+
+  .topbar {
+    padding: 0.75rem 1rem;
+  }
+
+  .content-area {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .sidebar,
+  .sidebar.collapsed {
+    width: 56px;
+  }
+
+  .main-panel,
+  .main-panel.sidebar-collapsed {
+    margin-left: 56px;
+    width: calc(100% - 56px);
+  }
+
+  .topbar {
+    padding: 0.65rem 0.75rem;
+  }
+
+  .topbar-left .page-title {
+    font-size: 1.05rem;
+  }
+
+  .content-area {
+    padding: 0.75rem;
   }
 }

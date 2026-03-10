@@ -1,0 +1,204 @@
+// ── Hero ─────────────────────────────────────────────────────────────────────
+.feat-hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
+
+  .feat-hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1d4ed8;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #bfdbfe;
+  }
+
+  h1 {
+    font-size: clamp(1.9rem, 4.5vw, 3rem);
+    font-weight: 800;
+    color: var(--text-primary, #0f172a);
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+
+  .feat-gradient {
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .feat-hero-sub {
+    font-size: 1.1rem;
+    color: var(--muted, #64748b);
+    max-width: 580px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+  }
+}
+
+.feat-hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+// ── Category ─────────────────────────────────────────────────────────────────
+.feat-category {
+  padding: 3rem 0 2rem;
+}
+
+.feat-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    margin: 0;
+  }
+}
+
+.feat-cat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  i {
+    font-size: 1.1rem;
+    color: #2563eb;
+  }
+}
+
+// ── Grid ─────────────────────────────────────────────────────────────────────
+.feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+// ── Card ─────────────────────────────────────────────────────────────────────
+.feat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.09);
+    transform: translateY(-3px);
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: var(--muted, #64748b);
+    line-height: 1.6;
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.feat-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.feat-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  i {
+    font-size: 1.1rem;
+    color: #16a34a;
+  }
+}
+
+.feat-cta {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  transition: gap 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    color: #1d4ed8;
+    gap: 0.65rem;
+  }
+
+  i {
+    font-size: 0.75rem;
+    transition: transform 0.15s ease;
+  }
+
+  &:hover i {
+    transform: translateX(2px);
+  }
+}
+
+// ── Bottom CTA ───────────────────────────────────────────────────────────────
+.feat-bottom-cta {
+  padding: 4rem 0;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+  text-align: center;
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    font-weight: 800;
+    color: var(--text-primary, #0f172a);
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    color: var(--muted, #64748b);
+    margin-bottom: 2rem;
+    font-size: 1rem;
+  }
+}
+
+.feat-cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+// ── Responsive ───────────────────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .feat-grid {
+    grid-template-columns: 1fr;
+  }
+}

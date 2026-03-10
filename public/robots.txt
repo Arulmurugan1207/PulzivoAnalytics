@@ -1,8 +1,24 @@
+# SimpleTrack Analytics - robots.txt
+# https://simpletrack.dev
+
 User-agent: *
 Allow: /
+Allow: /pricing
+Allow: /docs
+Allow: /features
+Allow: /use-cases
+Allow: /blog
+Allow: /contact
 
-# Block private/dashboard routes from indexing
+# Block authenticated / private routes
 Disallow: /dashboard/
 Disallow: /reset-password/
+Disallow: /api/
+
+# Block common crawl traps
+Disallow: /*?*
+Allow: /$
+
+Crawl-delay: 10
 
 Sitemap: https://simpletrack.dev/sitemap.xml
