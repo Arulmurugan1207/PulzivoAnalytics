@@ -45,6 +45,13 @@ export class Pricing {
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/pricing' });
       this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
+
+    // Funnel: user reached pricing page (strong purchase intent signal)
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'pricing_viewed', {
+        logged_in: this.authService.isAuthenticated()
+      });
+    }
   }
 
   get isLoggedIn(): boolean {
@@ -84,11 +91,15 @@ export class Pricing {
         'Custom event tracking',
         'Auto impression & click tracking',
         'Scroll depth & engagement',
-        'Session & visitor tracking',
+        'Entry & exit page tracking',
+        'Session & bounce rate analytics',
+        'Unique visitor tracking',
+        'Geographic analytics',
+        'Element visibility tracking',
         'Performance metrics',
-        'UTM & attribution',
+        'UTM & attribution tracking',
+        'Traffic source & referrer data',
         'User identity tracking',
-        'Referrer analytics',
         'Custom exports (CSV)',
         'Email support'
       ]
@@ -110,7 +121,8 @@ export class Pricing {
         'Web Vitals (LCP, FID, CLS)',
         'Resource timing monitoring',
         'Heatmap data collection',
-        'Client Hints (device data)',
+        'Client Hints (browser & OS detection)',
+        'Tooltip & UX confusion insights',
         'API access (read data)',
         'Custom exports (CSV/JSON)',
         'Priority support',
@@ -133,6 +145,14 @@ export class Pricing {
   }
 
   selectPlan(plan: Plan): void {
+    // Track which plan the user clicked — key intent signal
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'plan_selected', {
+        plan: plan.type,
+        price: plan.price,
+        is_upgrade: plan.price > this.currentPlan.price
+      });
+    }
     console.log('Selected plan:', plan);
     // Handle plan selection logic here
   }
@@ -158,9 +178,9 @@ export class Pricing {
       case 'free':
         return ['Page view tracking', 'Click tracking', 'Basic dashboard', '7-day data retention', 'Community support'];
       case 'pro':
-        return ['Custom event tracking', 'Auto impression & click tracking', 'Scroll & engagement metrics', 'Session & visitor tracking', 'Performance monitoring'];
+        return ['Custom event tracking', 'Entry & exit page tracking', 'Session & bounce rate analytics', 'Unique visitor tracking', 'UTM & attribution tracking'];
       case 'enterprise':
-        return ['Form tracking & abandonment', 'Error & crash tracking', 'Rage/dead click detection', 'Web Vitals (LCP, FID, CLS)', 'Resource timing', 'Heatmap data', 'Priority support'];
+        return ['Form tracking & abandonment', 'Rage/dead click detection', 'Web Vitals (LCP, FID, CLS)', 'Tooltip & UX confusion insights', 'Client Hints (browser & OS)', 'Priority support'];
       default:
         return plan.features.slice(0, 5);
     }

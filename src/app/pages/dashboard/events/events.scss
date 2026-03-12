@@ -885,3 +885,192 @@
   background: rgba(139, 92, 246, 0.15);
   color: #8b5cf6;
 }
+
+/* ─── Plan Gating ─────────────────────────────────────────────────────── */
+
+// Full-page gate for free users
+.page-gate-wrapper {
+  position: relative;
+}
+
+.page-gated {
+  pointer-events: none;
+  user-select: none;
+
+  > *:not(.page-gate-overlay) {
+    filter: blur(6px);
+    opacity: 0.3;
+  }
+}
+
+.page-gate-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.gate-content {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 2.5rem 3rem;
+  text-align: center;
+  max-width: 460px;
+  box-shadow: 0 20px 60px rgba(42, 109, 246, 0.12);
+
+  .gate-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #2a6df620, #6f41ff20);
+    border: 1px solid #2a6df640;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+
+    i {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #2a6df6, #6f41ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.5rem;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0 0 0.75rem;
+    line-height: 1.6;
+  }
+
+  .gate-features {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: #475569;
+
+      i { color: #22c55e; font-size: 0.75rem; }
+    }
+  }
+
+  .gate-upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    background: linear-gradient(135deg, #2a6df6, #6f41ff);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(42, 109, 246, 0.35);
+    }
+  }
+}
+
+// In-page Enterprise gate (for Pro users)
+.enterprise-gate {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  pointer-events: none;
+  user-select: none;
+
+  > *:not(.enterprise-overlay) {
+    filter: blur(5px);
+    opacity: 0.35;
+  }
+}
+
+.enterprise-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(2px);
+  border-radius: 12px;
+}
+
+.enterprise-content {
+  text-align: center;
+  padding: 1rem 1.5rem;
+
+  .ent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #f59e0b20, #ef444420);
+    color: #d97706;
+    border: 1px solid #f59e0b40;
+    margin-bottom: 0.5rem;
+  }
+
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 0.25rem;
+  }
+
+  p {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin: 0 0 0.75rem;
+    max-width: 220px;
+  }
+
+  .ent-upgrade-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 1rem;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+
+    &:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+  }
+}

@@ -15,8 +15,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { PopoverModule } from 'primeng/popover';
 import { Subscription } from 'rxjs';
+import { RouterLink } from '@angular/router';
 import { AnalyticsAPIService } from '../../../services/analytics-api.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
+import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 
@@ -71,6 +73,7 @@ interface FilterOptions {
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     ChartModule,
     SelectModule,
     ButtonModule,
@@ -91,6 +94,9 @@ interface FilterOptions {
 })
 export class DashboardEvents implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
+
+  // Plan gating
+  userPlan: 'free' | 'pro' | 'enterprise' = 'free';
 
   availableApiKeys: ApiKey[] = [];
   selectedApiKey = '';
@@ -258,18 +264,31 @@ export class DashboardEvents implements OnInit, OnDestroy {
     private analyticsAPI: AnalyticsAPIService,
     private apiKeysService: ApiKeysService,
     private cdr: ChangeDetectorRef,
-    public demoService: DemoService
+    public demoService: DemoService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
     if (this.demoService.isDemoMode()) {
+      this.userPlan = 'pro'; // demo shows pro-level
       this.loadDemoData();
       return;
+    }
+    const user = this.authService.getUserData();
+    if (user?.role === 'owner') {
+      this.userPlan = 'enterprise';
+    } else {
+      this.userPlan = user?.plan || 'free';
     }
     this.initChart();
     this.initTimelineChart();
     this.initDateRange();
     this.loadApiKeys();
+  }
+
+  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
+    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+    return (order[this.userPlan] ?? 0) >= order[plan];
   }
 
   ngOnDestroy(): void {
@@ -391,6 +410,13 @@ export class DashboardEvents implements OnInit, OnDestroy {
   }
 
   private loadAll(): void {
+    // Free users: entire page is gated — skip all API calls
+    if (!this.isPlanAtLeast('pro')) {
+      this.loading.breakdown = false;
+      this.loading.history = false;
+      this.cdr.markForCheck();
+      return;
+    }
     this.loadBreakdown();
     this.loadHistory();
   }

@@ -66,13 +66,20 @@
         </p-select>
       }
 
-      <!-- Export Dropdown -->
+      <!-- Export Buttons -->
       <button 
         pButton 
-        label="Export" 
-        icon="pi pi-download"
+        label="Export CSV" 
+        icon="pi pi-file"
         [loading]="exporting()"
         (click)="exportReport('csv')"
+        class="export-btn"></button>
+      <button 
+        pButton 
+        label="Print / PDF" 
+        icon="pi pi-print"
+        (click)="exportReport('pdf')"
+        [outlined]="true"
         class="export-btn"></button>
 
       <!-- Save Report -->
@@ -113,23 +120,37 @@
       <span>Report Templates</span>
     </button>
     <button 
-      class="tab-btn"
-      [class.active]="activeView() === 'custom'"
-      (click)="activeView.set('custom')">
+      class="tab-btn tab-btn--disabled"
+      disabled
+      pTooltip="Coming soon"
+      tooltipPosition="bottom">
       <i class="pi pi-wrench"></i>
       <span>Custom Builder</span>
     </button>
     <button 
-      class="tab-btn"
-      [class.active]="activeView() === 'saved'"
-      (click)="activeView.set('saved')">
+      class="tab-btn tab-btn--disabled"
+      disabled
+      pTooltip="Coming soon"
+      tooltipPosition="bottom">
       <i class="pi pi-bookmark"></i>
-      <span>Saved Reports ({{ savedReports.length }})</span>
+      <span>Saved Reports</span>
     </button>
   </div>
 
+  <!-- Free plan upgrade wall -->
+  @if (userPlan === 'free') {
+    <div class="upgrade-wall">
+      <div class="upgrade-wall-icon">
+        <i class="pi pi-lock"></i>
+      </div>
+      <h2>Reports require a paid plan</h2>
+      <p>Upgrade to Pro or Enterprise to generate Traffic, Behavior, Geographic, Device and Content reports — plus unlock Conversion Funnel tracking with Enterprise.</p>
+      <a pButton label="View Plans" icon="pi pi-arrow-right" iconPos="right" routerLink="/dashboard/plans" class="upgrade-wall-btn"></a>
+    </div>
+  }
+
   <!-- Templates View -->
-  @if (activeView() === 'templates') {
+  @if (activeView() === 'templates' && userPlan !== 'free') {
     <div class="templates-view">
       <!-- Template Selection -->
       <div class="template-grid">
@@ -137,12 +158,19 @@
           <div 
             class="template-card"
             [class.selected]="selectedTemplate() === template.id"
+            [class.template-card--locked]="!isTemplateAccessible(template)"
             (click)="selectTemplate(template.id)">
             <div class="template-icon">
               <i class="pi" [ngClass]="template.icon"></i>
             </div>
             <h3>{{ template.name }}</h3>
             <p>{{ template.description }}</p>
+            @if (template.plan === 'enterprise' && userPlan !== 'enterprise') {
+              <div class="enterprise-badge">
+                <i class="pi pi-lock"></i>
+                Enterprise
+              </div>
+            }
             @if (selectedTemplate() === template.id) {
               <div class="selected-badge">
                 <i class="pi pi-check"></i>
@@ -181,61 +209,260 @@
             }
           </div>
 
-          <!-- Charts Section -->
-          <div class="charts-section">
-            <!-- Page Views Trend -->
-            @if (chartData.pageViews) {
-              <div class="chart-card">
-                <h3>Page Views Trend</h3>
-                <div class="chart-container">
-                  <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+          <!-- Template-specific charts and tables -->
+          @switch (selectedTemplate()) {
+
+            <!-- ── TRAFFIC ─────────────────────────────────── -->
+            @case ('traffic') {
+              <div class="charts-section">
+                @if (chartData.pageViews) {
+                  <div class="chart-card">
+                    <h3>Page Views Trend</h3>
+                    <div class="chart-container">
+                      <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+                    </div>
+                  </div>
+                }
+                @if (chartData.trafficSources && trafficSources.length > 0) {
+                  <div class="chart-card">
+                    <h3>Traffic Sources</h3>
+                    <div class="chart-container">
+                      <p-chart type="doughnut" [data]="chartData.trafficSources" [options]="chartOptions.trafficSources"></p-chart>
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (trafficSources.length > 0) {
+                <div class="table-card">
+                  <h3>Traffic Source Breakdown</h3>
+                  <div class="source-table">
+                    @for (source of trafficSources; track source.source) {
+                      <div class="source-row">
+                        <span class="source-name">{{ source.source }}</span>
+                        <div class="source-bar-wrap">
+                          <div class="source-bar" [style.width.%]="source.percentage"></div>
+                        </div>
+                        <span class="source-visits">{{ source.visits }}</span>
+                        <span class="source-pct">{{ source.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                    }
+                  </div>
                 </div>
-                @if (chartData.pageViews.labels && chartData.pageViews.labels.length === 0) {
-                  <p class="no-data-message">
-                    <i class="pi pi-info-circle"></i>
-                    No page view data available for the selected date range. Make sure your tracking script is installed.
-                  </p>
+              }
+              @if (topPagesData.length > 0) {
+                <div class="table-card">
+                  <h3>Top Pages</h3>
+                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
+                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Bounce Rate</th></tr></ng-template>
+                    <ng-template pTemplate="body" let-page>
+                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.bounceRate }}%</td></tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              }
+            }
+
+            <!-- ── BEHAVIOR ────────────────────────────────── -->
+            @case ('behavior') {
+              <div class="charts-section">
+                @if (chartData.pageViews) {
+                  <div class="chart-card">
+                    <h3>Page Views Trend</h3>
+                    <div class="chart-container">
+                      <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+                    </div>
+                  </div>
+                }
+                @if (chartData.devices) {
+                  <div class="chart-card">
+                    <h3>Device Breakdown</h3>
+                    <div class="chart-container">
+                      <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (topPagesData.length > 0) {
+                <div class="table-card">
+                  <h3>Top Pages by Engagement</h3>
+                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
+                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Avg. Time</th><th>Bounce Rate</th></tr></ng-template>
+                    <ng-template pTemplate="body" let-page>
+                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.avgTime }}</td><td>{{ page.bounceRate }}%</td></tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              }
+            }
+
+            <!-- ── GEOGRAPHIC ──────────────────────────────── -->
+            @case ('geographic') {
+              <div class="charts-section">
+                @if (chartData.devices) {
+                  <div class="chart-card">
+                    <h3>Device Breakdown</h3>
+                    <div class="chart-container">
+                      <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (geographicData.length > 0) {
+                <div class="table-card">
+                  <h3>Visitors by Country</h3>
+                  <div class="source-table">
+                    @for (country of geographicData; track country.country) {
+                      <div class="source-row">
+                        <span class="source-name">{{ country.flag }} {{ country.country }}</span>
+                        <div class="source-bar-wrap">
+                          <div class="source-bar" [style.width.%]="country.percentage"></div>
+                        </div>
+                        <span class="source-visits">{{ country.visitors }}</span>
+                        <span class="source-pct">{{ country.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="empty-section"><i class="pi pi-map"></i><p>No geographic data yet for this period.</p></div>
+              }
+            }
+
+            <!-- ── DEVICE ──────────────────────────────────── -->
+            @case ('device') {
+              <div class="charts-section">
+                @if (chartData.devices) {
+                  <div class="chart-card">
+                    <h3>Device Breakdown</h3>
+                    <div class="chart-container">
+                      <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+                    </div>
+                  </div>
+                }
+                @if (chartData.browsers && browserData.length > 0) {
+                  <div class="chart-card">
+                    <h3>Browser Breakdown</h3>
+                    <div class="chart-container">
+                      <p-chart type="doughnut" [data]="chartData.browsers" [options]="chartOptions.browsers"></p-chart>
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (browserData.length > 0) {
+                <div class="table-card">
+                  <h3>Browser Details</h3>
+                  <div class="source-table">
+                    @for (b of browserData; track b.name) {
+                      <div class="source-row">
+                        <span class="source-name">{{ b.name }}</span>
+                        <div class="source-bar-wrap"><div class="source-bar" [style.width.%]="b.percentage"></div></div>
+                        <span class="source-visits">{{ b.count }}</span>
+                        <span class="source-pct">{{ b.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+              @if (osData.length > 0) {
+                <div class="table-card" style="margin-top:20px">
+                  <h3>Operating Systems</h3>
+                  <div class="source-table">
+                    @for (os of osData; track os.name) {
+                      <div class="source-row">
+                        <span class="source-name">{{ os.name }}</span>
+                        <div class="source-bar-wrap"><div class="source-bar" [style.width.%]="os.percentage"></div></div>
+                        <span class="source-visits">{{ os.count }}</span>
+                        <span class="source-pct">{{ os.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            }
+
+            <!-- ── CONTENT ─────────────────────────────────── -->
+            @case ('content') {
+              <div class="charts-section">
+                @if (chartData.pageViews) {
+                  <div class="chart-card chart-card--wide">
+                    <h3>Page Views Trend</h3>
+                    <div class="chart-container">
+                      <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (topPagesData.length > 0) {
+                <div class="table-card">
+                  <h3>Top Pages by Traffic</h3>
+                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
+                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Avg. Time</th><th>Bounce Rate</th></tr></ng-template>
+                    <ng-template pTemplate="body" let-page>
+                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.avgTime }}</td><td>{{ page.bounceRate }}%</td></tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              }
+              <div class="two-col-tables">
+                @if (entryPagesData.length > 0) {
+                  <div class="table-card">
+                    <h3><i class="pi pi-sign-in"></i> Entry Pages</h3>
+                    <p-table [value]="entryPagesData" [rows]="5">
+                      <ng-template pTemplate="header"><tr><th>Page</th><th>Entrances</th></tr></ng-template>
+                      <ng-template pTemplate="body" let-p><tr><td>{{ p.url || p.path || p.page }}</td><td>{{ p.entrances || p.count }}</td></tr></ng-template>
+                    </p-table>
+                  </div>
+                }
+                @if (exitPagesData.length > 0) {
+                  <div class="table-card">
+                    <h3><i class="pi pi-sign-out"></i> Exit Pages</h3>
+                    <p-table [value]="exitPagesData" [rows]="5">
+                      <ng-template pTemplate="header"><tr><th>Page</th><th>Exits</th><th>Exit Rate</th></tr></ng-template>
+                      <ng-template pTemplate="body" let-p><tr><td>{{ p.url || p.path || p.page }}</td><td>{{ p.exits || p.count }}</td><td>{{ p.exitRate || 0 }}%</td></tr></ng-template>
+                    </p-table>
+                  </div>
                 }
               </div>
             }
 
-            <!-- Device Breakdown -->
-            @if (chartData.devices) {
-              <div class="chart-card">
-                <h3>Device Breakdown</h3>
-                <div class="chart-container">
-                  <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+            <!-- ── CONVERSION ──────────────────────────────── -->
+            @case ('conversion') {
+              @if (funnelSteps.length > 0) {
+                <div class="charts-section">
+                  <div class="chart-card chart-card--wide">
+                    <h3>Acquisition Funnel</h3>
+                    <div class="chart-container">
+                      <p-chart type="bar" [data]="chartData.funnel" [options]="chartOptions.funnel"></p-chart>
+                    </div>
+                  </div>
                 </div>
-              </div>
+                <div class="table-card">
+                  <h3>Funnel Steps</h3>
+                  <div class="funnel-steps">
+                    @for (step of funnelSteps; track step.name; let i = $index) {
+                      <div class="funnel-step">
+                        <div class="funnel-step-num">{{ i + 1 }}</div>
+                        <div class="funnel-step-label">{{ step.name }}</div>
+                        <div class="funnel-step-bar-wrap">
+                          <div class="funnel-step-bar" [style.width.%]="step.conversion"></div>
+                        </div>
+                        <div class="funnel-step-visitors">{{ step.visitors | number }} visitors</div>
+                        <div class="funnel-step-rate" [class.good]="step.conversion > 50" [class.warn]="step.conversion <= 50 && step.conversion > 20" [class.poor]="step.conversion <= 20">
+                          {{ step.conversion | number:'1.1-1' }}%
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div class="empty-section">
+                  <i class="pi pi-filter"></i>
+                  <p>No conversion funnel data for this period. Make sure you are tracking <code>pricing_viewed</code>, <code>signup_started</code>, and <code>signup_completed</code> events.</p>
+                </div>
+              }
             }
-          </div>
 
-          <!-- Top Pages Table -->
-          @if (tableData.length > 0) {
-            <div class="table-card">
-              <h3>Top Pages</h3>
-              <p-table [value]="tableData" [paginator]="true" [rows]="10">
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th>Page URL</th>
-                    <th>Views</th>
-                    <th>Unique Visitors</th>
-                    <th>Avg. Time</th>
-                    <th>Bounce Rate</th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-page>
-                  <tr>
-                    <td>{{ page.url }}</td>
-                    <td>{{ page.views }}</td>
-                    <td>{{ page.uniqueVisitors }}</td>
-                    <td>{{ page.avgTime }}</td>
-                    <td>{{ page.bounceRate }}%</td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            </div>
-          }
+          } <!-- end @switch -->
         </div>
       }
     </div>
@@ -290,19 +517,72 @@
         <!-- Preview Panel -->
         <div class="builder-preview">
           <h3>Report Preview</h3>
-          <p class="preview-help">Configure metrics and charts on the left, then click generate to see your custom report.</p>
-          
-          @if (!loading()) {
-            <div class="preview-metrics">
-              @for (metric of availableMetrics; track metric.value) {
-                @if (metric.checked) {
-                  <div class="preview-metric-card">
-                    <i class="pi pi-chart-line"></i>
-                    <span>{{ metric.label }}</span>
-                  </div>
+          <p class="preview-help">Select metrics and charts on the left, then click generate.</p>
+
+          @if (loading()) {
+            <div style="text-align:center;padding:40px"><i class="pi pi-spin pi-spinner" style="font-size:2rem;color:#667eea"></i></div>
+          } @else {
+            <!-- Metric cards filtered by checked state -->
+            @if (reportMetrics.length > 0) {
+              <div class="metrics-grid" style="margin-bottom:20px">
+                @for (metric of reportMetrics; track metric.label) {
+                  @if (isMetricChecked(metric.key)) {
+                    <div class="metric-card">
+                      <div class="metric-icon" [style.background]="metric.color">
+                        <i class="pi" [ngClass]="metric.icon"></i>
+                      </div>
+                      <div class="metric-details">
+                        <span class="metric-label">{{ metric.label }}</span>
+                        <span class="metric-value">{{ metric.value }}</span>
+                        @if (metric.trend !== undefined && metric.trend !== null) {
+                          <span class="metric-trend" [class.positive]="metric.trend > 0" [class.negative]="metric.trend < 0">
+                            <i class="pi" [ngClass]="metric.trend > 0 ? 'pi-arrow-up' : 'pi-arrow-down'"></i>
+                            {{ Math.abs(metric.trend) }}%
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
                 }
-              }
-            </div>
+              </div>
+            } @else {
+              <p class="preview-help">Click <strong>Generate Custom Report</strong> to load data.</p>
+            }
+
+            <!-- Custom charts -->
+            @if (chartData.pageViews && isChartChecked('pageViewsTrend')) {
+              <div class="chart-card" style="margin-top:20px">
+                <h3>Page Views Trend</h3>
+                <div class="chart-container">
+                  <p-chart type="line" [data]="chartData.pageViews" [options]="chartOptions.pageViews"></p-chart>
+                </div>
+              </div>
+            }
+            @if (chartData.devices && isChartChecked('deviceBreakdown')) {
+              <div class="chart-card" style="margin-top:20px">
+                <h3>Device Breakdown</h3>
+                <div class="chart-container">
+                  <p-chart type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
+                </div>
+              </div>
+            }
+            @if (chartData.trafficSources && isChartChecked('trafficSources') && trafficSources.length > 0) {
+              <div class="chart-card" style="margin-top:20px">
+                <h3>Traffic Sources</h3>
+                <div class="chart-container">
+                  <p-chart type="doughnut" [data]="chartData.trafficSources" [options]="chartOptions.trafficSources"></p-chart>
+                </div>
+              </div>
+            }
+            @if (topPagesData.length > 0 && isChartChecked('topPages')) {
+              <div class="table-card" style="margin-top:20px">
+                <h3>Top Pages</h3>
+                <p-table [value]="topPagesData" [rows]="5">
+                  <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Visitors</th></tr></ng-template>
+                  <ng-template pTemplate="body" let-page><tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td></tr></ng-template>
+                </p-table>
+              </div>
+            }
           }
         </div>
       </div>

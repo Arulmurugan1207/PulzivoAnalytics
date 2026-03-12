@@ -37,8 +37,12 @@ import { DemoService } from '../../../services/demo.service';
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
   free: ['page_views', 'clicks'],
-  pro: ['page_views', 'clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'csv_export'],
-  enterprise: ['page_views', 'clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'csv_export', 'client_hints', 'api_access', 'json_export'],
+  pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
+        'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
+  enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
+               'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity',
+               'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks',
+               'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions'],
 };
 
 export interface ClickData {
@@ -279,6 +283,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     );
 
     this.startRealtimeEvents();
+
+    // Funnel: track first time a signed-up user reaches the dashboard (activation)
+    const firstVisitKey = 'pulzivo_dashboard_visited';
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined' && !localStorage.getItem(firstVisitKey)) {
+      localStorage.setItem(firstVisitKey, '1');
+      (window as any).PulzivoAnalytics('event', 'dashboard_first_visit', {});
+    }
   }
 
   ngOnDestroy(): void {
@@ -657,40 +668,61 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   // Loading management
   private async loadAnalyticsDataWithLoading(): Promise<void> {
-    // Start all loading indicators
+    // Always load free-tier data
     this.loadingStates.metrics = true;
     this.loadingStates.pageViews = true;
     this.loadingStates.devices = true;
-    this.loadingStates.geography = true;
     this.loadingStates.topPages = true;
-    this.loadingStates.entryExit = true;
-    this.loadingStates.conversion = true;
-    this.loadingStates.trafficSources = true;
-    this.loadingStates.browsers = true;
-    this.loadingStates.webVitals = true;
     this.loadingStates.clicks = true;
-    this.loadingStates.customEvents = true;
-    this.loadingStates.formInteractions = true;
     this.cdr.markForCheck();
-    
+
+    const promises: Promise<void>[] = [
+      this.loadMetricsWithDelay(),
+      this.loadPageViewsWithDelay(),
+      this.loadDevicesWithDelay(),
+      this.loadTopPagesWithDelay(),
+      this.loadClicksWithDelay(),
+    ];
+
+    // Pro+ features — only fetch if user has access
+    if (this.hasFeature('sessions')) {
+      this.loadingStates.geography = true;
+      promises.push(this.loadGeographyWithDelay());
+    }
+    if (this.hasFeature('page_exit')) {
+      this.loadingStates.entryExit = true;
+      promises.push(this.loadEntryExitPagesWithDelay());
+    }
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      promises.push(this.loadTrafficSourcesWithDelay());
+    }
+    if (this.hasFeature('custom_events')) {
+      this.loadingStates.customEvents = true;
+      promises.push(this.loadCustomEventsWithDelay());
+    }
+
+    // Enterprise-only features — only fetch if user has access
+    if (this.hasFeature('client_hints')) {
+      this.loadingStates.browsers = true;
+      promises.push(this.loadBrowsersWithDelay());
+    }
+    if (this.hasFeature('web_vitals')) {
+      this.loadingStates.webVitals = true;
+      promises.push(this.loadWebVitalsWithDelay());
+    }
+    if (this.hasFeature('form_tracking')) {
+      this.loadingStates.formInteractions = true;
+      promises.push(this.loadFormInteractionsWithDelay());
+    }
+    if (this.hasFeature('custom_dimensions')) {
+      promises.push(this.loadTooltipInsightsWithDelay());
+    }
+
+    this.cdr.markForCheck();
+
     try {
-      // Load data with realistic delays
-      await Promise.all([
-        this.loadMetricsWithDelay(),
-        this.loadPageViewsWithDelay(),
-        this.loadDevicesWithDelay(),
-        this.loadGeographyWithDelay(),
-        this.loadTopPagesWithDelay(),
-        this.loadEntryExitPagesWithDelay(),
-        this.loadConversionWithDelay(),
-        this.loadTrafficSourcesWithDelay(),
-        this.loadBrowsersWithDelay(),
-        this.loadWebVitalsWithDelay(),
-        this.loadClicksWithDelay(),
-        this.loadCustomEventsWithDelay(),
-        this.loadFormInteractionsWithDelay(),
-        this.loadTooltipInsightsWithDelay()
-      ]);
+      await Promise.all(promises);
     } catch (error) {
       console.error('Error loading analytics data:', error);
     }
@@ -958,6 +990,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   onTopClicksChange(event: any): void {
+    if (!this.hasFeature('clicks')) return;
     const page = Math.floor(event.first / event.rows) + 1;
     this.topClicksPage = page;
     this.topClicksRows = event.rows;
@@ -1005,6 +1038,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   onCustomEventsChange(event: any): void {
+    if (!this.hasFeature('custom_events')) return;
     const page = Math.floor(event.first / event.rows) + 1;
     this.customEventsPage = page;
     this.customEventsRows = event.rows;
@@ -1084,6 +1118,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   onTooltipInsightsChange(event: any): void {
+    if (!this.hasFeature('custom_dimensions')) return;
     const page = Math.floor(event.first / event.rows) + 1;
     this.tooltipInsightsPage = page;
     this.tooltipInsightsRows = event.rows;
@@ -1111,6 +1146,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   onFormInteractionsChange(event: any): void {
+    if (!this.hasFeature('form_tracking')) return;
     const page = Math.floor(event.first / event.rows) + 1;
     this.formInteractionsPage = page;
     this.formInteractionsRows = event.rows;
@@ -1423,25 +1459,21 @@ export class DashboardOverview implements OnInit, OnDestroy {
   // Plan gating helpers
   hasFeature(feature: string): boolean {
     const user = this.authService.getUserData();
-    console.log(`🔒 Overview: Checking feature '${feature}' for plan '${this.userPlan}', role '${user?.role}'`);
-    
-    // Owner role always has access to everything
-    if (user?.role === 'owner') {
-      console.log(`👑 Overview: Feature '${feature}' ALLOWED (owner role)`);
-      return true;
-    }
-    
-    // Non-free users (pro and enterprise) have access to all features
-    if (this.userPlan === 'pro' || this.userPlan === 'enterprise') {
-      console.log(`✅ Overview: Feature '${feature}' ALLOWED (paid plan: ${this.userPlan})`);
-      return true;
-    }
-    
-    // Free users only have access to limited features
-    const hasAccess = (PLAN_FEATURES[this.userPlan] || []).includes(feature);
-    console.log(`${hasAccess ? '✅' : '❌'} Overview: Feature '${feature}' ${hasAccess ? 'ALLOWED' : 'BLOCKED'} for free plan`);
-    console.log(`📋 Overview: Available features for '${this.userPlan}':`, PLAN_FEATURES[this.userPlan]);
-    return hasAccess;
+    if (user?.role === 'owner') return true;
+    return (PLAN_FEATURES[this.userPlan] || []).includes(feature);
+  }
+
+  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
+    const user = this.authService.getUserData();
+    if (user?.role === 'owner') return true;
+    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+    return (order[this.userPlan] ?? 0) >= order[plan];
+  }
+
+  upgradeRequired(feature: string): 'pro' | 'enterprise' {
+    const enterpriseOnly = ['client_hints', 'form_tracking', 'error_tracking', 'rage_clicks',
+      'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions'];
+    return enterpriseOnly.includes(feature) ? 'enterprise' : 'pro';
   }
 
   getUpgradePlan(): string {

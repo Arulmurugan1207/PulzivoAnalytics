@@ -101,6 +101,11 @@ export class Contact {
         this.loading.set(false);
         this.submitted.set(true);
         this.contactForm.reset();
+
+        // Track contact form submission (sales intent or support need)
+        if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+          (window as any).PulzivoAnalytics('event', 'contact_submitted', { source: 'contact_page' });
+        }
         
         // Reset success message after 5 seconds
         setTimeout(() => this.submitted.set(false), 5000);

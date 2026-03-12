@@ -147,6 +147,14 @@ export class AnalyticsAPIService {
     );
   }
 
+  getMetricsComparison(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ current: {}, previous: {}, trends: {} });
+    return this.http.get(`${this.apiUrl}/analytics/metrics-comparison?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ current: {}, previous: {}, trends: {} }))
+    );
+  }
+
   getTrafficSources(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({});

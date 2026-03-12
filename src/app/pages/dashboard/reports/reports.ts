@@ -13,8 +13,12 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { RouterLink } from '@angular/router';
 import { AnalyticsDataService, DateRange } from '../../../services/analytics-data.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
+import { AuthService } from '../../../services/auth.service';
 
 interface ReportTemplate {
   id: string;
@@ -23,6 +27,7 @@ interface ReportTemplate {
   icon: string;
   metrics: string[];
   charts: string[];
+  plan?: 'pro' | 'enterprise';
 }
 
 interface SavedReport {
@@ -34,6 +39,7 @@ interface SavedReport {
 }
 
 interface MetricData {
+  key: string;
   label: string;
   value: number | string;
   trend?: number;
@@ -47,6 +53,7 @@ interface MetricData {
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     ChartModule,
     CardModule,
     SelectModule,
@@ -116,7 +123,8 @@ export class DashboardReports implements OnInit {
       description: 'Track conversion rates and funnel drop-offs',
       icon: 'pi-filter',
       metrics: ['conversionRate', 'dropOffRate', 'completions'],
-      charts: ['funnelSteps', 'dropOffPoints', 'conversionTrend']
+      charts: ['funnelSteps', 'dropOffPoints', 'conversionTrend'],
+      plan: 'enterprise'
     }
   ];
 
@@ -147,19 +155,26 @@ export class DashboardReports implements OnInit {
   reportMetrics: MetricData[] = [];
   chartData: any = {};
   chartOptions: any = {};
-  tableData: any[] = [];
+  topPagesData: any[] = [];
+  trafficSources: any[] = [];
+  geographicData: any[] = [];
+  browserData: any[] = [];
+  osData: any[] = [];
+  funnelSteps: any[] = [];
+  entryPagesData: any[] = [];
+  exitPagesData: any[] = [];
   loading = signal(false);
   exporting = signal(false);
 
+  // Plan access
+  userPlan: 'free' | 'pro' | 'enterprise' = 'free';
+
   // Custom report builder
   availableMetrics = [
-    { label: 'Page Views', value: 'pageViews', checked: true },
-    { label: 'Unique Visitors', value: 'visitors', checked: true },
-    { label: 'Sessions', value: 'sessions', checked: true },
-    { label: 'Bounce Rate', value: 'bounceRate', checked: true },
+    { label: 'Page Views',            value: 'pageViews',          checked: true  },
+    { label: 'Unique Visitors',       value: 'visitors',           checked: true  },
     { label: 'Avg. Session Duration', value: 'avgSessionDuration', checked: false },
-    { label: 'Pages per Session', value: 'pagesPerSession', checked: false },
-    { label: 'Conversion Rate', value: 'conversionRate', checked: false }
+    { label: 'Bounce Rate',           value: 'bounceRate',         checked: true  },
   ];
 
   availableCharts = [
@@ -180,14 +195,30 @@ export class DashboardReports implements OnInit {
   constructor(
     private analyticsDataService: AnalyticsDataService,
     private apiKeysService: ApiKeysService,
+    private authService: AuthService,
     private messageService: MessageService
   ) {}
 
   ngOnInit() {
+    this.loadUserPlan();
     this.loadApiKeys();
     this.initializeDateRange();
     this.loadSavedReports();
-    this.generateReport();
+  }
+
+  loadUserPlan() {
+    const user = this.authService.getUserData();
+    if (user?.role === 'owner') {
+      this.userPlan = 'enterprise';
+    } else {
+      this.userPlan = user?.plan ?? 'free';
+    }
+  }
+
+  isTemplateAccessible(template: ReportTemplate): boolean {
+    if (!template.plan) return true; // no restriction
+    if (template.plan === 'enterprise') return this.userPlan === 'enterprise';
+    return this.userPlan === 'pro' || this.userPlan === 'enterprise';
   }
 
   loadApiKeys() {
@@ -198,6 +229,7 @@ export class DashboardReports implements OnInit {
           if (this.availableApiKeys.length > 0) {
             this.selectedApiKey = this.availableApiKeys[0].apiKey;
             this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
+            this.generateReport();
           }
         }
       },
@@ -221,6 +253,8 @@ export class DashboardReports implements OnInit {
   }
 
   selectTemplate(templateId: string) {
+    const template = this.templates.find(t => t.id === templateId);
+    if (template && !this.isTemplateAccessible(template)) return;
     this.selectedTemplate.set(templateId);
     this.generateReport();
   }
@@ -294,105 +328,244 @@ export class DashboardReports implements OnInit {
 
   generateReport() {
     if (!this.selectedApiKey) return;
-
     this.loading.set(true);
-    
+
     const dateRange: DateRange = {
       startDate: this.dateRangeValue[0],
       endDate: this.dateRangeValue[1]
     };
 
-    // Load metrics
-    this.analyticsDataService.getMetrics(dateRange, this.selectedApiKey).subscribe({
-      next: (metrics) => {
-        this.buildReportMetrics(metrics);
-        this.loading.set(false);
-      },
-      error: (error) => {
-        console.error('Error loading metrics:', error);
-        this.loading.set(false);
+    // Load core metrics + real comparison trends in parallel
+    forkJoin({
+      metrics:    this.analyticsDataService.getMetrics(dateRange, this.selectedApiKey),
+      comparison: this.analyticsDataService.getMetricsComparison(dateRange, this.selectedApiKey)
+    }).pipe(catchError(() => of({ metrics: {}, comparison: { trends: {} } }))).subscribe({
+      next: ({ metrics, comparison }: any) => {
+        this.buildReportMetrics(metrics, comparison?.trends || {});
       }
     });
 
-    // Load charts based on template
-    this.loadChartData(dateRange);
+    if (this.activeView() === 'custom') {
+      this.loadCustomData(dateRange);
+    } else {
+      this.loadTemplateData(this.selectedTemplate(), dateRange);
+    }
   }
 
-  buildReportMetrics(data: any) {
+  loadTemplateData(template: string, dateRange: DateRange) {
+    switch (template) {
+      case 'traffic':    this.loadTrafficData(dateRange);    break;
+      case 'behavior':   this.loadBehaviorData(dateRange);   break;
+      case 'geographic': this.loadGeographicData(dateRange); break;
+      case 'device':     this.loadDeviceData(dateRange);     break;
+      case 'content':    this.loadContentData(dateRange);    break;
+      case 'conversion': this.loadConversionData(dateRange); break;
+    }
+  }
+
+  loadTrafficData(dateRange: DateRange) {
+    forkJoin({
+      trend:   this.analyticsDataService.getPageViewsTrend(dateRange),
+      sources: this.analyticsDataService.getTrafficSources(dateRange),
+      pages:   this.analyticsDataService.getTopPages(dateRange)
+    }).subscribe({
+      next: ({ trend, sources, pages }: any) => {
+        this.updatePageViewsChart(trend);
+        this.trafficSources = sources.sources || [];
+        this.updateTrafficSourceChart(this.trafficSources);
+        this.topPagesData = pages.pages || [];
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadBehaviorData(dateRange: DateRange) {
+    forkJoin({
+      trend:  this.analyticsDataService.getPageViewsTrend(dateRange),
+      device: this.analyticsDataService.getDeviceBreakdown(dateRange),
+      pages:  this.analyticsDataService.getTopPages(dateRange)
+    }).subscribe({
+      next: ({ trend, device, pages }: any) => {
+        this.updatePageViewsChart(trend);
+        this.updateDeviceChart(device);
+        this.topPagesData = pages.pages || [];
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadGeographicData(dateRange: DateRange) {
+    forkJoin({
+      geo:    this.analyticsDataService.getGeographicData(dateRange),
+      device: this.analyticsDataService.getDeviceBreakdown(dateRange)
+    }).subscribe({
+      next: ({ geo, device }: any) => {
+        this.geographicData = geo || [];
+        this.updateDeviceChart(device);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadDeviceData(dateRange: DateRange) {
+    forkJoin({
+      device:  this.analyticsDataService.getDeviceBreakdown(dateRange),
+      browser: this.analyticsDataService.getBrowserBreakdown(dateRange)
+    }).subscribe({
+      next: ({ device, browser }: any) => {
+        this.updateDeviceChart(device);
+        this.browserData = browser.browsers || [];
+        this.osData = browser.operatingSystems || [];
+        this.updateBrowserChart(this.browserData);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadContentData(dateRange: DateRange) {
+    forkJoin({
+      trend: this.analyticsDataService.getPageViewsTrend(dateRange),
+      pages: this.analyticsDataService.getTopPages(dateRange, 1, 20),
+      entry: this.analyticsDataService.getEntryPages(dateRange),
+      exit:  this.analyticsDataService.getExitPages(dateRange)
+    }).subscribe({
+      next: ({ trend, pages, entry, exit }: any) => {
+        this.updatePageViewsChart(trend);
+        this.topPagesData = pages.pages || [];
+        this.entryPagesData = entry.pages || [];
+        this.exitPagesData = exit.pages || [];
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadConversionData(dateRange: DateRange) {
+    this.analyticsDataService.getConversionFunnel(dateRange).subscribe({
+      next: (funnel) => {
+        this.funnelSteps = funnel.steps || [];
+        this.updateFunnelChart(funnel);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  loadCustomData(dateRange: DateRange) {
+    const checked = this.availableCharts.filter(c => c.checked).map(c => c.value);
+    const requests: any = {};
+    if (checked.includes('pageViewsTrend'))  requests.trend   = this.analyticsDataService.getPageViewsTrend(dateRange);
+    if (checked.includes('topPages'))        requests.pages   = this.analyticsDataService.getTopPages(dateRange);
+    if (checked.includes('deviceBreakdown')) requests.device  = this.analyticsDataService.getDeviceBreakdown(dateRange);
+    if (checked.includes('geographic'))      requests.geo     = this.analyticsDataService.getGeographicData(dateRange);
+    if (checked.includes('trafficSources'))  requests.sources = this.analyticsDataService.getTrafficSources(dateRange);
+    if (Object.keys(requests).length === 0) { this.loading.set(false); return; }
+
+    forkJoin(requests).subscribe({
+      next: (results: any) => {
+        if (results.trend)   this.updatePageViewsChart(results.trend);
+        if (results.pages)   this.topPagesData = results.pages.pages || [];
+        if (results.device)  this.updateDeviceChart(results.device);
+        if (results.geo)     this.geographicData = results.geo || [];
+        if (results.sources) { this.trafficSources = results.sources.sources || []; this.updateTrafficSourceChart(this.trafficSources); }
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
+  }
+
+  buildReportMetrics(data: any, trends: any = {}) {
     this.reportMetrics = [
       {
+        key: 'pageViews',
         label: 'Total Page Views',
         value: data.totalPageViews || 0,
-        trend: 12.5,
+        trend: trends.totalPageViews,
         icon: 'pi-eye',
         color: '#667eea'
       },
       {
+        key: 'visitors',
         label: 'Unique Visitors',
         value: data.uniqueVisitors || 0,
-        trend: 8.3,
+        trend: trends.uniqueVisitors,
         icon: 'pi-users',
         color: '#f093fb'
       },
       {
+        key: 'avgSessionDuration',
         label: 'Avg. Session Duration',
         value: this.formatDuration(data.avgSessionDuration || 0),
-        trend: -3.2,
         icon: 'pi-clock',
         color: '#4facfe'
       },
       {
+        key: 'bounceRate',
         label: 'Bounce Rate',
-        value: `${data.bounceRate || 0}%`,
-        trend: -5.1,
+        value: `${(+(data.bounceRate || 0)).toFixed(1)}%`,
+        trend: trends.bounceRate !== undefined ? -(trends.bounceRate) : undefined,
         icon: 'pi-sign-out',
         color: '#43e97b'
       }
     ];
   }
 
-  loadChartData(dateRange: DateRange) {
-    // Load page views trend
-    this.analyticsDataService.getPageViewsTrend(dateRange, this.selectedApiKey).subscribe({
-      next: (data) => {
-        console.log('Page Views Trend Response:', data);
-        this.updatePageViewsChart(data);
-      },
-      error: (error) => {
-        console.error('Error loading page views trend:', error);
-        this.updatePageViewsChart([]); // Initialize with empty data
-      }
-    });
+  updateTrafficSourceChart(sources: any[]) {
+    this.chartData.trafficSources = {
+      labels: sources.map(s => s.source),
+      datasets: [{
+        data: sources.map(s => s.visits),
+        backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140']
+      }]
+    };
+    this.chartOptions.trafficSources = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } }
+    };
+  }
 
-    // Load top pages
-    this.analyticsDataService.getTopPages(dateRange).subscribe({
-      next: (res) => {
-        console.log('Top Pages Response:', res);
-        this.tableData = res.pages;
-      },
-      error: (error) => {
-        console.error('Error loading top pages:', error);
-        this.tableData = [];
-      }
-    });
+  updateBrowserChart(browsers: any[]) {
+    this.chartData.browsers = {
+      labels: browsers.map(b => b.name),
+      datasets: [{
+        data: browsers.map(b => b.count),
+        backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
+      }]
+    };
+    this.chartOptions.browsers = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    };
+  }
 
-    // Load device breakdown
-    this.analyticsDataService.getDeviceBreakdown(dateRange, this.selectedApiKey).subscribe({
-      next: (data) => {
-        console.log('Device Breakdown Response:', data);
-        this.updateDeviceChart(data);
-      },
-      error: (error) => {
-        console.error('Error loading device breakdown:', error);
-        this.updateDeviceChart({});
-      }
-    });
+  updateFunnelChart(funnel: any) {
+    const steps = funnel.steps || [];
+    this.chartData.funnel = {
+      labels: steps.map((s: any) => s.name),
+      datasets: [{
+        label: 'Visitors',
+        data: steps.map((s: any) => s.visitors),
+        backgroundColor: steps.map((_: any, i: number) => `rgba(102,126,234,${Math.max(0.3, 0.9 - i * 0.15)})`),
+        borderColor: '#667eea',
+        borderWidth: 1
+      }]
+    };
+    this.chartOptions.funnel = {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    };
   }
 
   updatePageViewsChart(data: any[]) {
-    console.log('Page Views Chart Data:', data);
-    
-    // Always initialize the chart, even with empty data
     const chartLabels = data && data.length > 0 ? data.map(d => d.date) : [];
     const chartValues = data && data.length > 0 ? data.map(d => d.pageViews || d.count || 0) : [];
 
@@ -418,14 +591,7 @@ export class DashboardReports implements OnInit {
           text: 'No data available for selected period'
         }
       },
-      scales: {
-        y: { 
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1
-          }
-        }
-      }
+      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
     };
   }
 
@@ -448,6 +614,10 @@ export class DashboardReports implements OnInit {
   }
 
   formatDuration(seconds: number): string {
+    // Backend sometimes returns milliseconds — normalise if value looks like ms (> 1 hour in seconds = >3600)
+    // A session over 2 hours is almost certainly wrong data in ms
+    if (seconds > 7200) seconds = Math.round(seconds / 1000);
+    if (seconds <= 0) return '0m 0s';
     const minutes = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${minutes}m ${secs}s`;
@@ -455,39 +625,84 @@ export class DashboardReports implements OnInit {
 
   exportReport(format: 'pdf' | 'csv') {
     this.exporting.set(true);
-    
-    setTimeout(() => {
-      if (format === 'csv') {
-        this.exportToCSV();
-      } else {
-        this.exportToPDF();
-      }
+    if (format === 'csv') {
+      this.exportToCSV();
       this.exporting.set(false);
-    }, 1000);
+    } else {
+      this.exportToPDF();
+    }
   }
 
   exportToCSV() {
-    const csvData = this.convertToCSV(this.tableData);
-    const blob = new Blob([csvData], { type: 'text/csv' });
+    const template = this.selectedTemplate();
+    const templateLabels: Record<string, string> = {
+      traffic:    'Traffic-Report',
+      behavior:   'User-Behavior',
+      geographic: 'Geographic-Analysis',
+      device:     'Device-Browser',
+      content:    'Content-Performance',
+      conversion: 'Conversion-Funnel'
+    };
+    const now = new Date();
+    const ts = now.getFullYear().toString()
+      + (now.getMonth() + 1).toString().padStart(2, '0')
+      + now.getDate().toString().padStart(2, '0')
+      + '-'
+      + now.getHours().toString().padStart(2, '0')
+      + now.getMinutes().toString().padStart(2, '0')
+      + now.getSeconds().toString().padStart(2, '0');
+    const label = templateLabels[template] || template;
+    let filename = `Pulzivo_${label}_${ts}.csv`;
+    let data: any[] = [];
+
+    switch (template) {
+      case 'traffic':
+      case 'behavior':
+      case 'content':   data = this.topPagesData; break;
+      case 'geographic': data = this.geographicData.map(g => ({ country: g.country, visitors: g.visitors, percentage: g.percentage })); break;
+      case 'device':    data = this.browserData.map(b => ({ browser: b.name, sessions: b.count, percentage: b.percentage })); break;
+      case 'conversion': data = this.funnelSteps.map(s => ({ step: s.name, visitors: s.visitors, conversion_rate: s.conversion })); break;
+    }
+
+    if (!data || data.length === 0) {
+      this.messageService.add({ severity: 'warn', summary: 'No Data', detail: 'Nothing to export yet. Generate a report first.' });
+      return;
+    }
+
+    const csvContent = this.convertToCSV(data);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `report-${this.selectedTemplate()}-${Date.now()}.csv`;
+    link.download = filename;
     link.click();
-    
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Export Successful',
-      detail: 'Report exported as CSV'
-    });
+    window.URL.revokeObjectURL(url);
+    this.messageService.add({ severity: 'success', summary: 'Export Successful', detail: `Report exported as ${filename}` });
   }
 
   exportToPDF() {
-    this.messageService.add({
-      severity: 'info',
-      summary: 'PDF Export',
-      detail: 'PDF export will be implemented with a PDF library'
-    });
+    const templateLabels: Record<string, string> = {
+      traffic:    'Traffic-Report',
+      behavior:   'User-Behavior',
+      geographic: 'Geographic-Analysis',
+      device:     'Device-Browser',
+      content:    'Content-Performance',
+      conversion: 'Conversion-Funnel'
+    };
+    const now = new Date();
+    const ts = now.getFullYear().toString()
+      + (now.getMonth() + 1).toString().padStart(2, '0')
+      + now.getDate().toString().padStart(2, '0')
+      + '-'
+      + now.getHours().toString().padStart(2, '0')
+      + now.getMinutes().toString().padStart(2, '0')
+      + now.getSeconds().toString().padStart(2, '0');
+    const label = templateLabels[this.selectedTemplate()] || this.selectedTemplate();
+    const originalTitle = document.title;
+    document.title = `Pulzivo_${label}_${ts}`;
+    window.print();
+    document.title = originalTitle;
+    this.exporting.set(false);
   }
 
   convertToCSV(data: any[]): string {
@@ -534,9 +749,22 @@ export class DashboardReports implements OnInit {
 
   loadSavedReport(report: SavedReport) {
     this.selectedTemplate.set(report.template);
-    this.dateRangeValue = [report.dateRange.startDate, report.dateRange.endDate];
+    // Fix: JSON.parse gives strings, not Date objects
+    this.dateRangeValue = [
+      new Date(report.dateRange.startDate),
+      new Date(report.dateRange.endDate)
+    ];
+    this.tempDateRange = [...this.dateRangeValue];
     this.generateReport();
     this.activeView.set('templates');
+  }
+
+  isMetricChecked(key: string): boolean {
+    return this.availableMetrics.find(m => m.value === key)?.checked ?? true;
+  }
+
+  isChartChecked(value: string): boolean {
+    return this.availableCharts.find(c => c.value === value)?.checked ?? false;
   }
 
   deleteSavedReport(reportId: string) {

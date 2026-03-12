@@ -139,7 +139,7 @@
             }
           </div>
 
-          <div class="metric-card theme-rose" data-section="bounce-rate">
+          <div class="metric-card theme-rose" data-section="bounce-rate" [class.locked-section]="!hasFeature('sessions')">
             <div class="metric-header">
               <h3>
                 Bounce Rate
@@ -148,11 +148,21 @@
                    tooltipPosition="top"
                    data-tooltip-id="bounce-rate-info"></i>
               </h3>
-              @if (loadingStates.metrics) {
+              @if (hasFeature('sessions') && loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.metrics) {
+            @if (!hasFeature('sessions')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Bounce Rate</h4>
+                  <p>Requires session tracking. Upgrade to Pro to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.metrics) {
               <div class="metric-skeleton">
                 <p-skeleton width="45%" height="2rem" styleClass="mb-2"></p-skeleton>
                 <p-skeleton width="55%" height="1.5rem" styleClass="mb-2"></p-skeleton>
@@ -165,7 +175,7 @@
             }
           </div>
 
-          <div class="metric-card theme-teal" data-section="unique-visitors">
+          <div class="metric-card theme-teal" data-section="unique-visitors" [class.locked-section]="!hasFeature('unique_visitors')">
             <div class="metric-header">
               <h3>
                 Unique Visitors
@@ -174,11 +184,21 @@
                    tooltipPosition="top"
                    data-tooltip-id="unique-visitors-info"></i>
               </h3>
-              @if (loadingStates.metrics) {
+              @if (hasFeature('unique_visitors') && loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.metrics) {
+            @if (!hasFeature('unique_visitors')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Unique Visitors</h4>
+                  <p>Identify and count distinct users. Upgrade to Pro to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.metrics) {
               <div class="metric-skeleton">
                 <p-skeleton width="50%" height="2rem" styleClass="mb-2"></p-skeleton>
                 <p-skeleton width="60%" height="1.5rem" styleClass="mb-2"></p-skeleton>
@@ -336,7 +356,7 @@
           </div>
 
           <!-- Geographic Data -->
-          <div class="data-card theme-teal">
+          <div class="data-card theme-teal" [class.locked-section]="!hasFeature('sessions')">
             <div class="card-header">
               <h3>
                 Top Countries
@@ -348,7 +368,17 @@
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.geography) {
+            @if (!hasFeature('sessions')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Top Countries</h4>
+                  <p>Geographic data requires session tracking. Upgrade to Pro to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.geography) {
               <div class="table-skeleton">
                 @for (item of [1,2,3,4,5]; track item) {
                   <div class="skeleton-row">
@@ -384,7 +414,7 @@
         <!-- Entry & Exit Pages Row -->
         <div class="data-row">
           <!-- Entry Pages -->
-          <div class="data-card theme-emerald">
+          <div class="data-card theme-emerald" [class.locked-section]="!hasFeature('page_exit')">
             <div class="card-header">
               <h3>
                 Top Entry Pages
@@ -392,11 +422,21 @@
                    pTooltip="First pages users land on. Optimize these for strong first impressions and clear CTAs. High entrances = good SEO or ad targeting."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.entryExit) {
+              @if (hasFeature('page_exit') && loadingStates.entryExit) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.entryExit) {
+            @if (!hasFeature('page_exit')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Top Entry Pages</h4>
+                  <p>Entry &amp; exit page tracking requires Pro. Upgrade to Pro to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.entryExit) {
               <div class="table-skeleton">
                 @for (i of [1,2,3,4,5]; track i) {
                   <div class="table-skeleton-row">
@@ -443,7 +483,7 @@
           </div>
 
           <!-- Exit Pages -->
-          <div class="data-card theme-rose">
+          <div class="data-card theme-rose" [class.locked-section]="!hasFeature('page_exit')">
             <div class="card-header">
               <h3>
                 Top Exit Pages
@@ -451,11 +491,21 @@
                    pTooltip="Last pages users visit before leaving. High exit rates may indicate dead ends, broken links, or conversion completion. Checkout pages should have high exits."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.entryExit) {
+              @if (hasFeature('page_exit') && loadingStates.entryExit) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.entryExit) {
+            @if (!hasFeature('page_exit')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Top Exit Pages</h4>
+                  <p>Entry &amp; exit page tracking requires Pro. Upgrade to Pro to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.entryExit) {
               <div class="table-skeleton">
                 @for (i of [1,2,3,4,5]; track i) {
                   <div class="table-skeleton-row">
@@ -510,7 +560,7 @@
         <!-- Traffic Sources Row -->
         <div class="tables-row">
           <!-- Traffic Sources -->
-          <div class="data-card theme-amber">
+          <div class="data-card theme-amber" [class.locked-section]="!hasFeature('utm_attribution')">
             <div class="card-header">
               <h3>
                 Traffic Sources
@@ -518,11 +568,21 @@
                    pTooltip="Where your visitors come from: Direct (typed URL), Referral (other sites), Search (Google/Bing), Social (Twitter/FB). Focus marketing on top sources."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.trafficSources) {
+              @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.trafficSources) {
+            @if (!hasFeature('utm_attribution')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Traffic Sources</h4>
+                  <p>UTM attribution &amp; traffic sources require Pro. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.trafficSources) {
               <div class="table-skeleton">
                 @for (item of [1,2,3,4]; track item) {
                   <div class="skeleton-row">
@@ -555,7 +615,7 @@
           </div>
 
           <!-- UTM Campaigns -->
-          <div class="data-card theme-orange">
+          <div class="data-card theme-orange" [class.locked-section]="!hasFeature('utm_attribution')">
             <div class="card-header">
               <h3>
                 UTM Campaigns
@@ -563,11 +623,21 @@
                    pTooltip="Track marketing campaigns using UTM parameters (utm_source, utm_medium, utm_campaign). Measure ROI of ads, emails, and social posts."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.trafficSources) {
+              @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.trafficSources) {
+            @if (!hasFeature('utm_attribution')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>UTM Campaigns</h4>
+                  <p>UTM campaign tracking requires Pro. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.trafficSources) {
               <div class="table-skeleton">
                 @for (item of [1,2,3,4]; track item) {
                   <div class="skeleton-row">
@@ -605,7 +675,7 @@
         <!-- Browser & OS Row -->
         <div class="tables-row">
           <!-- Browser Breakdown -->
-          <div class="data-card theme-slate">
+          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
             <div class="card-header">
               <h3>
                 Browsers
@@ -613,11 +683,21 @@
                    pTooltip="Browser usage breakdown. Test your site on popular browsers. Safari dominance = many iOS users. Chrome dominance = general audience."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.browsers) {
+              @if (hasFeature('client_hints') && loadingStates.browsers) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.browsers) {
+            @if (!hasFeature('client_hints')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Browsers</h4>
+                  <p>Browser &amp; OS detection requires client hints. Upgrade to Enterprise.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.browsers) {
               <div class="table-skeleton">
                 @for (item of [1,2,3,4]; track item) {
                   <div class="skeleton-row">
@@ -650,7 +730,7 @@
           </div>
 
           <!-- OS Breakdown -->
-          <div class="data-card theme-slate">
+          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
             <div class="card-header">
               <h3>
                 Operating Systems
@@ -658,11 +738,21 @@
                    pTooltip="OS distribution of your visitors. High Windows = enterprise users. High MacOS/iOS = premium audience. Android = developing markets."
                    tooltipPosition="top"></i>
               </h3>
-              @if (loadingStates.browsers) {
+              @if (hasFeature('client_hints') && loadingStates.browsers) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.browsers) {
+            @if (!hasFeature('client_hints')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Operating Systems</h4>
+                  <p>OS detection via client hints requires Enterprise. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.browsers) {
               <div class="table-skeleton">
                 @for (item of [1,2,3,4]; track item) {
                   <div class="skeleton-row">
@@ -747,7 +837,7 @@
             }
           </div>
 
-          <div class="chart-card theme-emerald">
+          <div class="chart-card theme-emerald" [class.locked-section]="!hasFeature('custom_events')">
             <div class="card-header">
               <h3>
                 Custom Events
@@ -756,11 +846,21 @@
                    tooltipPosition="top"></i>
               </h3>
               <span class="card-subtitle">Application events fired</span>
-              @if (loadingStates.customEvents) {
+              @if (hasFeature('custom_events') && loadingStates.customEvents) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.customEvents) {
+            @if (!hasFeature('custom_events')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Custom Events</h4>
+                  <p>Custom event tracking requires Pro. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.customEvents) {
               @for (i of [1,2,3,4,5]; track i) {
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
@@ -806,7 +906,7 @@
         <!-- Form Interactions + Tooltip Insights Row -->
         <div class="tables-row">
           <!-- Form Interactions -->
-          <div class="chart-card theme-teal">
+          <div class="chart-card theme-teal" [class.locked-section]="!hasFeature('form_tracking')">
             <div class="card-header">
               <h3>
                 Form Interactions
@@ -814,12 +914,23 @@
                    pTooltip="Monitor form performance: submissions, abandons, conversion rates, completion times. Low conversion = form friction. High abandonment = simplify your form."
                    tooltipPosition="top"></i>
               </h3>
-              <span class="card-subtitle">Track form submissions & abandonment</span>
-              @if (loadingStates.formInteractions) {
+              <span class="card-subtitle">Track form submissions &amp; abandonment</span>
+              @if (hasFeature('form_tracking') && loadingStates.formInteractions) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            
+
+            @if (!hasFeature('form_tracking')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Form Interactions</h4>
+                  <p>Form tracking &amp; funnel analytics require Enterprise. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else {
             <!-- Product Owner Insights -->
             @if (!loadingStates.formInteractions && formInteractions.length > 0) {
               <div class="insights-banner">
@@ -925,10 +1036,11 @@
                 </ng-template>
               </p-table>
             }
+            }
           </div>
 
           <!-- Tooltip Insights -->
-          <div class="chart-card theme-violet">
+          <div class="chart-card theme-violet" [class.locked-section]="!hasFeature('custom_dimensions')">
             <div class="card-header">
               <h3>
                 Tooltip Insights
@@ -937,11 +1049,21 @@
                    tooltipPosition="top"></i>
               </h3>
               <span class="card-subtitle">Which sections users need help with</span>
-              @if (loadingStates.tooltipInsights) {
+              @if (hasFeature('custom_dimensions') && loadingStates.tooltipInsights) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.tooltipInsights) {
+            @if (!hasFeature('custom_dimensions')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Tooltip Insights</h4>
+                  <p>Tooltip &amp; UX confusion tracking require Enterprise. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.tooltipInsights) {
               @for (i of [1,2,3,4,5]; track i) {
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
@@ -1019,7 +1141,7 @@
 
         <!-- Core Web Vitals Row -->
         <div class="vitals-row">
-          <div class="chart-card vitals-card">
+          <div class="chart-card vitals-card" [class.locked-section]="!hasFeature('web_vitals')">
             <div class="card-header">
               <h3>
                 Core Web Vitals
@@ -1028,11 +1150,21 @@
                    tooltipPosition="top"></i>
               </h3>
               <span class="card-subtitle">Google performance signals</span>
-              @if (loadingStates.webVitals) {
+              @if (hasFeature('web_vitals') && loadingStates.webVitals) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.webVitals) {
+            @if (!hasFeature('web_vitals')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Core Web Vitals</h4>
+                  <p>Performance metrics (LCP, FID, CLS) require Enterprise. Upgrade to unlock.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.webVitals) {
               <div class="vitals-skeleton">
                 @for (item of [1,2,3]; track item) {
                   <div class="vital-skeleton-item">
@@ -1105,7 +1237,7 @@
           </div>
 
           <!-- Session Insights -->
-          <div class="chart-card session-card">
+          <div class="chart-card session-card" [class.locked-section]="!hasFeature('sessions')">
             <div class="card-header">
               <h3>
                 Session Insights
@@ -1114,7 +1246,17 @@
                    tooltipPosition="top"></i>
               </h3>
             </div>
-            @if (loadingStates.metrics) {
+            @if (!hasFeature('sessions')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Session Insights</h4>
+                  <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.metrics) {
               <div class="session-skeleton">
                 @for (item of [1,2,3]; track item) {
                   <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>

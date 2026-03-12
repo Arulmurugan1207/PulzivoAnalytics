@@ -454,3 +454,133 @@ async function getTopPages(req, res) {
     res.status(500).json({ message: 'Failed to fetch top pages', error: error.message });
   }
 }
+
+// ============================================
+// FUNNEL EVENTS ENDPOINT
+// ============================================
+/**
+ * Get unique visitor count for a specific event — used by the Funnel Builder
+ * to calculate step-by-step conversion rates.
+ *
+ * GET /api/analytics/funnel-events/:eventName?limit=&apiKey=
+ * 
+ * Returns: { eventName, count, uniqueVisitors }
+ * 
+ * Route registration (add to your Express router):
+ *   router.get('/analytics/funnel-events/:eventName', validateApiKey, getFunnelEventCount);
+ */
+async function getFunnelEventCount(req, res) {
+  try {
+    const { eventName } = req.params;
+    const { apiKey, startDate, endDate } = req.query;
+
+    if (!apiKey || !eventName) {
+      return res.status(400).json({ message: 'apiKey and eventName are required' });
+    }
+
+    const db = await initDb();
+
+    // Validate the API key belongs to a real user
+    const key = await db.collection('apiKeys').findOne({ apiKey, isActive: { $ne: false } });
+    if (!key) {
+      return res.status(401).json({ message: 'Invalid or inactive API key' });
+    }
+
+    // Build date filter (optional)
+    const dateFilter = {};
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate)   dateFilter.$lte = new Date(endDate);
+
+    const matchStage = {
+      apiKey,
+      event_name: eventName,
+      ...(Object.keys(dateFilter).length ? { timestamp: dateFilter } : {})
+    };
+
+    // Count distinct user_ids who fired this event — this is what makes
+    // funnel math meaningful (we count people, not raw event hits)
+    const result = await db.collection('analytics').aggregate([
+      { $match: matchStage },
+      { $group: { _id: '$user_id' } },
+      { $count: 'uniqueVisitors' }
+    ]).toArray();
+
+    const uniqueVisitors = result[0]?.uniqueVisitors ?? 0;
+
+    res.json({
+      eventName,
+      count: uniqueVisitors,       // Alias: funnels.ts checks both `count` and `uniqueVisitors`
+      uniqueVisitors
+    });
+
+  } catch (error) {
+    console.error('Error fetching funnel event count:', error);
+    res.status(500).json({ message: 'Failed to fetch funnel event count', error: error.message });
+  }
+}
+
+// ============================================
+// CONVERSION FUNNEL ENDPOINT
+// ============================================
+/**
+ * Returns a preset conversion funnel for the Overview dashboard chart.
+ * Steps are fixed to the core Pulzivo acquisition funnel.
+ *
+ * GET /api/analytics/conversion-funnel?apiKey=
+ *
+ * Returns: { steps: [{ label, count, percentage }] }
+ *
+ * Route registration:
+ *   router.get('/analytics/conversion-funnel', validateApiKey, getConversionFunnel);
+ */
+async function getConversionFunnel(req, res) {
+  try {
+    const { apiKey } = req.query;
+
+    if (!apiKey) {
+      return res.status(400).json({ message: 'apiKey is required' });
+    }
+
+    const db = await initDb();
+
+    // Validate the API key
+    const key = await db.collection('apiKeys').findOne({ apiKey, isActive: { $ne: false } });
+    if (!key) {
+      return res.status(401).json({ message: 'Invalid or inactive API key' });
+    }
+
+    // Fixed funnel steps: the core Pulzivo product acquisition pipeline
+    const funnelSteps = [
+      { label: 'Visited Homepage', eventName: 'page_view' },
+      { label: 'Viewed Pricing',   eventName: 'pricing_viewed' },
+      { label: 'Sign Up Started',  eventName: 'signup_started' },
+      { label: 'Sign Up Completed',eventName: 'signup_completed' },
+    ];
+
+    // Count unique users per step in parallel
+    const counts = await Promise.all(
+      funnelSteps.map(async (step) => {
+        const result = await db.collection('analytics').aggregate([
+          { $match: { apiKey, event_name: step.eventName } },
+          { $group: { _id: '$user_id' } },
+          { $count: 'n' }
+        ]).toArray();
+        return result[0]?.n ?? 0;
+      })
+    );
+
+    const baseline = counts[0] || 0;
+
+    const steps = funnelSteps.map((step, i) => ({
+      label:      step.label,
+      count:      counts[i],
+      percentage: baseline > 0 ? Math.round((counts[i] / baseline) * 1000) / 10 : 0
+    }));
+
+    res.json({ steps });
+
+  } catch (error) {
+    console.error('Error fetching conversion funnel:', error);
+    res.status(500).json({ message: 'Failed to fetch conversion funnel', error: error.message });
+  }
+}

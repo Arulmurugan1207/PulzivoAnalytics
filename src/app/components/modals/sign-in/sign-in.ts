@@ -54,6 +54,10 @@ export class SignIn implements OnInit {
         password: ''
       });
     }
+    // Track sign-in intent
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'signin_started', { source: 'modal' });
+    }
   }
 
   hide() {

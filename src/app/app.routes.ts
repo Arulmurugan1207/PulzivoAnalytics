@@ -135,6 +135,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/dashboard/events/events').then(m => m.DashboardEvents)
       },
       {
+        path: 'funnels',
+        title: 'Funnels',
+        loadComponent: () => import('./pages/dashboard/funnels/funnels').then(m => m.DashboardFunnels)
+      },
+      {
         path: 'settings',
         title: 'Settings',
         loadComponent: () => import('./pages/dashboard/settings/settings').then(m => m.DashboardSettings)

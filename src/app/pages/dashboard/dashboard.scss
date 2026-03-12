@@ -400,3 +400,44 @@ $sidebar-collapsed: 64px;
     padding: 0.75rem;
   }
 }
+
+// ─── Print / PDF — collapse the dashboard chrome ────────────────────────────
+@media print {
+  // Flatten the flex layout so main panel fills full width
+  .dashboard-layout {
+    display: block !important;
+    background: white !important;
+    min-height: unset !important;
+  }
+
+  // Hide sidebar entirely
+  .sidebar {
+    display: none !important;
+  }
+
+  // Hide topbar (Welcome back / date / owner badge)
+  .topbar {
+    display: none !important;
+  }
+
+  // Make the main content fill the page
+  .main-panel {
+    margin-left: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding-top: 0 !important;
+  }
+
+  .content-area {
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  // Hide the toggle button
+  .sidebar-toggle {
+    display: none !important;
+  }
+}
+

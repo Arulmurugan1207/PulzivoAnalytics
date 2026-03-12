@@ -122,6 +122,16 @@ export class DemoService {
     steps: [8423, 1124, 187, 143]
   };
 
+  readonly funnelBuilderData = {
+    steps: [
+      { name: 'Landing Page', eventName: 'page_view' },
+      { name: 'Sign Up Started', eventName: 'signup_started' },
+      { name: 'Sign Up Completed', eventName: 'signup_completed' },
+      { name: 'Script Installed', eventName: 'script_copied' },
+    ],
+    counts: [8423, 187, 143, 98]
+  };
+
   readonly browsers = [
     { name: 'Chrome', count: 4921, percentage: 58.4 },
     { name: 'Safari', count: 1842, percentage: 21.9 },

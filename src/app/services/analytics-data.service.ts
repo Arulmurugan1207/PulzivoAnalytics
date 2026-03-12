@@ -296,33 +296,37 @@ export class AnalyticsDataService {
   getConversionFunnel(dateRange?: DateRange, apiKey?: string): Observable<ConversionFunnel> {
     return this.analyticsAPI.getConversionFunnel().pipe(
       map((data: any) => {
-        // Handle new API format: {"funnel": [{"step": "Page View", "visitors": 34, "conversionRate": 100}, ...]}
-        if (data && data.funnel && Array.isArray(data.funnel)) {
-          const steps: { name: string; visitors: number; conversion: number }[] = data.funnel.map((stepData: any) => ({
-            name: stepData.step || '',
-            visitors: stepData.visitors || 0,
-            conversion: stepData.conversionRate || 0
+        // New API format: { steps: [{ label, count, percentage }] }
+        if (data && data.steps && Array.isArray(data.steps) && data.steps[0]?.label !== undefined) {
+          const steps = data.steps.map((s: any) => ({
+            name:       s.label      || '',
+            visitors:   s.count      ?? 0,
+            conversion: s.percentage ?? 0
           }));
-
           return {
             steps,
-            labels: steps.map(step => step.name),
-            values: steps.map(step => step.visitors)
+            labels: steps.map((s: any) => s.name),
+            values: steps.map((s: any) => s.visitors)
           };
         }
 
-        // Fallback for old format or empty data
-        return data || {
-          steps: [],
-          labels: [],
-          values: []
-        };
+        // Legacy format: { funnel: [{ step, visitors, conversionRate }] }
+        if (data && data.funnel && Array.isArray(data.funnel)) {
+          const steps = data.funnel.map((s: any) => ({
+            name:       s.step           || '',
+            visitors:   s.visitors       ?? 0,
+            conversion: s.conversionRate ?? 0
+          }));
+          return {
+            steps,
+            labels: steps.map((s: any) => s.name),
+            values: steps.map((s: any) => s.visitors)
+          };
+        }
+
+        return data || { steps: [], labels: [], values: [] };
       }),
-      catchError(() => of({
-        steps: [],
-        labels: [],
-        values: []
-      }))
+      catchError(() => of({ steps: [], labels: [], values: [] }))
     );
   }
 
@@ -361,6 +365,40 @@ export class AnalyticsDataService {
     return this.analyticsAPI.getWebVitals(dateRange).pipe(
       map((data: any) => (data?.vitals || { LCP: empty, FID: empty, CLS: empty }) as WebVitals),
       catchError(() => of({ LCP: empty, FID: empty, CLS: empty } as WebVitals))
+    );
+  }
+
+  /**
+   * Get metrics with previous-period comparison for trend % calculation
+   */
+  getMetricsComparison(dateRange?: DateRange, apiKey?: string): Observable<{ current: any; previous: any; trends: any }> {
+    return this.analyticsAPI.getMetricsComparison(dateRange).pipe(
+      map((data: any) => ({
+        current:  data?.current  || {},
+        previous: data?.previous || {},
+        trends:   data?.trends   || {}
+      })),
+      catchError(() => of({ current: {}, previous: {}, trends: {} }))
+    );
+  }
+
+  /**
+   * Get entry pages — where users first land
+   */
+  getEntryPages(dateRange?: DateRange): Observable<{ pages: any[] }> {
+    return this.analyticsAPI.getEntryPages(dateRange).pipe(
+      map((data: any) => ({ pages: Array.isArray(data?.pages) ? data.pages : [] })),
+      catchError(() => of({ pages: [] }))
+    );
+  }
+
+  /**
+   * Get exit pages — where users drop off
+   */
+  getExitPages(dateRange?: DateRange): Observable<{ pages: any[] }> {
+    return this.analyticsAPI.getExitPages(dateRange).pipe(
+      map((data: any) => ({ pages: Array.isArray(data?.pages) ? data.pages : [] })),
+      catchError(() => of({ pages: [] }))
     );
   }
 

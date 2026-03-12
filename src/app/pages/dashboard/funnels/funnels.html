@@ -1,0 +1,296 @@
+<p-toast />
+
+<div class="funnels-container">
+
+  <!-- Page gate for Free users -->
+  @if (!isPlanAtLeast('pro')) {
+    <div class="plan-gate">
+      <div class="gate-content">
+        <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+        <i class="pi pi-filter gate-icon"></i>
+        <h2>Funnel Analysis</h2>
+        <p>See exactly where users drop off between any steps — landing → sign up → purchase. Identify leaks and fix them to grow conversions.</p>
+        <a routerLink="/dashboard/plans" class="upgrade-btn">
+          Upgrade to Pro <i class="pi pi-arrow-right"></i>
+        </a>
+        <ul class="gate-features">
+          <li><i class="pi pi-check"></i> Build unlimited funnels</li>
+          <li><i class="pi pi-check"></i> Up to 8 steps per funnel</li>
+          <li><i class="pi pi-check"></i> Step-by-step drop-off rates</li>
+          <li><i class="pi pi-check"></i> Save & compare funnels</li>
+        </ul>
+      </div>
+    </div>
+  } @else {
+
+  <!-- Header -->
+  <div class="funnels-header">
+    <div class="header-left">
+      <i class="pi pi-filter page-icon"></i>
+      <div>
+        <h1>Funnel Analysis</h1>
+        <p class="subtitle">Track how users move through your key flows and find where they drop off</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main layout: builder + results -->
+  <div class="funnels-layout">
+
+    <!-- LEFT: Builder Panel -->
+    <div class="builder-panel">
+      <div class="builder-header">
+        <div class="funnel-name-row">
+          @if (isEditingName) {
+            <input
+              pInputText
+              [(ngModel)]="funnelName"
+              class="funnel-name-input"
+              (blur)="isEditingName = false"
+              (keydown.enter)="isEditingName = false"
+              autofocus />
+          } @else {
+            <h2 class="funnel-name" (click)="isEditingName = true" title="Click to rename">
+              {{ funnelName }}
+              <i class="pi pi-pencil edit-name-icon"></i>
+            </h2>
+          }
+        </div>
+      </div>
+
+      <!-- Steps list -->
+      <div class="steps-list">
+        @for (step of steps; track trackByIndex($index); let i = $index; let last = $last) {
+          <div class="step-item">
+            <!-- Step number + connector -->
+            <div class="step-left">
+              <div class="step-badge">{{ i + 1 }}</div>
+              @if (!last) {
+                <div class="step-connector"></div>
+              }
+            </div>
+
+            <!-- Step fields -->
+            <div class="step-fields">
+              <div class="field-row">
+                <label class="field-label">Step Name</label>
+                <input
+                  pInputText
+                  [(ngModel)]="step.name"
+                  placeholder="e.g. Landing Page"
+                  class="step-input step-name" />
+              </div>
+              <div class="field-row">
+                <label class="field-label">Event Name</label>
+                <input
+                  pInputText
+                  [(ngModel)]="step.eventName"
+                  placeholder="e.g. page_view"
+                  class="step-input step-event" />
+              </div>
+            </div>
+
+            <!-- Step actions -->
+            <div class="step-actions">
+              <button class="step-action-btn" (click)="moveStepUp(i)" [disabled]="i === 0" title="Move up">
+                <i class="pi pi-arrow-up"></i>
+              </button>
+              <button class="step-action-btn" (click)="moveStepDown(i)" [disabled]="last" title="Move down">
+                <i class="pi pi-arrow-down"></i>
+              </button>
+              <button class="step-action-btn step-remove" (click)="removeStep(i)" title="Remove step">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Add step -->
+      <button class="add-step-btn" (click)="addStep()" [disabled]="steps.length >= 8">
+        <i class="pi pi-plus"></i>
+        Add Step
+        @if (steps.length >= 8) { <span class="max-label">(max 8)</span> }
+      </button>
+
+      <!-- Run button -->
+      <button
+        class="run-btn"
+        [disabled]="!canRun() || loading()"
+        (click)="runFunnel()">
+        @if (loading()) {
+          <i class="pi pi-spin pi-spinner"></i>
+          Analyzing…
+        } @else {
+          <i class="pi pi-play"></i>
+          Run Funnel
+        }
+      </button>
+
+      <!-- Tip -->
+      <div class="builder-tip">
+        <i class="pi pi-info-circle"></i>
+        <span>Use exact event names you send via <code>PulzivoAnalytics('event', 'name')</code></span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results Panel -->
+    <div class="results-panel">
+
+      @if (loading()) {
+        <!-- Skeleton -->
+        <div class="results-skeleton">
+          @for (i of [1,2,3]; track i) {
+            <div class="skeleton-step">
+              <p-skeleton width="40px" height="40px" borderRadius="50%"></p-skeleton>
+              <div class="skeleton-body">
+                <p-skeleton width="160px" height="1.2rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="100%" height="2rem"></p-skeleton>
+                <p-skeleton width="80px" height="1rem" styleClass="mt-1"></p-skeleton>
+              </div>
+            </div>
+          }
+        </div>
+
+      } @else if (!hasResults()) {
+        <!-- Empty state -->
+        <div class="results-empty">
+          <i class="pi pi-filter empty-icon"></i>
+          <h3>Build your funnel</h3>
+          <p>Define the steps on the left and click <strong>Run Funnel</strong> to see where users drop off.</p>
+          <div class="example-box">
+            <p class="example-title">Example funnels to try:</p>
+            <ul>
+              <li><span class="example-step">page_view</span> → <span class="example-step">signup_started</span> → <span class="example-step">signup_completed</span></li>
+              <li><span class="example-step">page_view</span> → <span class="example-step">pricing_viewed</span> → <span class="example-step">checkout_started</span> → <span class="example-step">purchase</span></li>
+            </ul>
+          </div>
+        </div>
+
+      } @else {
+        <!-- Results -->
+        <div class="results-header">
+          <div class="results-summary">
+            <div class="summary-stat">
+              <span class="stat-value">{{ formatVisitors(totalEntrants) }}</span>
+              <span class="stat-label">Total entrants</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-stat">
+              <span class="stat-value" [class.conversion-good]="overallConversion >= 70" [class.conversion-avg]="overallConversion >= 40 && overallConversion < 70" [class.conversion-poor]="overallConversion < 40">
+                {{ overallConversion }}%
+              </span>
+              <span class="stat-label">Overall conversion</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-stat">
+              <span class="stat-value">{{ funnelResult.length }}</span>
+              <span class="stat-label">Steps</span>
+            </div>
+          </div>
+
+          <div class="results-actions">
+            <button class="save-btn" (click)="saveFunnel()" title="Save this funnel">
+              <i class="pi pi-bookmark"></i> Save
+            </button>
+          </div>
+        </div>
+
+        <!-- Funnel steps visualization -->
+        <div class="funnel-steps">
+          @for (step of funnelResult; track step.id; let i = $index; let first = $first; let last = $last) {
+            <div class="funnel-step" [class.first-step]="first">
+
+              <!-- Step header -->
+              <div class="funnel-step-header">
+                <div class="step-num-badge">{{ i + 1 }}</div>
+                <div class="step-info">
+                  <span class="step-name">{{ step.name }}</span>
+                  <code class="step-event-tag">{{ step.eventName }}</code>
+                </div>
+                <div class="step-visitors">
+                  <span class="visitors-value">{{ formatVisitors(step.visitors) }}</span>
+                  <span class="visitors-label">visitors</span>
+                </div>
+              </div>
+
+              <!-- Bar -->
+              <div class="funnel-bar-wrap">
+                <div
+                  class="funnel-bar"
+                  [style.width.%]="step.conversionFromFirst"
+                  [style.background]="getBarColor(step.conversionFromFirst)">
+                </div>
+                <span class="bar-pct">{{ step.conversionFromFirst }}%</span>
+              </div>
+
+              <!-- Conversion row -->
+              <div class="step-conversion-row">
+                @if (!first) {
+                  <div class="conversion-from-prev">
+                    <i class="pi pi-arrow-down-right"></i>
+                    <span>{{ step.conversionFromPrev }}% from previous step</span>
+                  </div>
+                  <div class="drop-off">
+                    <p-tag
+                      [value]="'−' + formatVisitors(step.dropOff) + ' dropped'"
+                      [severity]="getDropOffSeverity(step.dropOff)"
+                      styleClass="drop-tag">
+                    </p-tag>
+                  </div>
+                } @else {
+                  <span class="first-step-label">Funnel entry point</span>
+                }
+              </div>
+
+              <!-- Connector arrow to next step -->
+              @if (!last) {
+                <div class="step-arrow">
+                  <i class="pi pi-arrow-down"></i>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Overall verdict -->
+        <div class="funnel-verdict" [class.verdict-good]="overallConversion >= 70" [class.verdict-avg]="overallConversion >= 40 && overallConversion < 70" [class.verdict-poor]="overallConversion < 40">
+          <i class="pi" [class.pi-check-circle]="overallConversion >= 70" [class.pi-exclamation-circle]="overallConversion >= 40 && overallConversion < 70" [class.pi-times-circle]="overallConversion < 40"></i>
+          <div>
+            <strong>{{ getConversionLabel(overallConversion) }}</strong> — {{ overallConversion }}% of entrants complete the full funnel.
+            @if (overallConversion < 40) {
+              Look at your biggest drop-off step and optimize there first.
+            } @else if (overallConversion < 70) {
+              Good progress! Focus on the step with the lowest conversion from previous.
+            } @else {
+              Excellent funnel health. Keep monitoring as traffic grows.
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+
+  <!-- Saved funnels -->
+  @if (savedFunnels.length > 0) {
+    <div class="saved-funnels-section">
+      <h3 class="saved-title"><i class="pi pi-bookmark"></i> Saved Funnels</h3>
+      <div class="saved-list">
+        @for (funnel of savedFunnels; track funnel.id) {
+          <div class="saved-card" (click)="loadSavedFunnel(funnel)">
+            <div class="saved-card-info">
+              <span class="saved-name">{{ funnel.name }}</span>
+              <span class="saved-meta">{{ funnel.steps.length }} steps · {{ funnel.steps[0]?.visitors ?? 0 | number }} entrants · {{ funnel.steps[funnel.steps.length - 1]?.conversionFromFirst ?? 0 }}% conversion</span>
+            </div>
+            <button class="saved-delete" (click)="$event.stopPropagation(); deleteSavedFunnel(funnel.id)" title="Delete">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  }<!-- end plan gate -->
+</div>

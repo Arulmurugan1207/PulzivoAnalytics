@@ -49,6 +49,11 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/docs' });
       this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more.' });
+
+    // Developers reading docs = high activation intent
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'docs_visited', {});
+    }
   }
 
   configOptions = [

@@ -41,6 +41,10 @@ export class SignUp {
     this.password = '';
     this.confirmPassword = '';
     this.acceptTerms = false;
+    // Funnel step 1: user opened the sign-up modal (high intent)
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'signup_started', { source: 'modal' });
+    }
   }
 
   hide() {
@@ -61,12 +65,11 @@ export class SignUp {
     
     // Simulate API call
     setTimeout(() => {
-      // Track successful sign-up event
+      // Funnel step 2: user completed sign-up form
       if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
-        (window as any).PulzivoAnalytics('event', 'user_sign_up', {
+        (window as any).PulzivoAnalytics('event', 'signup_completed', {
           method: 'email',
-          has_name: !!this.name,
-          timestamp: new Date().toISOString()
+          has_name: !!this.name
         });
       }
       

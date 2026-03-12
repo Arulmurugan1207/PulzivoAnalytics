@@ -1,4 +1,5 @@
-﻿<!-- Toolbar -->
+﻿<div class="page-gate-wrapper" [class.page-gated]="!isPlanAtLeast('pro')">
+<!-- Toolbar -->
 <div class="events-toolbar">
   @if (availableApiKeys.length > 0) {
     <div class="key-selector">
@@ -66,7 +67,11 @@
       </div>
     </p-popover>
     
-    <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary" (click)="exportData('csv')"></button>
+    @if (isPlanAtLeast('enterprise')) {
+      <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary" (click)="exportData('csv')"></button>
+    } @else {
+      <button pButton icon="pi pi-download" label="Export " class="p-button-outlined p-button-secondary" [disabled]="true" pTooltip="Enterprise feature: data export" tooltipPosition="left" style="opacity:0.55;cursor:not-allowed"><i class="pi pi-crown" style="color:#f59e0b;margin-left:4px;font-size:0.75rem"></i></button>
+    }
   </div>
 </div>
 
@@ -98,40 +103,90 @@
       </div>
     }
   } @else {
-    <div class="summary-card">
-      <div class="summary-icon red"><i class="pi pi-bolt"></i></div>
-      <div>
-        <div class="summary-value">{{ summary.rageClicks | number }}</div>
-        <div class="summary-label">Rage Clicks</div>
-      </div>
+    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
+      @if (!isPlanAtLeast('enterprise')) {
+        <div class="enterprise-overlay">
+          <div class="enterprise-content">
+            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
+            <p>Rage click detection</p>
+            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
+          </div>
+        </div>
+      } @else {
+        <div class="summary-icon red"><i class="pi pi-bolt"></i></div>
+        <div>
+          <div class="summary-value">{{ summary.rageClicks | number }}</div>
+          <div class="summary-label">Rage Clicks</div>
+        </div>
+      }
     </div>
-    <div class="summary-card">
-      <div class="summary-icon orange"><i class="pi pi-times-circle"></i></div>
-      <div>
-        <div class="summary-value">{{ summary.deadClicks | number }}</div>
-        <div class="summary-label">Dead Clicks</div>
-      </div>
+    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
+      @if (!isPlanAtLeast('enterprise')) {
+        <div class="enterprise-overlay">
+          <div class="enterprise-content">
+            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
+            <p>Dead click analysis</p>
+            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
+          </div>
+        </div>
+      } @else {
+        <div class="summary-icon orange"><i class="pi pi-times-circle"></i></div>
+        <div>
+          <div class="summary-value">{{ summary.deadClicks | number }}</div>
+          <div class="summary-label">Dead Clicks</div>
+        </div>
+      }
     </div>
-    <div class="summary-card">
-      <div class="summary-icon green"><i class="pi pi-check-circle"></i></div>
-      <div>
-        <div class="summary-value">{{ summary.formSubmits | number }}</div>
-        <div class="summary-label">Form Submits</div>
-      </div>
+    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
+      @if (!isPlanAtLeast('enterprise')) {
+        <div class="enterprise-overlay">
+          <div class="enterprise-content">
+            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
+            <p>Form event tracking</p>
+            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
+          </div>
+        </div>
+      } @else {
+        <div class="summary-icon green"><i class="pi pi-check-circle"></i></div>
+        <div>
+          <div class="summary-value">{{ summary.formSubmits | number }}</div>
+          <div class="summary-label">Form Submits</div>
+        </div>
+      }
     </div>
-    <div class="summary-card">
-      <div class="summary-icon yellow"><i class="pi pi-times"></i></div>
-      <div>
-        <div class="summary-value">{{ summary.formAbandons | number }}</div>
-        <div class="summary-label">Form Abandons</div>
-      </div>
+    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
+      @if (!isPlanAtLeast('enterprise')) {
+        <div class="enterprise-overlay">
+          <div class="enterprise-content">
+            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
+            <p>Form abandonment tracking</p>
+            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
+          </div>
+        </div>
+      } @else {
+        <div class="summary-icon yellow"><i class="pi pi-times"></i></div>
+        <div>
+          <div class="summary-value">{{ summary.formAbandons | number }}</div>
+          <div class="summary-label">Form Abandons</div>
+        </div>
+      }
     </div>
-    <div class="summary-card">
-      <div class="summary-icon blue"><i class="pi pi-pencil"></i></div>
-      <div>
-        <div class="summary-value">{{ summary.formFocuses | number }}</div>
-        <div class="summary-label">Form Focuses</div>
-      </div>
+    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
+      @if (!isPlanAtLeast('enterprise')) {
+        <div class="enterprise-overlay">
+          <div class="enterprise-content">
+            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
+            <p>Form field focus tracking</p>
+            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
+          </div>
+        </div>
+      } @else {
+        <div class="summary-icon blue"><i class="pi pi-pencil"></i></div>
+        <div>
+          <div class="summary-value">{{ summary.formFocuses | number }}</div>
+          <div class="summary-label">Form Focuses</div>
+        </div>
+      }
     </div>
   }
 </div>
@@ -323,13 +378,25 @@
       placeholder="Filter by type"
       [style]="{ width: '200px' }">
     </p-select>
-    <button pButton 
-      [icon]="showAdvancedFilters ? 'pi pi-filter-slash' : 'pi pi-filter'" 
-      [label]="'Advanced ' + (activeFiltersCount ? '(' + activeFiltersCount + ')' : '')" 
-      class="p-button-outlined p-button-secondary"
-      [class.p-button-info]="activeFiltersCount > 0"
-      (click)="toggleAdvancedFilters()">
-    </button>
+    @if (isPlanAtLeast('enterprise')) {
+      <button pButton 
+        [icon]="showAdvancedFilters ? 'pi pi-filter-slash' : 'pi pi-filter'" 
+        [label]="'Advanced ' + (activeFiltersCount ? '(' + activeFiltersCount + ')' : '')" 
+        class="p-button-outlined p-button-secondary"
+        [class.p-button-info]="activeFiltersCount > 0"
+        (click)="toggleAdvancedFilters()">
+      </button>
+    } @else {
+      <button pButton 
+        icon="pi pi-filter" 
+        label="Advanced" 
+        class="p-button-outlined p-button-secondary"
+        [disabled]="true"
+        pTooltip="Enterprise feature: advanced filters" tooltipPosition="left"
+        style="opacity:0.55;cursor:not-allowed">
+        <i class="pi pi-crown" style="color:#f59e0b;margin-left:4px;font-size:0.75rem"></i>
+      </button>
+    }
     @if (activeFiltersCount > 0) {
       <button pButton icon="pi pi-times" label="Clear All" class="p-button-outlined p-button-danger p-button-sm" (click)="clearAllFilters()"></button>
     }
@@ -533,3 +600,21 @@
     </div>
   </ng-template>
 </p-dialog>
+
+@if (!isPlanAtLeast('pro')) {
+  <div class="page-gate-overlay">
+    <div class="gate-content">
+      <div class="gate-icon"><i class="pi pi-chart-line"></i></div>
+      <h2>Events &amp; Interactions</h2>
+      <p>See every user action on your site. Track page views, clicks, custom events, and more with Pro.</p>
+      <div class="gate-features">
+        <div class="feature-item"><i class="pi pi-check"></i> Page views &amp; navigation tracking</div>
+        <div class="feature-item"><i class="pi pi-check"></i> Click tracking &amp; top elements</div>
+        <div class="feature-item"><i class="pi pi-check"></i> Custom event tracking</div>
+        <div class="feature-item"><i class="pi pi-check"></i> Event history &amp; search</div>
+      </div>
+      <a routerLink="/dashboard/plans" class="gate-upgrade-btn">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+    </div>
+  </div>
+}
+</div>

@@ -38,6 +38,7 @@ type UserRole = 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
 export class Dashboard implements OnInit {
   user: any = null;
   userRole: UserRole = 'viewer';
+  userPlan: 'free' | 'pro' | 'enterprise' = 'free';
   sidebarCollapsed = false;
   currentRoute = '';
 
@@ -65,6 +66,7 @@ export class Dashboard implements OnInit {
     if (this.demoService.isDemoMode()) {
       this.user = { firstname: 'Demo', lastname: 'User' };
       this.userRole = 'admin';
+      this.userPlan = 'pro';
       this.buildSidebarItems();
       return;
     }
@@ -83,6 +85,13 @@ export class Dashboard implements OnInit {
       this.userRole = this.user.role;
     } else {
       this.userRole = 'viewer';
+    }
+
+    // Determine plan (owner always gets enterprise)
+    if (this.user?.email === APP_OWNER_EMAIL || this.userRole === 'owner') {
+      this.userPlan = 'enterprise';
+    } else {
+      this.userPlan = (this.user?.plan as any) || 'free';
     }
 
     // Track current route
@@ -122,6 +131,11 @@ export class Dashboard implements OnInit {
     // Events - All except viewer
     if (this.canAccessReports()) {
       analyticsItems.push({ label: 'Events', icon: 'pi pi-bolt', command: () => this.navigateToTab('events') });
+    }
+
+    // Funnels - All except viewer
+    if (this.canAccessReports()) {
+      analyticsItems.push({ label: 'Funnels', icon: 'pi pi-filter', command: () => this.navigateToTab('funnels') });
     }
 
     const accountItems: MenuItem[] = [];
@@ -173,6 +187,11 @@ export class Dashboard implements OnInit {
     return this.userRole === 'owner' || this.userRole === 'admin' || this.userRole === 'analyst';
   }
 
+  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
+    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+    return (order[this.userPlan] ?? 0) >= (order[plan] ?? 0);
+  }
+
   navigateToTab(tab: string) {
     this.router.navigate(['/dashboard', tab]);
   }
@@ -201,6 +220,7 @@ export class Dashboard implements OnInit {
       case 'users': return 'Users Management';
       case 'reports': return 'Reports';
       case 'events': return 'Events & Interactions';
+      case 'funnels': return 'Funnel Analysis';
       case 'plans': return 'Plans & Billing';
       case 'billing': return 'Billing & Usage';
       case 'settings': return 'Account Settings';

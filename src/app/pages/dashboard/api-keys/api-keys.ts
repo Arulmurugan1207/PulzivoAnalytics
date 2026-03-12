@@ -151,6 +151,13 @@ export class DashboardApiKeys implements OnInit {
 
     this.apiKeysService.createApiKey(name, description, limits, domainsArray).subscribe({
       next: () => {
+        // Funnel: user created their first API key (setup intent confirmed)
+        if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+          (window as any).PulzivoAnalytics('event', 'api_key_created', {
+            plan: this.userPlan.type,
+            total_keys: this.totalKeysCreated + 1
+          });
+        }
         this.loadApiKeys();
         this.showCreateDialog = false;
         this.isSubmitting = false;
