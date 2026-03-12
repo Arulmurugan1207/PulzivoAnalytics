@@ -13,8 +13,8 @@
     <p class="description fade-in" style="animation-delay: 0.3s">Zero configuration &bull; 5KB bundle &bull; Auto-tracking &bull; Privacy-first &bull; Free forever tier</p>
 
     <div class="hero-actions slide-up" style="animation-delay: 0.4s">
-      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'start-free'}" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/dashboard" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'live-demo'}" class="pulse-on-hover"></button>
+      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" (click)="openSignUp()" class="pulse-on-hover glow-button"></button>
+      <button pButton type="button" label="See How It Works" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/features" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'see-how'}" class="pulse-on-hover"></button>
     </div>
 
     <div class="stats-row">

@@ -1,7 +1,7 @@
 ﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, throwError } from 'rxjs';
+import { Observable, Subject, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
@@ -44,6 +44,9 @@ export interface ApiError {
 })
 export class AuthService {
   private apiUrl = environment.apiUrl;
+
+  readonly openSignUp$ = new Subject<void>();
+  requestOpenSignUp() { this.openSignUp$.next(); }
 
   constructor(
     private http: HttpClient,

@@ -3,6 +3,8 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { AvatarModule } from 'primeng/avatar';
 import { Menu, MenuModule } from 'primeng/menu';
 import type { MenuItem } from 'primeng/api';
@@ -38,6 +40,7 @@ export class Header implements OnInit, OnDestroy {
   userInitials = '';
   currentPath = '/';
   private routerSub!: Subscription;
+  private destroy$ = new Subject<void>();
 
   readonly navItems: NavItem[] = [
     { label: 'Home', path: '/' },
@@ -68,6 +71,7 @@ export class Header implements OnInit, OnDestroy {
       const userData = this.authService.getUserData();
       if (userData) this.setLoggedInUser(`${userData.firstname} ${userData.lastname}`);
     }
+    this.authService.openSignUp$.pipe(takeUntil(this.destroy$)).subscribe(() => this.openSignUp());
   }
 
   private normalizePath(url: string): string {
@@ -141,5 +145,7 @@ export class Header implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.routerSub?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

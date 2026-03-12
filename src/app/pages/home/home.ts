@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
+import { AuthService } from '../../services/auth.service';
 import hljs from 'highlight.js/lib/core';
 import xml from 'highlight.js/lib/languages/xml';
 import javascript from 'highlight.js/lib/languages/javascript';
@@ -44,7 +45,7 @@ PulzivoAnalytics.sendBatch();`;
   scriptCopyCount = signal(0);
   private highlighted = false;
 
-  constructor(private meta: Meta, private titleService: Title) {
+  constructor(private meta: Meta, private titleService: Title, private authService: AuthService) {
     this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, cookieless, no banners required.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'og:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
@@ -69,6 +70,10 @@ PulzivoAnalytics.sendBatch();`;
     { value: '0',      label: 'Cookies used' },
     { value: '100%',   label: 'Open source' },
   ];
+
+  openSignUp() {
+    this.authService.requestOpenSignUp();
+  }
 
   setTab(tab: 'html' | 'js') {
     this.activeTab.set(tab);
