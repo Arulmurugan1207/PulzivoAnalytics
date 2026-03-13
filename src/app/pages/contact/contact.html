@@ -71,7 +71,10 @@
                   <div class="method-content">
                     <h4>{{ method.title }}</h4>
                     @if (method.link) {
-                      <a [href]="method.link" class="method-link">
+                      <a [href]="method.link" class="method-link"
+                         [target]="method.link.startsWith('http') ? '_blank' : '_self'"
+                         [rel]="method.link.startsWith('http') ? 'noopener' : ''"
+                         (click)="method.title === 'X / Twitter' ? trackXClick() : null">
                         <span>{{ method.value }}</span>
                         <i class="pi pi-arrow-right"></i>
                       </a>

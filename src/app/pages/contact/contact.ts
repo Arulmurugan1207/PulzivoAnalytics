@@ -42,6 +42,12 @@ export class Contact {
       link: 'mailto:support@pulzivo.com'
     },
     {
+      icon: 'pi-twitter',
+      title: 'X / Twitter',
+      value: '@Pulzivo',
+      link: 'https://x.com/Pulzivo'
+    },
+    {
       icon: 'pi-clock',
       title: 'Response Time',
       value: 'Within 24 hours',
@@ -114,6 +120,12 @@ export class Contact {
       Object.keys(this.contactForm.controls).forEach(key => {
         this.contactForm.get(key)?.markAsTouched();
       });
+    }
+  }
+
+  trackXClick() {
+    if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+      (window as any).PulzivoAnalytics('event', 'social_click', { platform: 'x_twitter', source: 'contact_page' });
     }
   }
 
