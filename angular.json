@@ -41,6 +41,13 @@
               "extractLicenses": false,
               "sourceMap": false,
               "namedChunks": false,
+              "assets": [
+                {
+                  "glob": "**/*",
+                  "input": "public",
+                  "ignore": ["pulzivo-analytics.js"]
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
