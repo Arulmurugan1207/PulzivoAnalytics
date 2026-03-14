@@ -42,6 +42,8 @@ export class DashboardPlans implements OnInit {
   currentPlan = signal<'free' | 'pro' | 'enterprise'>('free');
   billingCycle = signal<'month' | 'year'>('month');
   showConfirmDialog = signal(false);
+  showUpgradeComingSoon = signal(false);
+  upgradeIntentPlan: Plan | null = null;
   selectedPlan: Plan | null = null;
   loading = signal(false);
   user: any = null;
@@ -55,10 +57,10 @@ export class DashboardPlans implements OnInit {
       billingCycle: 'month',
       description: 'Perfect for side projects and getting started',
       apiKeyLimit: 1,
-      eventLimit: 5000,
+      eventLimit: 10000,
       features: [
         '1 Website',
-        '5,000 events/month',
+        '10,000 events/month',
         '7-day data retention',
         'Page view tracking',
         'Click tracking',
@@ -200,8 +202,36 @@ export class DashboardPlans implements OnInit {
       return;
     }
 
+    // Intercept upgrades with coming-soon modal
+    if (this.canUpgrade(plan)) {
+      this.upgradeIntentPlan = plan;
+      this.showUpgradeComingSoon.set(true);
+      try {
+        if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+          (window as any).PulzivoAnalytics('event', 'upgrade_intent', {
+            from_plan: this.currentPlan(),
+            to_plan: plan.type,
+            billing_cycle: this.billingCycle()
+          });
+        }
+      } catch (_) {}
+      return;
+    }
+
     this.selectedPlan = plan;
     this.showConfirmDialog.set(true);
+  }
+
+  dmOnX() {
+    try {
+      if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+        (window as any).PulzivoAnalytics('event', 'upgrade_dm_x_clicked', {
+          from_plan: this.currentPlan(),
+          to_plan: this.upgradeIntentPlan?.type ?? 'unknown'
+        });
+      }
+    } catch (_) {}
+    window.open('https://x.com/i/chat', '_blank', 'noopener');
   }
 
   confirmPlanChange() {

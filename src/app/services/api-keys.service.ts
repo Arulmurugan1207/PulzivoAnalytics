@@ -9,6 +9,7 @@ export interface ApiKey {
   name: string;
   description?: string;
   isActive: boolean;
+  environment?: 'development' | 'production';
   createdAt: Date;
   limits?: {
     daily: number;
@@ -55,8 +56,8 @@ export class ApiKeysService {
     this.selectedApiKey = stored || null;
   }
 
-  createApiKey(name: string, description: string, limits?: { daily: number; monthly: number }, allowedDomains?: string[]): Observable<ApiKey> {
-    const body: any = { name, description };
+  createApiKey(name: string, description: string, limits?: { daily: number; monthly: number }, allowedDomains?: string[], environment: 'development' | 'production' = 'production'): Observable<ApiKey> {
+    const body: any = { name, description, environment };
     if (limits) {
       body.limits = limits;
     }
@@ -66,8 +67,9 @@ export class ApiKeysService {
     return this.http.post<ApiKey>(this.baseUrl, body);
   }
 
-  getApiKeys(): Observable<ApiKeysResponse> {
-    return this.http.get<ApiKeysResponse>(this.baseUrl);
+  getApiKeys(environment?: 'development' | 'production'): Observable<ApiKeysResponse> {
+    const params = environment ? `?environment=${environment}` : '';
+    return this.http.get<ApiKeysResponse>(`${this.baseUrl}${params}`);
   }
 
   updateApiKey(apiKey: string, updates: Partial<ApiKey>): Observable<ApiKey> {
@@ -76,6 +78,10 @@ export class ApiKeysService {
 
   archiveApiKey(apiKey: string): Observable<{ message: string }> {
     return this.http.put<{ message: string }>(`${this.baseUrl}/${apiKey}/archive`, {});
+  }
+
+  restoreApiKey(apiKey: string): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.baseUrl}/${apiKey}/restore`, {});
   }
 
   getApiKeyUsage(apiKey: string): Observable<ApiKeyUsage> {

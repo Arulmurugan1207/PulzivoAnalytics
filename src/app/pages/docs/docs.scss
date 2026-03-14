@@ -120,6 +120,71 @@ $mono: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace;
 }
 
 // ============================================================
+// Dev vs Production callout
+// ============================================================
+.dev-env-callout {
+  margin-top: 2rem;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-left: 4px solid #0ea5e9;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+
+  .dev-env-callout-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0369a1;
+    margin-bottom: 0.5rem;
+
+    i { font-size: 1.1rem; }
+  }
+
+  .dev-env-callout-desc {
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+
+    code {
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.25);
+      border-radius: 4px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.82rem;
+      color: #0c4a6e;
+    }
+  }
+
+  .dev-env-tips {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.845rem;
+      color: #374151;
+
+      i {
+        color: #0ea5e9;
+        margin-top: 0.1rem;
+        flex-shrink: 0;
+      }
+
+      strong { color: #0c4a6e; margin-right: 0.25rem; }
+    }
+  }
+}
+
+// ============================================================
 // Sections
 // ============================================================
 .doc-section {

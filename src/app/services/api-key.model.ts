@@ -1,6 +1,6 @@
 export interface APIKey {
   _id: string;
-  apiKey: string; // STK-{5 digit alphanumeric} - API Key for authentication
+  apiKey: string; // PULZ-{alphanumeric} - API Key for authentication
   name: string;
   userId: string;
   createdDate: string;

@@ -113,10 +113,12 @@ export class Header implements OnInit, OnDestroy {
     this.successModal.show('Welcome Back!', 'You have successfully signed in.');
   }
 
-  onSignUpSuccess() {
+  onSignUpSuccess(user: any) {
     this.signUpCompleted = true;
+    localStorage.setItem('pulz_has_account', '1'); // never show exit-intent modal again
     this.signUpModal.hide();
-    this.setLoggedInUser('John Doe');
+    const name = user?.firstname ? `${user.firstname} ${user.lastname || ''}`.trim() : 'New User';
+    this.setLoggedInUser(name);
     this.successModal.show('Account Created!', 'Your account has been created successfully.');
   }
 

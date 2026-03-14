@@ -29,7 +29,7 @@ import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
 const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['page_views', 'clicks'],
+  free: ['page_views', 'clicks', 'custom_events'],
   pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
   enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
 };

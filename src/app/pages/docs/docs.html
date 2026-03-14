@@ -9,7 +9,7 @@
         <a 
           class="nav-item" 
           [class.active]="activeSection() === item.id"
-          (click)="scrollToSection(item.id)">
+          (click)="trackNavClick(item.id)">
           <i class="pi" [ngClass]="item.icon"></i>
           <span>{{ item.label }}</span>
         </a>
@@ -27,7 +27,7 @@
           <h1><i class="pi pi-play"></i> Getting Started</h1>
         </div>
         <p class="lead">Quick setup guide to integrate Pulzivo Analytics in under 60 seconds.</p>
-        
+
         <div class="steps-container">
           <div class="step-item">
             <div class="step-number">1</div>
@@ -39,7 +39,7 @@
                         type="button" 
                         [label]="copied() ? 'Copied!' : 'Copy'" 
                         [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" 
-                        (click)="copyScript()"
+                        (click)="copyCode(codeBlocks['script-tag'])"
                         [class.p-button-success]="copied()" 
                         class="copy-btn"
                         size="small"></button>
@@ -67,7 +67,7 @@
             <div class="step-content">
               <h3>Verify Setup</h3>
               <p>Open your browser's console with debug mode enabled to see initialization logs.</p>
-              <button pButton type="button" label="View Debugging Guide" icon="pi pi-arrow-right" iconPos="right" (click)="scrollToSection('debugging')" severity="secondary"></button>
+              <button pButton type="button" label="View Debugging Guide" icon="pi pi-arrow-right" iconPos="right" (click)="trackDebugGuideClick()" severity="secondary"></button>
             </div>
           </div>
         </div>
@@ -81,6 +81,34 @@
             <pre class="code-block"><code>{{ codeBlocks['complete-html'] }}</code></pre>
           </div>
         </p-card>
+
+        <!-- Dynamic key / dev logs callout -->
+        <div class="dev-env-callout">
+          <div class="dev-env-callout-header">
+            <i class="pi pi-code"></i>
+            <span>Dev vs Production — Dynamic Key Switching</span>
+          </div>
+          <p class="dev-env-callout-desc">
+            Use a self-invoking snippet to load the right key automatically.
+            In development, <code>data-debug="true"</code> logs every event to the console
+            and <strong>blocks all network sends</strong> so you never pollute production data.
+          </p>
+          <div class="code-block-wrapper">
+            <button pButton type="button"
+                    [label]="copied() ? 'Copied!' : 'Copy'"
+                    [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'"
+                    (click)="copyCode(codeBlocks['dynamic-key-setup'])"
+                    [class.p-button-success]="copied()"
+                    class="copy-btn" size="small"></button>
+            <pre class="code-block"><code>{{ codeBlocks['dynamic-key-setup'] }}</code></pre>
+          </div>
+          <ul class="dev-env-tips">
+            <li><i class="pi pi-desktop"></i><strong>Dev key</strong> — find it in your dashboard under <em>API Keys → Development</em></li>
+            <li><i class="pi pi-globe"></i><strong>Prod key</strong> — find it in your dashboard under <em>API Keys → Production</em></li>
+            <li><i class="pi pi-eye"></i><strong>data-debug</strong> — open DevTools → Console to see every tracked event in real time</li>
+            <li><i class="pi pi-ban"></i><strong>No data pollution</strong> — debug mode events are never sent to the server</li>
+          </ul>
+        </div>
 
         <p-card>
           <ng-template pTemplate="header">
@@ -173,14 +201,14 @@
         <h3>Simple PulzivoAnalytics() API</h3>
         <p>Use the convenient functional API for cleaner code:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['stk-api-simple'])" class="copy-btn" size="small"></button>
-          <pre class="code-block"><code>{{ codeBlocks['stk-api-simple'] }}</code></pre>
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['pulz-api-simple'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['pulz-api-simple'] }}</code></pre>
         </div>
 
         <h3>PulzivoAnalytics() Advanced Usage</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['stk-api-identify'])" class="copy-btn" size="small"></button>
-          <pre class="code-block"><code>{{ codeBlocks['stk-api-identify'] }}</code></pre>
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['pulz-api-identify'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['pulz-api-identify'] }}</code></pre>
         </div>
 
         <h3>Full API (Alternative)</h3>
@@ -373,7 +401,7 @@
 
         <p-accordion [multiple]="true">
           @for (faq of faqItems; track faq.question; let idx = $index) {
-            <p-accordion-panel [value]="idx.toString()">
+            <p-accordion-panel [value]="idx.toString()" (click)="trackFaqOpen(faq.question)">
               <p-accordion-header>
                 <span class="faq-header">
                   <i class="pi pi-question-circle"></i>

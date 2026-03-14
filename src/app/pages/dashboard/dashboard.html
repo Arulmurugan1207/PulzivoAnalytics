@@ -59,18 +59,30 @@
         }
       } @else {
         <!-- Real dashboard nav -->
+
+        <!-- ANALYTICS -->
         <a class="nav-item" routerLink="/dashboard/overview" routerLinkActive="active">
           <i class="pi pi-home"></i>
           @if (!sidebarCollapsed) { <span>Overview</span> }
         </a>
-        <a class="nav-item" routerLink="/dashboard/api-keys" routerLinkActive="active">
-          <i class="pi pi-key"></i>
-          @if (!sidebarCollapsed) { <span>API Keys</span> }
-        </a>
-        @if (canAccessUsers()) {
-          <a class="nav-item" routerLink="/dashboard/users" routerLinkActive="active">
-            <i class="pi pi-users"></i>
-            @if (!sidebarCollapsed) { <span>Users</span> }
+        @if (canAccessReports()) {
+          <a class="nav-item" routerLink="/dashboard/events" routerLinkActive="active">
+            <i class="pi pi-bolt"></i>
+            @if (!sidebarCollapsed) {
+              <span>Events</span>
+              @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
+            }
+          </a>
+        }
+        @if (canAccessReports()) {
+          <a class="nav-item" routerLink="/dashboard/funnels" routerLinkActive="active"
+             [class.nav-item--locked]="!canAccessFunnels()"
+             (click)="!canAccessFunnels() ? $event.preventDefault() : null">
+            <i class="pi pi-filter"></i>
+            @if (!sidebarCollapsed) {
+              <span>Funnels</span>
+              @if (!canAccessFunnels()) { <i class="pi pi-lock lock-icon" title="Upgrade to Enterprise"></i> }
+            }
           </a>
         }
         @if (canAccessReports()) {
@@ -82,28 +94,27 @@
             }
           </a>
         }
-        @if (canAccessReports()) {
-          <a class="nav-item" routerLink="/dashboard/events" routerLinkActive="active">
-            <i class="pi pi-bolt"></i>
-            @if (!sidebarCollapsed) {
-              <span>Events</span>
-              @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
-            }
-          </a>
-        }
-        @if (canAccessReports()) {
-          <a class="nav-item" routerLink="/dashboard/funnels" routerLinkActive="active">
-            <i class="pi pi-filter"></i>
-            @if (!sidebarCollapsed) {
-              <span>Funnels</span>
-              @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
-            }
+
+        <div class="nav-divider"></div>
+
+        <!-- MANAGE -->
+        <div class="nav-section-label">
+          @if (!sidebarCollapsed) { Manage }
+        </div>
+        <a class="nav-item" routerLink="/dashboard/api-keys" routerLinkActive="active">
+          <i class="pi pi-key"></i>
+          @if (!sidebarCollapsed) { <span>API Keys</span> }
+        </a>
+        @if (canAccessUsers()) {
+          <a class="nav-item" routerLink="/dashboard/users" routerLinkActive="active">
+            <i class="pi pi-users"></i>
+            @if (!sidebarCollapsed) { <span>Users</span> }
           </a>
         }
 
         <div class="nav-divider"></div>
 
-        <!-- Account section -->
+        <!-- ACCOUNT -->
         <div class="nav-section-label">
           @if (!sidebarCollapsed) { Account }
         </div>
@@ -143,14 +154,39 @@
         <h1 class="page-title">{{ getTabTitle() }}</h1>
       </div>
       <div class="topbar-right">
-        <div class="user-greeting">
-          <span class="greeting-text">Welcome back,</span>
-          <span class="greeting-name">{{ user?.firstname }}</span>
-          <span class="role-badge" [class]="'role-badge-' + userRole">
-            {{ userRole | uppercase }}
-          </span>
-        </div>
         <span class="date-text">{{ getTodayInfo() }}</span>
+        <div class="user-menu" (click)="toggleUserDropdown($event)">
+          <div class="user-avatar">{{ (user?.firstname || 'U')[0].toUpperCase() }}</div>
+          <div class="user-greeting">
+            <span class="greeting-text">Welcome back,</span>
+            <span class="greeting-name">{{ user?.firstname }}</span>
+            <span class="role-badge" [class]="'role-badge-' + userRole">{{ userRole | uppercase }}</span>
+          </div>
+          <i class="pi pi-chevron-down chevron-icon" [class.rotated]="userDropdownOpen"></i>
+
+          @if (userDropdownOpen) {
+            <div class="user-dropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-header">
+                <div class="dropdown-avatar">{{ (user?.firstname || 'U')[0].toUpperCase() }}</div>
+                <div class="dropdown-user-info">
+                  <span class="dropdown-name">{{ user?.firstname }} {{ user?.lastname }}</span>
+                  <span class="dropdown-email">{{ user?.email }}</span>
+                </div>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" routerLink="/dashboard/settings" (click)="userDropdownOpen = false">
+                <i class="pi pi-cog"></i> Settings
+              </a>
+              <a class="dropdown-item" routerLink="/dashboard/plans" (click)="userDropdownOpen = false">
+                <i class="pi pi-credit-card"></i> Plans & Billing
+              </a>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item dropdown-signout" (click)="signOut()">
+                <i class="pi pi-sign-out"></i> Sign Out
+              </button>
+            </div>
+          }
+        </div>
       </div>
     </header>
 

@@ -67,6 +67,7 @@ export class AuthService {
         if (response && response.user && response.user.token) {
           const expirationTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
           localStorage.setItem('authToken', response.user.token);
+          localStorage.setItem('pulz_has_account', '1'); // never show sign-up exit intent again
           localStorage.setItem('userData', JSON.stringify({
             user: response.user,
             expiresAt: expirationTime
@@ -94,6 +95,7 @@ export class AuthService {
         if (response && response.user && response.user.token) {
           const expirationTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
           localStorage.setItem('authToken', response.user.token);
+          localStorage.setItem('pulz_has_account', '1'); // never show sign-up exit intent again
           localStorage.setItem('userData', JSON.stringify({
             user: response.user,
             expiresAt: expirationTime

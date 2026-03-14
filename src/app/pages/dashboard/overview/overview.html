@@ -253,7 +253,7 @@
           </div>
 
           <!-- Device Breakdown -->
-          <div class="chart-card theme-violet" data-section="device-breakdown">
+          <div class="chart-card theme-violet" data-section="device-breakdown" [class.locked-section]="!hasFeature('unique_visitors')">
             <div class="card-header">
               <h3>
                 Device Breakdown
@@ -262,11 +262,21 @@
                    tooltipPosition="top"
                    data-tooltip-id="device-breakdown-info"></i>
               </h3>
-              @if (loadingStates.devices) {
+              @if (hasFeature('unique_visitors') && loadingStates.devices) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (loadingStates.devices) {
+            @if (!hasFeature('unique_visitors')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Device Breakdown</h4>
+                  <p>See how your visitors split across Desktop, Mobile, and Tablet. Upgrade to Pro to unlock device analytics.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.devices) {
               <div class="chart-skeleton">
                 <p-skeleton width="100%" height="200px"></p-skeleton>
               </div>
@@ -837,7 +847,7 @@
             }
           </div>
 
-          <div class="chart-card theme-emerald" [class.locked-section]="!hasFeature('custom_events')">
+          <div class="chart-card theme-emerald">
             <div class="card-header">
               <h3>
                 Custom Events
@@ -846,21 +856,11 @@
                    tooltipPosition="top"></i>
               </h3>
               <span class="card-subtitle">Application events fired</span>
-              @if (hasFeature('custom_events') && loadingStates.customEvents) {
+              @if (loadingStates.customEvents) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (!hasFeature('custom_events')) {
-              <div class="locked-overlay">
-                <div class="locked-content">
-                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
-                  <i class="pi pi-lock lock-icon"></i>
-                  <h4>Custom Events</h4>
-                  <p>Custom event tracking requires Pro. Upgrade to unlock.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
-                </div>
-              </div>
-            } @else if (loadingStates.customEvents) {
+            @if (loadingStates.customEvents) {
               @for (i of [1,2,3,4,5]; track i) {
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }

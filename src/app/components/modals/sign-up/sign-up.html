@@ -15,17 +15,28 @@
   </ng-template>
 
   <div class="sign-up-content">
-    <form id="sign-up-form" name="sign-up-form">
+    <form [formGroup]="form" (ngSubmit)="onSignUp()">
+
+      @if (errorMessage) {
+        <div class="form-error-banner">{{ errorMessage }}</div>
+      }
+
       <div class="input-group">
         <label for="name">Full Name</label>
         <input 
           pInputText 
           id="name" 
-          name="name"
+          formControlName="name"
           type="text" 
-          [(ngModel)]="name"
           placeholder="John Doe"
+          [ngClass]="{'ng-invalid ng-dirty': f['name'].touched && f['name'].invalid}"
           class="w-full" />
+        @if (f['name'].touched && f['name'].hasError('required')) {
+          <small class="field-error">Full name is required.</small>
+        }
+        @if (f['name'].touched && f['name'].hasError('minlength')) {
+          <small class="field-error">Name must be at least 2 characters.</small>
+        }
       </div>
 
       <div class="input-group">
@@ -33,41 +44,58 @@
         <input 
           pInputText 
           id="email" 
-          name="email"
+          formControlName="email"
           type="email" 
-          [(ngModel)]="email"
           placeholder="your@email.com"
+          [ngClass]="{'ng-invalid ng-dirty': f['email'].touched && f['email'].invalid}"
           class="w-full" />
+        @if (f['email'].touched && f['email'].hasError('required')) {
+          <small class="field-error">Email is required.</small>
+        }
+        @if (f['email'].touched && f['email'].hasError('email')) {
+          <small class="field-error">Please enter a valid email address.</small>
+        }
       </div>
 
       <div class="input-group">
         <label for="password">Password</label>
         <p-password 
-          [(ngModel)]="password"
-          name="password"
+          formControlName="password"
           [feedback]="true"
           [toggleMask]="true"
-          placeholder="Create a password"
+          placeholder="Create a password (min 8 chars)"
           class="w-full"
+          [ngClass]="{'ng-invalid ng-dirty': f['password'].touched && f['password'].invalid}"
           inputStyleClass="w-full" />
+        @if (f['password'].touched && f['password'].hasError('required')) {
+          <small class="field-error">Password is required.</small>
+        }
+        @if (f['password'].touched && f['password'].hasError('minlength')) {
+          <small class="field-error">Password must be at least 8 characters.</small>
+        }
       </div>
 
       <div class="input-group">
         <label for="confirmPassword">Confirm Password</label>
         <p-password 
-          [(ngModel)]="confirmPassword"
-          name="confirmPassword"
+          formControlName="confirmPassword"
           [feedback]="false"
           [toggleMask]="true"
           placeholder="Confirm your password"
           class="w-full"
+          [ngClass]="{'ng-invalid ng-dirty': f['confirmPassword'].touched && (f['confirmPassword'].invalid || form.hasError('passwordsMismatch'))}"
           inputStyleClass="w-full" />
+        @if (f['confirmPassword'].touched && f['confirmPassword'].hasError('required')) {
+          <small class="field-error">Please confirm your password.</small>
+        }
+        @if (f['confirmPassword'].touched && !f['confirmPassword'].hasError('required') && form.hasError('passwordsMismatch')) {
+          <small class="field-error">Passwords do not match.</small>
+        }
       </div>
 
       <div class="terms-group">
         <p-checkbox 
-          [(ngModel)]="acceptTerms"
-          name="acceptTerms"
+          formControlName="acceptTerms"
           [binary]="true" 
           inputId="terms" />
         <label for="terms" class="terms-label">
@@ -77,12 +105,18 @@
 
       <button 
         pButton 
-        type="button" 
+        type="submit"
         label="Create Account" 
         [loading]="loading"
-        [disabled]="!acceptTerms"
-        (click)="onSignUp()"
+        [disabled]="form.invalid || loading"
         class="sign-up-btn"></button>
+
+      @if (!isFormReady) {
+        <div class="form-hint">
+          <i class="pi pi-info-circle"></i>
+          To enable: {{ missingFields.join(' · ') }}
+        </div>
+      }
     </form>
 
     <p-divider align="center">

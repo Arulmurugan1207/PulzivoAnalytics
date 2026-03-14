@@ -157,6 +157,50 @@
   </div>
 </div>
 
+<!-- Coming Soon — Upgrade Intent Modal -->
+<p-dialog
+  [(visible)]="showUpgradeComingSoon"
+  [modal]="true"
+  [closable]="true"
+  [closeOnEscape]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="coming-soon-dialog"
+  [header]="' '"
+>
+  @if (upgradeIntentPlan) {
+    <div class="cs-body">
+      <div class="cs-emoji">🚀</div>
+      <h2 class="cs-title">Paid plans coming soon!</h2>
+      <p class="cs-sub">
+        We're putting the finishing touches on <strong>{{ upgradeIntentPlan.name }}</strong> billing.
+        For now, enjoy everything on the <strong>Free plan</strong> — no card needed, no limits on what you build.
+      </p>
+
+      <div class="cs-perks">
+        <div class="cs-perk"><i class="pi pi-bolt"></i> Custom events — available on Free now</div>
+        <div class="cs-perk"><i class="pi pi-chart-line"></i> Page views, clicks, sessions tracked automatically</div>
+        <div class="cs-perk"><i class="pi pi-shield"></i> Privacy-first, cookieless, GDPR ready</div>
+      </div>
+
+      <div class="cs-dm-box">
+        <p class="cs-dm-label">
+          <i class="pi pi-comments"></i>
+          Want early access or have questions? DM us on <strong>X</strong> — we reply instantly.
+        </p>
+        <button pButton type="button"
+                class="cs-dm-btn"
+                icon="pi pi-send"
+                label="DM us on X"
+                (click)="dmOnX()">
+        </button>
+      </div>
+
+      <p class="cs-note">We'll notify you by email as soon as paid plans go live.</p>
+    </div>
+  }
+</p-dialog>
+
 <!-- Confirmation Dialog -->
 <p-dialog
   [(visible)]="showConfirmDialog"

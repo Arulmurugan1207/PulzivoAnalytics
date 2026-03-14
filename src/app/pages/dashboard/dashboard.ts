@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -41,6 +41,7 @@ export class Dashboard implements OnInit {
   userPlan: 'free' | 'pro' | 'enterprise' = 'free';
   sidebarCollapsed = false;
   currentRoute = '';
+  userDropdownOpen = false;
 
   readonly lockedNavItems = [
     { label: 'API Keys',  icon: 'pi-key' },
@@ -177,6 +178,24 @@ export class Dashboard implements OnInit {
 
   canAccessReports(): boolean {
     return this.userRole !== 'viewer';
+  }
+
+  canAccessFunnels(): boolean {
+    return this.isPlanAtLeast('enterprise');
+  }
+
+  toggleUserDropdown(event: Event): void {
+    event.stopPropagation();
+    this.userDropdownOpen = !this.userDropdownOpen;
+  }
+
+  @HostListener('document:click')
+  closeUserDropdown(): void {
+    this.userDropdownOpen = false;
+  }
+
+  signOut(): void {
+    this.authService.signout();
   }
 
   canAccessPlans(): boolean {

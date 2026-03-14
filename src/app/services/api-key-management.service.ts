@@ -103,7 +103,7 @@ export class APIKeyManagementService {
             const storedKey = storedApiKeys.find(k => k._id === apiKey._id || k._id === (apiKey as any).id);
             return {
               _id: apiKey._id || (apiKey as any).id,
-              apiKey: storedKey?.apiKey || (apiKey as any).apiKey || 'STK-XXXXX', // Use stored API key or fallback
+              apiKey: storedKey?.apiKey || (apiKey as any).apiKey || 'PULZ-XXXXX', // Use stored API key or fallback
               name: apiKey.name,
               userId: apiKey.userId,
               createdDate: (apiKey as any).createdAt || apiKey.createdDate,
@@ -263,7 +263,7 @@ export class APIKeyManagementService {
             const storedKey = storedApiKeys.find(k => k._id === apiKey._id || k._id === (apiKey as any).id);
             return {
               _id: apiKey._id || (apiKey as any).id,
-              apiKey: storedKey?.apiKey || (apiKey as any).apiKey || 'STK-XXXXX',
+              apiKey: storedKey?.apiKey || (apiKey as any).apiKey || 'PULZ-XXXXX',
               name: apiKey.name,
               userId: apiKey.userId,
               createdDate: (apiKey as any).createdAt || apiKey.createdDate,
@@ -302,7 +302,7 @@ export class APIKeyManagementService {
    */
   generateApiKey(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = 'STK-';
+    let result = 'PULZ-';
     for (let i = 0; i < 5; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }

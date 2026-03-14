@@ -15,6 +15,8 @@ import { MessageModule } from 'primeng/message';
 import { ApiKeysService, ApiKey, ApiKeyUsage } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 
+const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
+
 interface UserPlan {
   type: string;
   apiKeyLimit: number | 'unlimited';
@@ -55,20 +57,30 @@ export class DashboardApiKeys implements OnInit {
   usage: ApiKeyUsage | null = null;
 
   // Plan
-  userPlan: UserPlan = { type: 'free', apiKeyLimit: 3, price: 0 };
+  userPlan: UserPlan = { type: 'free', apiKeyLimit: 1, price: 0 };
   currentUsage = 0;
   totalKeysCreated = 0;
   archivedKeysCount = 0;
   keysCreatedThisMonth = 0;
+  archiveErrorMsg: string | null = null;
+  createSuccessMsg: string | null = null;
 
   // Environment
   selectedEnvironment: 'development' | 'production' = 'production';
 
+  get environmentLabel(): string {
+    return this.selectedEnvironment === 'production' ? 'Production' : 'Development';
+  }
+
+  get isProduction(): boolean {
+    return this.selectedEnvironment === 'production';
+  }
+
+  // Must match canonical plan names in backend planPolicy.js (free | pro | enterprise)
   planUsageLimits: Record<string, { daily: number | null; monthly: number | null }> = {
-    'free': { daily: 1000, monthly: 10000 },
-    'starter': { daily: 10000, monthly: 100000 },
-    'professional': { daily: 50000, monthly: 500000 },
-    'enterprise': { daily: null, monthly: null } // No limits for enterprise
+    'free':       { daily: 1000,  monthly: 10000  },
+    'pro':        { daily: 50000, monthly: 500000 },
+    'enterprise': { daily: null,  monthly: null   },
   };
 
   constructor(
@@ -101,12 +113,19 @@ export class DashboardApiKeys implements OnInit {
     this.selectedEnvironment = storedEnv || 'production';
     this.apiKeysService.setSelectedEnvironment(this.selectedEnvironment);
 
+    // Load user plan from auth
+    const user = this.authService.getUserData();
+    const isOwner = user?.email === APP_OWNER_EMAIL || user?.role === 'owner';
+    const plan = isOwner ? 'enterprise' : (user?.plan || 'free');
+    const planLimits: Record<string, number | 'unlimited'> = { free: 1, pro: 5, enterprise: 'unlimited' };
+    this.userPlan = { type: plan, apiKeyLimit: planLimits[plan] ?? 1, price: 0 };
+
     this.loadApiKeys();
   }
 
   loadApiKeys(): void {
     this.isLoading = true;
-    this.apiKeysService.getApiKeys().subscribe({
+    this.apiKeysService.getApiKeys(this.selectedEnvironment).subscribe({
       next: (response) => {
         this.apiKeys = response.apiKeys.filter(key => key.isActive !== false);
         this.archivedKeys = response.apiKeys.filter(key => key.isActive === false);
@@ -128,12 +147,35 @@ export class DashboardApiKeys implements OnInit {
     this.selectedEnvironment = this.selectedEnvironment === 'development' ? 'production' : 'development';
     localStorage.setItem('selectedEnvironment', this.selectedEnvironment);
     this.apiKeysService.setSelectedEnvironment(this.selectedEnvironment);
+    this.archiveErrorMsg = null;
+    this.createSuccessMsg = null;
+    this.updateDomainValidators();
+    this.loadApiKeys();
+  }
+
+  private updateDomainValidators(): void {
+    const ctrl = this.createForm.get('allowedDomains');
+    if (this.isProduction) {
+      ctrl?.setValidators([Validators.required, this.singleDomainValidator]);
+    } else {
+      ctrl?.clearValidators();
+    }
+    ctrl?.updateValueAndValidity();
+  }
+
+  private singleDomainValidator(control: import('@angular/forms').AbstractControl) {
+    const val = control.value?.trim();
+    if (!val) return null; // required validator handles empty
+    const domains = val.split(',').map((d: string) => d.trim()).filter((d: string) => d.length > 0);
+    return domains.length > 1 ? { singleDomain: true } : null;
   }
 
   // CRUD
   openCreateDialog(): void {
     if (!this.canCreateMoreKeys()) return;
     this.createForm.reset();
+    this.createSuccessMsg = null;
+    this.updateDomainValidators();
     this.showCreateDialog = true;
   }
 
@@ -149,15 +191,55 @@ export class DashboardApiKeys implements OnInit {
       ? undefined 
       : { daily: planLimits.daily, monthly: planLimits.monthly };
 
-    this.apiKeysService.createApiKey(name, description, limits, domainsArray).subscribe({
-      next: () => {
-        // Funnel: user created their first API key (setup intent confirmed)
+    this.apiKeysService.createApiKey(name, description, limits, domainsArray, this.selectedEnvironment).subscribe({
+      next: (createdKey) => {
+        const keyEnvironment = createdKey.environment || this.selectedEnvironment;
+        const keyIndex = this.totalKeysCreated + 1;
+        const isFirstKey = keyIndex === 1;
+        const isFirstProdKey = keyEnvironment === 'production' && !this.apiKeys.some(k => (k.environment || 'production') === 'production');
+
         if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+          // Compute minutes since signup for activation funnel
+          const user = this.authService.getUserData();
+          const signupDate = user?.createdDate ? new Date(user.createdDate) : null;
+          const minutesSinceSignup = signupDate
+            ? Math.round((Date.now() - signupDate.getTime()) / 60000)
+            : null;
+
           (window as any).PulzivoAnalytics('event', 'api_key_created', {
-            plan: this.userPlan.type,
-            total_keys: this.totalKeysCreated + 1
+            // Core
+            plan:                  this.userPlan.type,
+            environment:           keyEnvironment,
+
+            // Activation signals
+            key_index:             keyIndex,               // 1 = first ever key (activation)
+            is_first_key:          isFirstKey,
+            is_first_prod_key:     isFirstProdKey,         // true = went live
+            minutes_since_signup:  minutesSinceSignup,     // time-to-activate metric
+
+            // Setup quality signals
+            has_domain_restriction: !!(domainsArray && domainsArray.length > 0),
+            has_description:        !!(description?.trim()),
+            used_default_name:      !name?.trim() || name.trim().toLowerCase() === 'my website',
           });
+
+          // Separate high-value milestone events for funnel segmentation
+          if (isFirstKey) {
+            (window as any).PulzivoAnalytics('event', 'activation_first_key', {
+              plan: this.userPlan.type,
+              environment: keyEnvironment,
+              minutes_since_signup: minutesSinceSignup,
+            });
+          }
+          if (isFirstProdKey) {
+            (window as any).PulzivoAnalytics('event', 'activation_went_live', {
+              plan: this.userPlan.type,
+              minutes_since_signup: minutesSinceSignup,
+            });
+          }
         }
+
+        this.createSuccessMsg = `API key created in ${keyEnvironment === 'production' ? 'Production' : 'Development'} environment.`;
         this.loadApiKeys();
         this.showCreateDialog = false;
         this.isSubmitting = false;
@@ -197,9 +279,24 @@ export class DashboardApiKeys implements OnInit {
   }
 
   archiveApiKey(apiKey: string): void {
+    this.archiveErrorMsg = null;
     this.apiKeysService.archiveApiKey(apiKey).subscribe({
       next: () => this.loadApiKeys(),
-      error: (err) => console.error('Error archiving key', err)
+      error: (err) => {
+        this.archiveErrorMsg = err?.error?.message || 'Failed to archive key. Please try again.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  restoreKey(apiKey: string): void {
+    this.archiveErrorMsg = null;
+    this.apiKeysService.restoreApiKey(apiKey).subscribe({
+      next: () => this.loadApiKeys(),
+      error: (err) => {
+        this.archiveErrorMsg = err?.error?.message || 'Failed to restore key. Please try again.';
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -224,6 +321,7 @@ export class DashboardApiKeys implements OnInit {
 
   // Plan
   canCreateMoreKeys(): boolean {
+    // Only active keys count toward the limit — archived slots can be recycled
     return this.userPlan.apiKeyLimit === 'unlimited' || this.currentUsage < (this.userPlan.apiKeyLimit as number);
   }
 

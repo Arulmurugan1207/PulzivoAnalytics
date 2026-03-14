@@ -1,16 +1,25 @@
-import { Component, EventEmitter, Output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { NgClass } from '@angular/common';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { DividerModule } from 'primeng/divider';
 import { CheckboxModule } from 'primeng/checkbox';
+import { AuthService } from '../../../services/auth.service';
+
+function passwordsMatch(group: AbstractControl): ValidationErrors | null {
+  const pw = group.get('password')?.value;
+  const cpw = group.get('confirmPassword')?.value;
+  return pw && cpw && pw !== cpw ? { passwordsMismatch: true } : null;
+}
 
 @Component({
   selector: 'app-sign-up',
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
+    NgClass,
     DialogModule,
     ButtonModule,
     InputTextModule,
@@ -25,23 +34,52 @@ export class SignUp {
   @Output() close = new EventEmitter<void>();
   @Output() switchToSignIn = new EventEmitter<void>();
   @Output() signUpSuccess = new EventEmitter<any>();
-  
+
+  private authService = inject(AuthService);
+  private fb = inject(FormBuilder);
+
   visible = false;
-  name = '';
-  email = '';
-  password = '';
-  confirmPassword = '';
-  acceptTerms = false;
   loading = false;
+  errorMessage = '';
+
+  form: FormGroup = this.fb.group({
+    name:            ['', [Validators.required, Validators.minLength(2)]],
+    email:           ['', [Validators.required, Validators.email]],
+    password:        ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', Validators.required],
+    acceptTerms:     [false, Validators.requiredTrue]
+  }, { validators: passwordsMatch });
+
+  // Shorthand getters
+  get f() { return this.form.controls; }
+
+  get isFormReady(): boolean {
+    return this.form.valid;
+  }
+
+  get missingFields(): string[] {
+    const labels: Record<string, string> = {
+      name: 'Full name',
+      email: 'Email',
+      password: 'Password (min 8 chars)',
+      confirmPassword: 'Confirm password',
+      acceptTerms: 'Accept terms'
+    };
+    const missing: string[] = [];
+    Object.keys(labels).forEach(key => {
+      if (this.form.get(key)?.invalid) missing.push(labels[key]);
+    });
+    if (this.form.errors?.['passwordsMismatch']) {
+      const idx = missing.indexOf('Confirm password');
+      if (idx === -1) missing.push('Passwords must match');
+    }
+    return missing;
+  }
 
   show() {
     this.visible = true;
-    this.name = '';
-    this.email = '';
-    this.password = '';
-    this.confirmPassword = '';
-    this.acceptTerms = false;
-    // Funnel step 1: user opened the sign-up modal (high intent)
+    this.form.reset({ name: '', email: '', password: '', confirmPassword: '', acceptTerms: false });
+    this.errorMessage = '';
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
       (window as any).PulzivoAnalytics('event', 'signup_started', { source: 'modal' });
     }
@@ -53,30 +91,34 @@ export class SignUp {
   }
 
   onSignUp() {
-    if (!this.name || !this.email || !this.password || !this.acceptTerms) {
-      return;
-    }
+    this.form.markAllAsTouched();
+    if (this.form.invalid) return;
 
-    if (this.password !== this.confirmPassword) {
-      return;
-    }
+    const { name, email, password } = this.form.value;
+    const nameParts = name.trim().split(/\s+/);
+    const firstname = nameParts[0];
+    const lastname = nameParts.slice(1).join(' ') || nameParts[0];
 
     this.loading = true;
-    
-    // Simulate API call
-    setTimeout(() => {
-      // Funnel step 2: user completed sign-up form
-      if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
-        (window as any).PulzivoAnalytics('event', 'signup_completed', {
-          method: 'email',
-          has_name: !!this.name
-        });
+    this.errorMessage = '';
+
+    this.authService.signup({ firstname, lastname, email, mobileno: '', password }).subscribe({
+      next: (response) => {
+        if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+          (window as any).PulzivoAnalytics('event', 'signup_completed', {
+            method: 'email',
+            has_name: !!name
+          });
+        }
+        this.loading = false;
+        this.signUpSuccess.emit(response.user);
+        this.hide();
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err?.error?.message || err?.message || 'Sign up failed. Please try again.';
       }
-      
-      this.loading = false;
-      this.signUpSuccess.emit({ name: this.name, email: this.email });
-      this.hide();
-    }, 1000);
+    });
   }
 
   onSwitchToSignIn() {

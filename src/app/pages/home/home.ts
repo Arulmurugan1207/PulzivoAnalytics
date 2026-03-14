@@ -51,6 +51,17 @@ PulzivoAnalytics.sendBatch();`;
   private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
   private nudgeAutoHide: ReturnType<typeof setTimeout> | null = null;
   private exitIntentFired = false;
+  private exitIntentReady = false;
+
+  private hasShownExitIntentToday(): boolean {
+    const last = localStorage.getItem('pulz_exit_intent_date');
+    if (!last) return false;
+    return last === new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  }
+
+  private markExitIntentShownToday(): void {
+    localStorage.setItem('pulz_exit_intent_date', new Date().toISOString().slice(0, 10));
+  }
 
   constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService) {
     this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, cookieless, no banners required.' });
@@ -81,6 +92,9 @@ PulzivoAnalytics.sendBatch();`;
   ngOnInit() {
     this.fetchLiveStats();
     this.statsTimer = setInterval(() => this.fetchLiveStats(), 5 * 60 * 1000);
+    // Grace period: don't fire exit intent until 3s after page load.
+    // Prevents the modal popping up immediately when navigating here after logout.
+    setTimeout(() => { this.exitIntentReady = true; }, 3000);
     this.authService.signUpDismissed$.subscribe(() => {
       this.nudgeTimer = setTimeout(() => {
         this.showNudgeBar.set(true);
@@ -102,9 +116,12 @@ PulzivoAnalytics.sendBatch();`;
 
   @HostListener('document:mouseleave', ['$event'])
   onExitIntent(e: MouseEvent) {
-    if (this.exitIntentFired || e.clientY > 30) return;
-    if (this.authService.isAuthenticated()) return; // already logged in
+    if (!this.exitIntentReady || this.exitIntentFired || e.clientY > 30) return;
+    if (this.authService.isAuthenticated()) return;
+    if (localStorage.getItem('pulz_has_account') === '1') return; // existing user, has/had an account
+    if (this.hasShownExitIntentToday()) return; // already shown today
     this.exitIntentFired = true;
+    this.markExitIntentShownToday();
     this.dismissNudge();
     this.authService.requestOpenSignUp();
   }

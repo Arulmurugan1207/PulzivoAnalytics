@@ -266,6 +266,11 @@
   }
 }
 
+.success-banner {
+  border: 1px solid #86efac;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+
 // Table card
 .keys-table-card {
   background: #fff;
@@ -409,6 +414,30 @@
   min-height: 28px;
 }
 
+.env-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+
+  &.prod {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+    border-color: #86efac;
+  }
+
+  &.dev {
+    background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+    color: #9a3412;
+    border-color: #fdba74;
+  }
+}
+
 .domain-chip {
   font-size: 0.7rem;
   padding: 0.25rem 0.625rem;
@@ -539,6 +568,34 @@
   font-size: 0.75rem;
   margin-top: 0.25rem;
   display: block;
+
+  &.prod-hint {
+    color: #d97706;
+    font-weight: 600;
+
+    i {
+      margin-right: 0.25rem;
+      font-size: 0.7rem;
+    }
+  }
+}
+
+.create-env-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+
+  .env-note-label {
+    color: #475569;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
 }
 
 // Usage dialog

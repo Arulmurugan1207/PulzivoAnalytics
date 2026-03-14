@@ -78,8 +78,20 @@
 
   @if (!canCreateMoreKeys()) {
     <p-message severity="warn" styleClass="limit-warning">
-      You've reached your plan limit of {{ getPlanLimitDisplay() }} active API keys.
-      <a routerLink="/pricing">Upgrade your plan</a> for more.
+      You've reached the {{ userPlan.type }} plan limit of {{ getPlanLimitDisplay() }} active {{ selectedEnvironment }} key{{ getPlanLimitDisplay() !== '1' ? 's' : '' }}.
+      Archive an active key to free up a slot, or <a routerLink="/dashboard/plans">upgrade your plan</a> to unlock more.
+    </p-message>
+  }
+
+  @if (archiveErrorMsg) {
+    <p-message severity="error" styleClass="limit-warning">
+      {{ archiveErrorMsg }}
+    </p-message>
+  }
+
+  @if (createSuccessMsg) {
+    <p-message severity="success" styleClass="limit-warning success-banner">
+      {{ createSuccessMsg }}
     </p-message>
   }
 
@@ -99,6 +111,7 @@
           <th style="width: 180px">Name</th>
           <th style="width: 200px">API Key</th>
           <th style="width: 220px">Description</th>
+          <th style="width: 120px">Environment</th>
           <th style="width: 100px">Status</th>
           <th style="width: 180px">Domains</th>
           <th style="width: 150px; text-align: center">Actions</th>
@@ -121,6 +134,11 @@
           </td>
           <td class="key-desc">{{ key.description || '—' }}</td>
           <td>
+            <span class="env-badge" [class.prod]="(key.environment || selectedEnvironment) === 'production'" [class.dev]="(key.environment || selectedEnvironment) === 'development'">
+              {{ (key.environment || selectedEnvironment) === 'production' ? 'Production' : 'Development' }}
+            </span>
+          </td>
+          <td>
             <p-tag
               [value]="key.isActive !== false ? 'Active' : 'Archived'"
               [severity]="key.isActive !== false ? 'success' : 'secondary'"
@@ -138,13 +156,17 @@
           <td>
             <button pButton icon="pi pi-chart-bar" [text]="true" size="small" (click)="viewUsage(key.apiKey)" pTooltip="View usage"></button>
             <button pButton icon="pi pi-pencil" [text]="true" size="small" (click)="openEditDialog(key)" [disabled]="key.isActive === false" pTooltip="Edit"></button>
-            <button pButton icon="pi pi-trash" [text]="true" severity="danger" size="small" (click)="archiveApiKey(key.apiKey)" [disabled]="key.isActive === false" pTooltip="Archive"></button>
+            @if (key.isActive === false) {
+              <button pButton icon="pi pi-replay" [text]="true" severity="success" size="small" (click)="restoreKey(key.apiKey)" pTooltip="Restore" [disabled]="!canCreateMoreKeys()"></button>
+            } @else {
+              <button pButton icon="pi pi-trash" [text]="true" severity="danger" size="small" (click)="archiveApiKey(key.apiKey)" pTooltip="Archive"></button>
+            }
           </td>
         </tr>
       </ng-template>
       <ng-template #emptymessage>
         <tr>
-          <td colspan="6" class="empty-state">
+          <td colspan="7" class="empty-state">
             <div class="empty-state-content">
               <div class="empty-icon">
                 <i class="pi pi-key"></i>
@@ -181,6 +203,13 @@
     [closable]="true"
   >
     <form [formGroup]="createForm" (ngSubmit)="createApiKey()">
+      <div class="create-env-note">
+        <span class="env-note-label">Creating key in:</span>
+        <span class="env-badge" [class.prod]="selectedEnvironment === 'production'" [class.dev]="selectedEnvironment === 'development'">
+          {{ environmentLabel }}
+        </span>
+      </div>
+
       <div class="form-field">
         <label for="createName">Name *</label>
         <input pInputText id="createName" formControlName="name" placeholder="e.g. My Website" />
@@ -196,9 +225,19 @@
         <textarea pTextarea id="createDesc" formControlName="description" placeholder="Optional description" [rows]="3"></textarea>
       </div>
       <div class="form-field">
-        <label for="createDomains">Allowed Domains</label>
-        <input pInputText id="createDomains" formControlName="allowedDomains" placeholder="e.g. example.com, app.example.com" />
-        <small class="form-hint">Comma-separated. Leave empty to allow all domains.</small>
+        <label for="createDomains">{{ isProduction ? 'Domain *' : 'Allowed Domains' }}</label>
+        <input pInputText id="createDomains" formControlName="allowedDomains" [placeholder]="isProduction ? 'e.g. example.com' : 'e.g. localhost, 127.0.0.1 (optional)'" />
+        @if (isProduction) {
+          <small class="form-hint prod-hint"><i class="pi pi-shield"></i> One domain per production key. Create separate keys for each domain.</small>
+        } @else {
+          <small class="form-hint">Optional for Development. Comma-separated. Leave empty to allow all.</small>
+        }
+        @if (createForm.get('allowedDomains')?.touched && createForm.get('allowedDomains')?.hasError('required')) {
+          <small class="form-error">A domain is required for production keys</small>
+        }
+        @if (createForm.get('allowedDomains')?.touched && createForm.get('allowedDomains')?.hasError('singleDomain')) {
+          <small class="form-error">Only one domain allowed per production key</small>
+        }
       </div>
     </form>
     <ng-template #footer>

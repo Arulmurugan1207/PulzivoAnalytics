@@ -65,10 +65,10 @@ export class Pricing {
       price: 0,
       description: 'Perfect for side projects and getting started',
       apiKeyLimit: 1,
-      eventLimit: 5000,
+      eventLimit: 10000,
       features: [
         '1 Website',
-        '5,000 events/month',
+        '10,000 events/month',
         '7-day data retention',
         'Page view tracking',
         'Click tracking',

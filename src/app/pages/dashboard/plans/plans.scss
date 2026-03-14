@@ -439,6 +439,107 @@
   }
 }
 
+/* Coming Soon — Upgrade Intent Modal */
+::ng-deep .coming-soon-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 460px;
+  width: 100%;
+
+  .p-dialog-header {
+    padding: 0.75rem 1.25rem 0;
+    border-bottom: none;
+    background: #fff;
+  }
+
+  .p-dialog-content {
+    padding: 0 2rem 2rem;
+    background: #fff;
+  }
+}
+
+.cs-body {
+  text-align: center;
+
+  .cs-emoji {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .cs-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin: 0 0 0.75rem;
+  }
+
+  .cs-sub {
+    font-size: 0.925rem;
+    color: #4b5563;
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+  }
+
+  .cs-perks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+
+    .cs-perk {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.875rem;
+      color: #166534;
+      font-weight: 500;
+
+      i { color: #16a34a; flex-shrink: 0; }
+    }
+  }
+
+  .cs-dm-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+
+    .cs-dm-label {
+      font-size: 0.875rem;
+      color: #1e40af;
+      margin: 0 0 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      text-align: left;
+    }
+
+    .cs-dm-btn {
+      width: 100%;
+      background: #000;
+      border-color: #000;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 8px;
+
+      &:hover { background: #1a1a1a; border-color: #1a1a1a; }
+    }
+  }
+
+  .cs-note {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin: 0;
+  }
+}
+
 .dialog-content {
   display: flex;
   flex-direction: column;

@@ -30,7 +30,7 @@
 
   // Plan-based feature gating
   const PLAN_FEATURES = {
-    free: ['page_views', 'clicks'],
+    free: ['page_views', 'clicks', 'custom_events'],
     pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
     enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'tooltip_tracking', 'error_tracking', 'rage_clicks', 'web_vitals']
   };
@@ -464,6 +464,61 @@
         if (config.debug) console.error('[Analytics] Batch timer error:', error);
       });
     }, config.batchIntervalMs);
+  }
+
+  // Human-readable labels for each feature
+  const FEATURE_LABELS = {
+    page_views:      'Page Views',
+    clicks:          'Manual Click Tracking (data-click)',
+    auto_clicks:     'Auto Click Tracking (all buttons & links)',
+    scroll_depth:    'Scroll Depth',
+    page_exit:       'Page Exit Time',
+    visibility:      'Page Visibility Changes',
+    unique_visitors: 'Unique Visitors',
+    sessions:        'Session Tracking',
+    performance:     'Page Load Performance',
+    utm_attribution: 'UTM / Referrer Attribution',
+    user_identity:   'User Identity (identify())',
+    custom_events:   'Custom Events',
+    client_hints:    'Client Hints (Browser Details)',
+    form_tracking:   'Form Tracking',
+    tooltip_tracking:'Tooltip & Help Icon Tracking',
+    error_tracking:  'JavaScript Error Tracking',
+    rage_clicks:     'Rage Click Detection',
+    web_vitals:      'Core Web Vitals (LCP / FID / CLS)'
+  };
+
+  // Log a one-time summary of active tracking features to the browser console
+  function logTrackingCapabilities() {
+    const planColors = { free: '#6b7280', pro: '#7c3aed', enterprise: '#0ea5e9' };
+    const planColor = planColors[currentPlan] || '#6b7280';
+    const allFeatures = Object.keys(FEATURE_LABELS);
+    const active   = allFeatures.filter(f => planFeatures.includes(f));
+    const inactive = allFeatures.filter(f => !planFeatures.includes(f));
+
+    console.groupCollapsed(
+      `%c Pulzivo Analytics %c ${currentPlan.toUpperCase()} plan %c — ${active.length} features active`,
+      'background:#1a1a2e;color:#fff;padding:2px 6px;border-radius:3px 0 0 3px;font-weight:bold',
+      `background:${planColor};color:#fff;padding:2px 6px;border-radius:0 3px 3px 0;font-weight:bold`,
+      'color:#6b7280;font-weight:normal'
+    );
+
+    console.log('%cTracking ON', 'color:#16a34a;font-weight:bold');
+    active.forEach(f => console.log(`  ✓ ${FEATURE_LABELS[f] || f}`));
+
+    if (inactive.length) {
+      console.log('%cNot on this plan', 'color:#9ca3af;font-weight:bold');
+      inactive.forEach(f => console.log(`  ✗ ${FEATURE_LABELS[f] || f}`));
+    }
+
+    if (currentPlan !== 'enterprise') {
+      console.log(
+        `%cUpgrade at pulzivo.com/pricing to unlock more features.`,
+        'color:#7c3aed;font-style:italic'
+      );
+    }
+
+    console.groupEnd();
   }
 
   // Fetch plan from API based on API key
@@ -1196,6 +1251,7 @@
 
       // Fetch plan from API, then setup auto-tracking based on plan
       fetchPlanFromApi().then(() => {
+        logTrackingCapabilities();
         setupAutomaticTracking();
       });
     },
@@ -1251,7 +1307,7 @@
       // For custom events, check if plan allows it
       if (isCustomEvent && !hasFeature('custom_events')) {
         if (config.debug) {
-          console.warn('[Analytics] Custom event tracking requires Pro or Enterprise plan. Upgrade at Pulzivo.io/pricing');
+          console.warn('[Analytics] Custom event tracking is not available on your current plan. Upgrade at Pulzivo.io/pricing');
         }
         return;
       }
@@ -1459,7 +1515,7 @@
     // data-api-key -> apiKey (required - stop if not provided or empty)
     const apiKey = analyticsScript.getAttribute('data-api-key');
     if (!apiKey || apiKey.trim() === '') {
-      console.error('STK Analytics: data-api-key attribute is required and cannot be empty');
+      console.error('Pulzivo Analytics: data-api-key attribute is required and cannot be empty');
       return null; // Stop all initialization if API key not provided or empty
     }
     config.apiKey = apiKey;

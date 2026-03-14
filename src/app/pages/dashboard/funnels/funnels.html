@@ -2,16 +2,16 @@
 
 <div class="funnels-container">
 
-  <!-- Page gate for Free users -->
-  @if (!isPlanAtLeast('pro')) {
+  <!-- Page gate for non-Enterprise users -->
+  @if (!isPlanAtLeast('enterprise')) {
     <div class="plan-gate">
       <div class="gate-content">
-        <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+        <span class="plan-badge badge-enterprise"><i class="pi pi-building"></i> Enterprise Feature</span>
         <i class="pi pi-filter gate-icon"></i>
         <h2>Funnel Analysis</h2>
         <p>See exactly where users drop off between any steps — landing → sign up → purchase. Identify leaks and fix them to grow conversions.</p>
         <a routerLink="/dashboard/plans" class="upgrade-btn">
-          Upgrade to Pro <i class="pi pi-arrow-right"></i>
+          Upgrade to Enterprise <i class="pi pi-arrow-right"></i>
         </a>
         <ul class="gate-features">
           <li><i class="pi pi-check"></i> Build unlimited funnels</li>

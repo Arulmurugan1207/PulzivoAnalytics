@@ -40,6 +40,8 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   activeSection = signal('getting-started');
   private observer?: IntersectionObserver;
   private highlighted = false;
+  private readonly startTime = Date.now();
+  private viewedSections = new Set<string>();
 
   constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute) {
     this.meta.updateTag({ name: 'description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more — the pulse of modern product analytics.' });
@@ -116,7 +118,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Can I track custom events?',
-      answer: 'Yes! Custom event tracking is available on Pro and Enterprise plans. Use PulzivoAnalytics() or PulzivoAnalytics.trackEvent() to track any custom event.'
+      answer: 'Yes! Custom event tracking is available on all plans including Free. Use PulzivoAnalytics(\'event\', \'name\', data) to track any action in your app.'
     },
     {
       question: 'How do I view my data?',
@@ -128,7 +130,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     { id: 'getting-started', label: 'Getting Started', icon: 'pi-play', plan: 'free' },
     { id: 'configuration', label: 'Configuration', icon: 'pi-cog', plan: 'free' },
     { id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'pro' },
-    { id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'pro' },
+    { id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'free' },
     { id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro' },
     { id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'pro' },
     { id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free' },
@@ -157,6 +159,32 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
 
   codeBlocks: { [key: string]: string } = {
     'script-tag': `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
+    'dynamic-key-setup': `<script>
+  // Auto-selects dev or production key based on hostname
+  (function () {
+    var isDev = location.hostname === 'localhost'
+             || location.hostname === '127.0.0.1'
+             || location.hostname.includes('staging');
+
+    var s = document.createElement('script');
+    s.src = 'https://pulzivo.com/pulzivo-analytics.min.js';
+
+    s.setAttribute('data-api-key', isDev
+      ? 'PULZ-DEV-YOUR_DEV_KEY'        // ← paste your dev key here
+      : 'PULZ-YOUR_PROD_KEY');         // ← paste your prod key here
+
+    if (isDev) s.setAttribute('data-debug', 'true');
+    // ↑ Debug mode: events logged to console, NOT sent to server.
+    // Once you've verified tracking works, remove this line
+    // so live events appear in your Pulzivo dashboard.
+
+    document.head.appendChild(s);
+  })();
+</script>`,
+    'debug-mode': `<!-- Enable debug mode — events visible in console, NOT sent to server -->
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="PULZ-DEV-YOUR_DEV_KEY"
+        data-debug="true"></script>`,
     'complete-html': `<!DOCTYPE html>
 <html>
 <head>
@@ -196,11 +224,11 @@ document.querySelector('#myButton').addEventListener('click', () => {
   video_id: 'intro-tutorial',
   duration: 120
 })`,
-    'stk-api-simple': `// Simple PulzivoAnalytics() API (recommended)
+    'pulz-api-simple': `// Simple PulzivoAnalytics() API (recommended)
 PulzivoAnalytics('event', 'button_clicked', { button_id: 'signup' });
 PulzivoAnalytics('event', 'video_play', { video_id: 'intro' });
 PulzivoAnalytics('event', 'download', { file: 'whitepaper.pdf' });`,
-    'stk-api-identify': `// User identification
+    'pulz-api-identify': `// User identification
 PulzivoAnalytics('identify', 'user@example.com');
 
 // Track page view
@@ -371,6 +399,32 @@ PulzivoAnalytics('event', 'impression_click', {
     }
   }
 
+  trackNavClick(sectionId: string) {
+    this.scrollToSection(sectionId);
+    try {
+      if (typeof PulzivoAnalytics !== 'undefined') {
+        PulzivoAnalytics('event', 'docs_nav_clicked', { section: sectionId });
+      }
+    } catch (_) {}
+  }
+
+  trackFaqOpen(question: string) {
+    try {
+      if (typeof PulzivoAnalytics !== 'undefined') {
+        PulzivoAnalytics('event', 'docs_faq_opened', { question });
+      }
+    } catch (_) {}
+  }
+
+  trackDebugGuideClick() {
+    this.scrollToSection('debugging');
+    try {
+      if (typeof PulzivoAnalytics !== 'undefined') {
+        PulzivoAnalytics('event', 'docs_debug_guide_clicked', {});
+      }
+    } catch (_) {}
+  }
+
   ngOnInit() {
     this.setupScrollObserver();
     // Scroll to fragment from URL (e.g. /docs?utm_...#custom-events)
@@ -395,6 +449,12 @@ PulzivoAnalytics('event', 'impression_click', {
     if (this.observer) {
       this.observer.disconnect();
     }
+    try {
+      if (typeof PulzivoAnalytics !== 'undefined') {
+        const seconds = Math.round((Date.now() - this.startTime) / 1000);
+        PulzivoAnalytics('event', 'docs_time_spent', { seconds, last_section: this.activeSection() });
+      }
+    } catch (_) {}
   }
 
   private setupScrollObserver() {
@@ -410,6 +470,14 @@ PulzivoAnalytics('event', 'impression_click', {
           const sectionId = entry.target.id;
           if (sectionId) {
             this.activeSection.set(sectionId);
+            if (!this.viewedSections.has(sectionId)) {
+              this.viewedSections.add(sectionId);
+              try {
+                if (typeof PulzivoAnalytics !== 'undefined') {
+                  PulzivoAnalytics('event', 'docs_section_viewed', { section: sectionId });
+                }
+              } catch (_) {}
+            }
           }
         }
       });
