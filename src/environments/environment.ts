@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
   apiUrl: 'https://analytics-dot-node-server-apis.ue.r.appspot.com',
-  siteApiKey: 'PULZ-1A6S9'
+  siteApiKey: 'PULZ-PRD-C0XUTWK838ZHRFEA8VOC1YVR'
 };
