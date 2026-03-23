@@ -48,6 +48,9 @@ export class AuthService {
   readonly openSignUp$ = new Subject<void>();
   requestOpenSignUp() { this.openSignUp$.next(); }
 
+  readonly openSignIn$ = new Subject<void>();
+  requestOpenSignIn() { this.openSignIn$.next(); }
+
   readonly signUpDismissed$ = new Subject<void>();
   notifySignUpDismissed() { this.signUpDismissed$.next(); }
 

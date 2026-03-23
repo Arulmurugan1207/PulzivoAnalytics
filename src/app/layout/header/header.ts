@@ -75,6 +75,9 @@ export class Header implements OnInit, OnDestroy {
     this.authService.openSignUp$.pipe(takeUntil(this.destroy$)).subscribe(() => {
       if (!this.isLoggedIn) this.openSignUp();
     });
+    this.authService.openSignIn$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      if (!this.isLoggedIn) this.openSignIn();
+    });
   }
 
   private normalizePath(url: string): string {

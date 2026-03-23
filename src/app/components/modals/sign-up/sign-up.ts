@@ -41,6 +41,7 @@ export class SignUp {
   visible = false;
   loading = false;
   errorMessage = '';
+  private formInteracted = false;
 
   form: FormGroup = this.fb.group({
     firstname:       ['', [Validators.required, Validators.minLength(2)]],
@@ -80,6 +81,7 @@ export class SignUp {
 
   show() {
     this.visible = true;
+    this.formInteracted = false;
     this.form.reset({ firstname: '', lastname: '', email: '', password: '', confirmPassword: '', acceptTerms: false });
     this.errorMessage = '';
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
@@ -88,13 +90,31 @@ export class SignUp {
   }
 
   hide() {
+    if (this.visible && this.formInteracted && !this.loading) {
+      if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+        (window as any).PulzivoAnalytics('event', 'signup_abandoned', {
+          fields_filled: Object.keys(this.form.controls).filter(k => {
+            const v = this.form.get(k)?.value;
+            return v && v !== false;
+          }).length
+        });
+      }
+    }
     this.visible = false;
     this.close.emit();
   }
 
   onSignUp() {
+    this.formInteracted = true;
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+        (window as any).PulzivoAnalytics('event', 'signup_validation_failed', {
+          missing_fields: this.missingFields
+        });
+      }
+      return;
+    }
 
     const { firstname, lastname, email, password } = this.form.value;
 

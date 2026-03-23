@@ -1,4 +1,4 @@
-﻿import { Component, signal, AfterViewChecked, OnInit, OnDestroy, HostListener } from '@angular/core';
+﻿import { Component, signal, AfterViewChecked, OnInit, OnDestroy, HostListener, NgZone } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -52,6 +52,7 @@ PulzivoAnalytics.sendBatch();`;
   private nudgeAutoHide: ReturnType<typeof setTimeout> | null = null;
   private exitIntentFired = false;
   private exitIntentReady = false;
+  private scrollMilestonesHit = new Set<number>();
 
   private hasShownExitIntentToday(): boolean {
     const last = localStorage.getItem('pulz_exit_intent_date');
@@ -63,7 +64,7 @@ PulzivoAnalytics.sendBatch();`;
     localStorage.setItem('pulz_exit_intent_date', new Date().toISOString().slice(0, 10));
   }
 
-  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService) {
+  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone) {
     this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, cookieless, no banners required.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'og:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
@@ -95,6 +96,14 @@ PulzivoAnalytics.sendBatch();`;
     // Grace period: don't fire exit intent until 3s after page load.
     // Prevents the modal popping up immediately when navigating here after logout.
     setTimeout(() => { this.exitIntentReady = true; }, 3000);
+
+    // Return visit tracking
+    const visitKey = 'pulzivo_home_visits';
+    const visitCount = parseInt(localStorage.getItem(visitKey) || '0', 10) + 1;
+    localStorage.setItem(visitKey, String(visitCount));
+    if (visitCount > 1 && typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'return_visit', { page: 'home', visit_count: visitCount });
+    }
     this.authService.signUpDismissed$.subscribe(() => {
       this.nudgeTimer = setTimeout(() => {
         this.showNudgeBar.set(true);
@@ -117,6 +126,23 @@ PulzivoAnalytics.sendBatch();`;
     if (this.nudgeAutoHide) clearTimeout(this.nudgeAutoHide);
     if (typeof PulzivoAnalytics !== 'undefined') {
       PulzivoAnalytics('event', 'nudge_bar_dismissed', { page: 'home' });
+    }
+  }
+
+  @HostListener('window:scroll')
+  onScroll() {
+    const scrolled = window.scrollY + window.innerHeight;
+    const total = document.documentElement.scrollHeight;
+    const pct = Math.round((scrolled / total) * 100);
+    for (const milestone of [25, 50, 75, 100]) {
+      if (pct >= milestone && !this.scrollMilestonesHit.has(milestone)) {
+        this.scrollMilestonesHit.add(milestone);
+        this.ngZone.runOutsideAngular(() => {
+          if (typeof PulzivoAnalytics !== 'undefined') {
+            PulzivoAnalytics('event', 'scroll_depth', { page: 'home', depth: milestone });
+          }
+        });
+      }
     }
   }
 

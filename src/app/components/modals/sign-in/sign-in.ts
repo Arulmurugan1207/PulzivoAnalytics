@@ -34,6 +34,7 @@ export class SignIn implements OnInit {
   visible = false;
   loginForm!: FormGroup;
   loading = false;
+  private formInteracted = false;
 
   constructor(private fb: FormBuilder, private authService: AuthService, private messageService: MessageService) {}
 
@@ -61,11 +62,19 @@ export class SignIn implements OnInit {
   }
 
   hide() {
+    if (this.visible && this.formInteracted && !this.loading) {
+      if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+        (window as any).PulzivoAnalytics('event', 'signin_abandoned', {
+          had_email: !!(this.loginForm.get('email')?.value)
+        });
+      }
+    }
     this.visible = false;
     this.close.emit();
   }
 
   onSubmit() {
+    this.formInteracted = true;
     if (this.loginForm.valid) {
       this.loading = true;
 

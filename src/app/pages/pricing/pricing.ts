@@ -1,7 +1,7 @@
-﻿import { Component } from '@angular/core';
+﻿import { Component, HostListener, NgZone, OnDestroy } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -26,7 +26,28 @@ interface Plan {
   templateUrl: './pricing.html',
   styleUrl: './pricing.scss',
 })
-export class Pricing {
+export class Pricing implements OnDestroy {
+  private scrollMilestonesHit = new Set<number>();
+
+  @HostListener('window:scroll')
+  onScroll() {
+    const scrolled = window.scrollY + window.innerHeight;
+    const total = document.documentElement.scrollHeight;
+    const pct = Math.round((scrolled / total) * 100);
+    for (const milestone of [25, 50, 75, 100]) {
+      if (pct >= milestone && !this.scrollMilestonesHit.has(milestone)) {
+        this.scrollMilestonesHit.add(milestone);
+        this.ngZone.runOutsideAngular(() => {
+          if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+            (window as any).PulzivoAnalytics('event', 'scroll_depth', { page: 'pricing', depth: milestone });
+          }
+        });
+      }
+    }
+  }
+
+  ngOnDestroy() {}
+
   currentPlan: Plan = {
     type: 'free',
     name: 'Free',
@@ -37,7 +58,7 @@ export class Pricing {
     features: []
   };
 
-  constructor(private authService: AuthService, private meta: Meta, private titleService: Title) {
+  constructor(private authService: AuthService, private meta: Meta, private titleService: Title, private router: Router, private ngZone: NgZone) {
     this.meta.updateTag({ name: 'description', content: 'Simple, transparent pricing for Pulzivo Analytics — The Pulse of Modern Product Analytics. Start free, upgrade as you grow. No hidden fees.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/pricing' });
       this.meta.updateTag({ property: 'og:title', content: 'Pricing | Pulzivo Analytics' });
@@ -45,6 +66,15 @@ export class Pricing {
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/pricing' });
       this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
+
+    // Load actual plan from stored user data
+    if (this.authService.isAuthenticated()) {
+      const userData = this.authService.getUserData();
+      if (userData?.plan) {
+        const matched = this.plans.find(p => p.type === userData.plan);
+        if (matched) this.currentPlan = matched;
+      }
+    }
 
     // Funnel: user reached pricing page (strong purchase intent signal)
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
@@ -166,6 +196,11 @@ export class Pricing {
   }
 
   selectPlan(plan: Plan): void {
+    if (!this.authService.isAuthenticated()) {
+      this.authService.requestOpenSignIn();
+      return;
+    }
+
     // Track which plan the user clicked — key intent signal
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
       (window as any).PulzivoAnalytics('event', 'plan_selected', {
@@ -174,8 +209,8 @@ export class Pricing {
         is_upgrade: plan.price > this.currentPlan.price
       });
     }
-    console.log('Selected plan:', plan);
-    // Handle plan selection logic here
+
+    this.router.navigate(['/dashboard/plans']);
   }
 
   getSavingsText(plan: Plan): string {

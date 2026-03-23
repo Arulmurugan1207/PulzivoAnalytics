@@ -502,7 +502,19 @@ export class DashboardOverview implements OnInit, OnDestroy {
     // Load metrics
     this.subscriptions.add(
       this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe(data => {
-        if (data && Object.keys(data).length > 0) { this.metrics = data; }
+        if (data && Object.keys(data).length > 0) {
+          this.metrics = data;
+          // Fire once when the first real event is detected (activation milestone)
+          const firstEventKey = 'pulzivo_first_event_tracked';
+          if (!localStorage.getItem(firstEventKey) && (data.totalPageViews || 0) > 0) {
+            localStorage.setItem(firstEventKey, '1');
+            if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+              (window as any).PulzivoAnalytics('event', 'first_event_tracked', {
+                total_page_views: data.totalPageViews,
+              });
+            }
+          }
+        }
         this.cdr.markForCheck();
       })
     );
