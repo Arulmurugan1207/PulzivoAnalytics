@@ -51,6 +51,9 @@ export class AuthService {
   readonly signUpDismissed$ = new Subject<void>();
   notifySignUpDismissed() { this.signUpDismissed$.next(); }
 
+  /** Emits whenever user data (e.g. plan) is updated in localStorage */
+  readonly userUpdated$ = new Subject<any>();
+
   constructor(
     private http: HttpClient,
     private router: Router
@@ -244,6 +247,7 @@ export class AuthService {
         const parsed = JSON.parse(storedData);
         parsed.user = { ...parsed.user, ...userData };
         localStorage.setItem('userData', JSON.stringify(parsed));
+        this.userUpdated$.next(parsed.user);
       }
     } catch (error) {
       console.error('Error updating user data:', error);

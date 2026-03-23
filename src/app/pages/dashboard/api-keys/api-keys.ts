@@ -79,6 +79,7 @@ export class DashboardApiKeys implements OnInit {
   // Must match canonical plan names in backend planPolicy.js (free | pro | enterprise)
   planUsageLimits: Record<string, { daily: number | null; monthly: number | null }> = {
     'free':       { daily: 1000,  monthly: 10000  },
+    'starter':    { daily: 10000, monthly: 100000 },
     'pro':        { daily: 50000, monthly: 500000 },
     'enterprise': { daily: null,  monthly: null   },
   };
@@ -117,7 +118,7 @@ export class DashboardApiKeys implements OnInit {
     const user = this.authService.getUserData();
     const isOwner = user?.email === APP_OWNER_EMAIL || user?.role === 'owner';
     const plan = isOwner ? 'enterprise' : (user?.plan || 'free');
-    const planLimits: Record<string, number | 'unlimited'> = { free: 1, pro: 5, enterprise: 'unlimited' };
+    const planLimits: Record<string, number | 'unlimited'> = { free: 1, starter: 2, pro: 5, enterprise: 'unlimited' };
     this.userPlan = { type: plan, apiKeyLimit: planLimits[plan] ?? 1, price: 0 };
 
     this.loadApiKeys();

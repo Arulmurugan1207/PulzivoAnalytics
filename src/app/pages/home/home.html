@@ -9,8 +9,8 @@
     <p class="description fade-in" style="animation-delay: 0.25s">Zero configuration &bull; 5KB bundle &bull; Auto-tracking &bull; Privacy-first &bull; Free forever tier</p>
 
     <div class="hero-actions slide-up" style="animation-delay: 0.35s">
-      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" (click)="openSignUp()" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/demo" class="pulse-on-hover"></button>
+      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" (click)="openSignUp('hero')" class="pulse-on-hover glow-button"></button>
+      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/demo" (click)="trackDemoClick()" class="pulse-on-hover"></button>
     </div>
     <p class="no-card-note fade-in" style="animation-delay: 0.45s">
       <i class="pi pi-shield"></i> No credit card required &nbsp;&middot;&nbsp; Free forever tier &nbsp;&middot;&nbsp; Cancel anytime
@@ -42,17 +42,59 @@
   </div>
 </section>
 
-<!-- Trusted by -->
-<section class="trusted-section">
+<!-- Dashboard preview -->
+<section class="preview-section">
   <div class="container">
-    <p class="trusted-label">Trusted by websites using Pulzivo</p>
-    <div class="trusted-logos">
-      <a href="https://freshechodaily.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
-        freshechodaily.com
-      </a>
-      <a href="https://tabletennistube.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
-        tabletennistube.com
-      </a>
+    <p class="preview-label">Your dashboard — ready in 60 seconds</p>
+    <div class="browser-window zoom-in">
+      <div class="browser-chrome">
+        <div class="browser-dots"><span></span><span></span><span></span></div>
+        <div class="browser-url">pulzivo.com/dashboard</div>
+        <span class="browser-live-badge"><span class="stat-live-dot"></span> Live</span>
+      </div>
+      <div class="dashboard-preview">
+        <div class="preview-stats">
+          <div class="preview-stat">
+            <div class="ps-label">Page Views</div>
+            <div class="ps-value">24,391</div>
+            <div class="ps-delta up">↑ 12% this week</div>
+          </div>
+          <div class="preview-stat">
+            <div class="ps-label">Sessions</div>
+            <div class="ps-value">8,204</div>
+            <div class="ps-delta up">↑ 8% this week</div>
+          </div>
+          <div class="preview-stat">
+            <div class="ps-label">Bounce Rate</div>
+            <div class="ps-value">34%</div>
+            <div class="ps-delta good">↓ 3% this week</div>
+          </div>
+          <div class="preview-stat">
+            <div class="ps-label">Avg. Session</div>
+            <div class="ps-value">2m 41s</div>
+            <div class="ps-delta up">↑ 5% this week</div>
+          </div>
+        </div>
+        <div class="preview-chart">
+          <div class="chart-label">Page views — last 7 days</div>
+          <div class="chart-bars">
+            <div class="chart-bar" style="--h: 45%"><span>Mon</span></div>
+            <div class="chart-bar" style="--h: 62%"><span>Tue</span></div>
+            <div class="chart-bar" style="--h: 58%"><span>Wed</span></div>
+            <div class="chart-bar" style="--h: 75%"><span>Thu</span></div>
+            <div class="chart-bar" style="--h: 83%"><span>Fri</span></div>
+            <div class="chart-bar" style="--h: 51%"><span>Sat</span></div>
+            <div class="chart-bar" style="--h: 69%"><span>Sun</span></div>
+          </div>
+        </div>
+        <div class="preview-pages">
+          <div class="pp-row header"><span>Top Pages</span><span>Views</span></div>
+          <div class="pp-row"><span>/home</span><span>9,214</span></div>
+          <div class="pp-row"><span>/pricing</span><span>4,381</span></div>
+          <div class="pp-row"><span>/docs</span><span>2,918</span></div>
+          <div class="pp-row"><span>/features</span><span>1,640</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -67,21 +109,17 @@
     <div class="install-steps">
       <div class="step-card zoom-in" style="animation-delay: 0.1s">
         <div class="step-badge">1</div>
-        <i class="pi pi-copy step-icon-pi"></i>
         <h3>Copy the script</h3>
-        <p>Grab your unique snippet. No account needed to try.</p>
       </div>
+      <div class="step-arrow">→</div>
       <div class="step-card zoom-in" style="animation-delay: 0.2s">
         <div class="step-badge">2</div>
-        <i class="pi pi-code step-icon-pi"></i>
         <h3>Paste in your HTML</h3>
-        <p>Drop it in the <code>&lt;head&gt;</code> — that's it.</p>
       </div>
+      <div class="step-arrow">→</div>
       <div class="step-card zoom-in" style="animation-delay: 0.3s">
         <div class="step-badge">3</div>
-        <i class="pi pi-chart-line step-icon-pi"></i>
         <h3>Data flows in</h3>
-        <p>Page views, clicks, and sessions tracked automatically.</p>
       </div>
     </div>
 
@@ -213,6 +251,21 @@
   </div>
 </section>
 
+<!-- Trusted by -->
+<section class="trusted-section">
+  <div class="container">
+    <p class="trusted-label">Trusted by websites using Pulzivo</p>
+    <div class="trusted-logos">
+      <a href="https://freshechodaily.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
+        freshechodaily.com
+      </a>
+      <a href="https://tabletennistube.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
+        tabletennistube.com
+      </a>
+    </div>
+  </div>
+</section>
+
 <section class="cta-section"
          data-track-impression="home_cta"
          data-impression-name="Home CTA"
@@ -233,7 +286,7 @@
   <div class="nudge-bar" role="status" aria-live="polite">
     <span class="nudge-icon">🎉</span>
     <span class="nudge-text">Still thinking? <strong>Pulzivo is free forever</strong> — no credit card, ever.</span>
-    <button class="nudge-cta" (click)="openSignUp()">Sign Up Free →</button>
+    <button class="nudge-cta" (click)="openSignUp('nudge_bar')">Sign Up Free →</button>
     <button class="nudge-dismiss" (click)="dismissNudge()" aria-label="Dismiss">✕</button>
   </div>
 }

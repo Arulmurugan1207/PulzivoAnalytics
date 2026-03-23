@@ -15,28 +15,41 @@
   </ng-template>
 
   <div class="sign-up-content">
-    <form [formGroup]="form" (ngSubmit)="onSignUp()">
+    <form id="sign-up-form" [formGroup]="form" (ngSubmit)="onSignUp()">
 
       @if (errorMessage) {
         <div class="form-error-banner">{{ errorMessage }}</div>
       }
 
-      <div class="input-group">
-        <label for="name">Full Name</label>
-        <input 
-          pInputText 
-          id="name" 
-          formControlName="name"
-          type="text" 
-          placeholder="John Doe"
-          [ngClass]="{'ng-invalid ng-dirty': f['name'].touched && f['name'].invalid}"
-          class="w-full" />
-        @if (f['name'].touched && f['name'].hasError('required')) {
-          <small class="field-error">Full name is required.</small>
-        }
-        @if (f['name'].touched && f['name'].hasError('minlength')) {
-          <small class="field-error">Name must be at least 2 characters.</small>
-        }
+      <div class="name-row">
+        <div class="input-group">
+          <label for="firstname">First Name</label>
+          <input 
+            pInputText 
+            id="firstname" 
+            formControlName="firstname"
+            type="text" 
+            placeholder="John"
+            [ngClass]="{'ng-invalid ng-dirty': f['firstname'].touched && f['firstname'].invalid}"
+            class="w-full" />
+          @if (f['firstname'].touched && f['firstname'].hasError('required')) {
+            <small class="field-error">First name is required.</small>
+          }
+        </div>
+        <div class="input-group">
+          <label for="lastname">Last Name</label>
+          <input 
+            pInputText 
+            id="lastname" 
+            formControlName="lastname"
+            type="text" 
+            placeholder="Doe"
+            [ngClass]="{'ng-invalid ng-dirty': f['lastname'].touched && f['lastname'].invalid}"
+            class="w-full" />
+          @if (f['lastname'].touched && f['lastname'].hasError('required')) {
+            <small class="field-error">Last name is required.</small>
+          }
+        </div>
       </div>
 
       <div class="input-group">

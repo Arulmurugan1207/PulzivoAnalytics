@@ -298,6 +298,35 @@ $sidebar-collapsed: 64px;
         color: #6b7280;
       }
     }
+
+    .plan-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.5625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-left: 0.125rem;
+
+      &.plan-badge-free {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+      }
+
+      &.plan-badge-pro {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #ffffff;
+        border: none;
+      }
+
+      &.plan-badge-enterprise {
+        background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+        color: #ffffff;
+        border: none;
+      }
+    }
   }
 
   .date-text {

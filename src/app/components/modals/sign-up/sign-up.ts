@@ -43,7 +43,8 @@ export class SignUp {
   errorMessage = '';
 
   form: FormGroup = this.fb.group({
-    name:            ['', [Validators.required, Validators.minLength(2)]],
+    firstname:       ['', [Validators.required, Validators.minLength(2)]],
+    lastname:        ['', [Validators.required, Validators.minLength(2)]],
     email:           ['', [Validators.required, Validators.email]],
     password:        ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', Validators.required],
@@ -59,7 +60,8 @@ export class SignUp {
 
   get missingFields(): string[] {
     const labels: Record<string, string> = {
-      name: 'Full name',
+      firstname: 'First name',
+      lastname: 'Last name',
       email: 'Email',
       password: 'Password (min 8 chars)',
       confirmPassword: 'Confirm password',
@@ -78,7 +80,7 @@ export class SignUp {
 
   show() {
     this.visible = true;
-    this.form.reset({ name: '', email: '', password: '', confirmPassword: '', acceptTerms: false });
+    this.form.reset({ firstname: '', lastname: '', email: '', password: '', confirmPassword: '', acceptTerms: false });
     this.errorMessage = '';
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
       (window as any).PulzivoAnalytics('event', 'signup_started', { source: 'modal' });
@@ -94,20 +96,17 @@ export class SignUp {
     this.form.markAllAsTouched();
     if (this.form.invalid) return;
 
-    const { name, email, password } = this.form.value;
-    const nameParts = name.trim().split(/\s+/);
-    const firstname = nameParts[0];
-    const lastname = nameParts.slice(1).join(' ') || nameParts[0];
+    const { firstname, lastname, email, password } = this.form.value;
 
     this.loading = true;
     this.errorMessage = '';
 
-    this.authService.signup({ firstname, lastname, email, mobileno: '', password }).subscribe({
+    this.authService.signup({ firstname: firstname.trim(), lastname: lastname.trim(), email, mobileno: '', password }).subscribe({
       next: (response) => {
         if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
           (window as any).PulzivoAnalytics('event', 'signup_completed', {
             method: 'email',
-            has_name: !!name
+            has_name: !!(firstname && lastname)
           });
         }
         this.loading = false;

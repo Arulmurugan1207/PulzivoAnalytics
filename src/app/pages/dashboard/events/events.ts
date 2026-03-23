@@ -286,8 +286,8 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.loadApiKeys();
   }
 
-  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
-    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+  isPlanAtLeast(plan: 'free' | 'starter' | 'pro' | 'enterprise'): boolean {
+    const order: Record<string, number> = { free: 0, starter: 1, pro: 2, enterprise: 3 };
     return (order[this.userPlan] ?? 0) >= order[plan];
   }
 

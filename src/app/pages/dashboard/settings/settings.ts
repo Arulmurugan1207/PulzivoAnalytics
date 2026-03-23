@@ -25,6 +25,7 @@ import { environment } from '../../../../environments/environment';
 // Plan feature access map matching the analytics SDK
 const PLAN_FEATURES: Record<string, string[]> = {
   free: ['page_views', 'clicks', 'custom_events'],
+  starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
   pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
   enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
 };
@@ -310,7 +311,7 @@ export class DashboardSettings implements OnInit {
   }
 
   get proFeatures(): string[] {
-    return PLAN_FEATURES['pro'].filter(f => !PLAN_FEATURES['free'].includes(f));
+    return PLAN_FEATURES['pro'].filter(f => !PLAN_FEATURES['starter'].includes(f));
   }
 
   get enterpriseOnlyFeatures(): string[] {
@@ -319,6 +320,7 @@ export class DashboardSettings implements OnInit {
 
   getFeatureMinPlan(feature: string): string {
     if (PLAN_FEATURES['free'].includes(feature)) return 'free';
+    if (PLAN_FEATURES['starter'].includes(feature)) return 'starter';
     if (PLAN_FEATURES['pro'].includes(feature)) return 'pro';
     return 'enterprise';
   }

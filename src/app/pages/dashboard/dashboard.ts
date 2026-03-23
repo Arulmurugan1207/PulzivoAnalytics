@@ -102,6 +102,12 @@ export class Dashboard implements OnInit {
       this.currentRoute = this.router.url;
     });
 
+    // Refresh plan when billing updates it (e.g. after Stripe upgrade)
+    this.authService.userUpdated$.subscribe(updatedUser => {
+      this.user = updatedUser;
+      this.userPlan = (updatedUser?.plan as any) || 'free';
+    });
+
     // Default date range: last 7 days
     this.dateRangeSubject.next({
       startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
@@ -177,7 +183,7 @@ export class Dashboard implements OnInit {
   }
 
   canAccessReports(): boolean {
-    return this.userRole !== 'viewer';
+    return this.userRole !== 'viewer' || this.isPlanAtLeast('pro');
   }
 
   canAccessFunnels(): boolean {
@@ -203,11 +209,11 @@ export class Dashboard implements OnInit {
   }
 
   canAccessBilling(): boolean {
-    return this.userRole === 'owner' || this.userRole === 'admin' || this.userRole === 'analyst';
+    return true; // All users can access billing to view plan and upgrade
   }
 
-  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
-    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+  isPlanAtLeast(plan: 'free' | 'starter' | 'pro' | 'enterprise'): boolean {
+    const order: Record<string, number> = { free: 0, starter: 1, pro: 2, enterprise: 3 };
     return (order[this.userPlan] ?? 0) >= (order[plan] ?? 0);
   }
 

@@ -99,6 +99,9 @@ PulzivoAnalytics.sendBatch();`;
       this.nudgeTimer = setTimeout(() => {
         this.showNudgeBar.set(true);
         this.nudgeAutoHide = setTimeout(() => this.showNudgeBar.set(false), 45_000);
+        if (typeof PulzivoAnalytics !== 'undefined') {
+          PulzivoAnalytics('event', 'nudge_bar_shown', { page: 'home' });
+        }
       }, 3_000);
     });
   }
@@ -112,6 +115,9 @@ PulzivoAnalytics.sendBatch();`;
   dismissNudge() {
     this.showNudgeBar.set(false);
     if (this.nudgeAutoHide) clearTimeout(this.nudgeAutoHide);
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'nudge_bar_dismissed', { page: 'home' });
+    }
   }
 
   @HostListener('document:mouseleave', ['$event'])
@@ -123,6 +129,9 @@ PulzivoAnalytics.sendBatch();`;
     this.exitIntentFired = true;
     this.markExitIntentShownToday();
     this.dismissNudge();
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'exit_intent', { page: 'home' });
+    }
     this.authService.requestOpenSignUp();
   }
 
@@ -138,13 +147,25 @@ PulzivoAnalytics.sendBatch();`;
     return n.toLocaleString();
   }
 
-  openSignUp() {
+  openSignUp(source: string = 'unknown') {
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'signup_cta_clicked', { page: 'home', source });
+    }
     this.authService.requestOpenSignUp();
+  }
+
+  trackDemoClick() {
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'demo_clicked', { page: 'home', source: 'hero' });
+    }
   }
 
   setTab(tab: 'html' | 'js') {
     this.activeTab.set(tab);
     this.highlighted = false; // re-highlight on tab change
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', 'code_tab_switched', { page: 'home', tab });
+    }
   }
 
   ngAfterViewChecked() {

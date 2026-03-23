@@ -37,6 +37,8 @@ import { DemoService } from '../../../services/demo.service';
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
   free: ['page_views', 'clicks', 'custom_events'],
+  starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
+            'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
   pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
         'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
   enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
@@ -357,6 +359,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     // Get available features for the plan
     const PLAN_FEATURES: Record<string, string[]> = {
       free: ['page_views', 'clicks', 'custom_events'],
+      starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
       pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
       enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
     };
@@ -1463,10 +1466,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return (PLAN_FEATURES[this.userPlan] || []).includes(feature);
   }
 
-  isPlanAtLeast(plan: 'free' | 'pro' | 'enterprise'): boolean {
+  isPlanAtLeast(plan: 'free' | 'starter' | 'pro' | 'enterprise'): boolean {
     const user = this.authService.getUserData();
     if (user?.role === 'owner') return true;
-    const order: Record<string, number> = { free: 0, pro: 1, enterprise: 2 };
+    const order: Record<string, number> = { free: 0, starter: 1, pro: 2, enterprise: 3 };
     return (order[this.userPlan] ?? 0) >= order[plan];
   }
 

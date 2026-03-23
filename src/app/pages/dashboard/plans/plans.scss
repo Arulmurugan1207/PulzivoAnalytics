@@ -104,6 +104,14 @@
   width: fit-content;
   margin: 0 auto;
 
+  .cad-note {
+    font-size: 0.72rem;
+    color: var(--text-color-secondary);
+    border-left: 1px solid var(--surface-border);
+    padding-left: 1rem;
+    margin-left: 0.25rem;
+    opacity: 0.7;
+  }
   .toggle-label {
     font-size: 0.95rem;
     color: var(--text-color-secondary);
@@ -161,8 +169,8 @@
 /* Plans Grid */
 .plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
   margin-bottom: 3rem;
 }
 
@@ -333,11 +341,33 @@
     flex: 1;
     margin-bottom: 1.5rem;
 
+    // Desktop: always open, hide toggle marker
+    &[open],
+    & {
+      > .features-list,
+      > .feature-row {
+        display: block;
+      }
+    }
+
+    &::marker,
+    &::-webkit-details-marker {
+      display: none;
+    }
+
     .features-title {
       font-size: 0.9rem;
       font-weight: 600;
       color: var(--text-color);
       margin: 0 0 0.75rem 0;
+      list-style: none;
+      cursor: default;
+      pointer-events: none;
+
+      &::marker,
+      &::-webkit-details-marker {
+        display: none;
+      }
     }
 
     .features-list {
@@ -689,6 +719,129 @@
 }
 
 /* Responsive Design */
+// ── Compare Table ──
+.compare-toggle-wrap {
+  text-align: center;
+  margin: 2rem 0 1.5rem;
+
+  .compare-toggle-btn {
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    gap: 0.5rem;
+
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+}
+
+.compare-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  background: var(--surface-card);
+  margin-bottom: 2.5rem;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+
+  th, td {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  thead th {
+    background: var(--surface-ground);
+    font-weight: 700;
+    color: var(--text-color);
+    font-size: 0.9375rem;
+    white-space: nowrap;
+
+    &:first-child {
+      text-align: left;
+    }
+  }
+
+  .price-row th {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    padding-top: 0;
+    padding-bottom: 0.875rem;
+    border-bottom: 2px solid var(--surface-border);
+  }
+
+  .feature-col {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-color);
+    min-width: 220px;
+  }
+
+  .plan-col {
+    min-width: 100px;
+    width: 17%;
+  }
+
+  .category-row td {
+    background: var(--surface-ground);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-color-secondary);
+    text-align: left;
+    padding: 0.625rem 1rem;
+  }
+
+  .value-col {
+    vertical-align: middle;
+  }
+
+  .cell-yes {
+    color: #10b981;
+    font-size: 1rem;
+  }
+
+  .cell-no {
+    color: var(--text-color-secondary);
+    opacity: 0.4;
+    font-size: 0.875rem;
+  }
+
+  .cell-text {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.8125rem;
+  }
+
+  .current-col {
+    background: rgba(16, 185, 129, 0.04);
+  }
+
+  thead .current-col {
+    color: #10b981;
+  }
+
+  // Subtle column highlight for popular plan
+  .pro-col {
+    background: rgba(102, 126, 234, 0.02);
+  }
+
+  thead .pro-col {
+    color: var(--primary-color);
+  }
+
+  tbody tr:hover {
+    background: var(--surface-hover);
+  }
+}
+
 @media (max-width: 768px) {
   .plans-container {
     padding: 1rem;
@@ -723,7 +876,40 @@
 
   .plans-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
+    max-width: 420px;
+    margin: 0 auto 3rem;
+  }
+
+  // Mobile: features toggle
+  .plan-card .plan-features {
+    .features-title {
+      pointer-events: auto;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+
+      &::after {
+        content: '\e901';
+        font-family: 'primeicons';
+        font-size: 0.75rem;
+        transition: transform 0.2s ease;
+      }
+    }
+
+    &[open] .features-title::after {
+      transform: rotate(180deg);
+    }
+
+    &:not([open]) .features-title {
+      margin-bottom: 0;
+    }
+
+    &[open] .features-title {
+      margin-bottom: 0.75rem;
+    }
   }
 
   .additional-info {

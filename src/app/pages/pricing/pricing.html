@@ -1,33 +1,24 @@
 <div class="pricing-page">
-  <!-- Header -->
+  <!-- Compact Header -->
   <section class="pricing-header">
     <div class="container">
-      <span class="section-badge fade-in">
-        <i class="pi pi-tag"></i> Pricing
-      </span>
-      <h1 class="page-title fade-in">Simple, transparent pricing</h1>
-      <p class="page-subtitle fade-in">Start free and scale as you grow. No hidden fees, cancel anytime.</p>
+      <h1 class="page-title">Simple, transparent pricing</h1>
+      <p class="page-subtitle">Start free and scale as you grow. No hidden fees, cancel anytime.
+        @if (isLoggedIn) {
+          <span class="inline-plan-badge">
+            <span class="plan-dot"></span>
+            You're on <strong>{{ currentPlan.name }}</strong>
+          </span>
+        }
+      </p>
+      <a class="header-compare-link" (click)="scrollTo('compare')">
+        Compare all features <i class="pi pi-arrow-down"></i>
+      </a>
     </div>
   </section>
 
-  <!-- Current Plan Banner -->
-  @if (isLoggedIn) {
-    <section class="current-plan-section">
-      <div class="container">
-        <div class="current-plan-banner">
-          <div class="plan-status-dot"></div>
-          <span>
-            You're on the <strong>{{ currentPlan.name }}</strong> plan &mdash;
-            {{ currentPlan.apiKeyLimit === 'unlimited' ? 'Unlimited' : currentPlan.apiKeyLimit }} API Keys,
-            {{ getPlanLimitDisplay(currentPlan.eventLimit) }} events/mo
-          </span>
-        </div>
-      </div>
-    </section>
-  }
-
   <!-- Pricing Cards -->
-  <section class="plans-section">
+  <section class="plans-section" id="plans">
     <div class="container">
       <div class="plans-grid">
         @for (plan of plans; track plan.type) {
@@ -45,9 +36,14 @@
             </div>
 
             <div class="plan-price">
-              <span class="currency">$</span>
-              <span class="amount">{{ plan.price }}</span>
-              <span class="period">/mo</span>
+              @if (plan.price === 0) {
+                <span class="amount">Free</span>
+              } @else {
+                <span class="currency">$</span>
+                <span class="amount">{{ plan.price }}</span>
+                <span class="period">/mo</span>
+                <span class="cad-label">USD</span>
+              }
             </div>
 
             <div class="plan-limits">
@@ -70,23 +66,79 @@
               class="plan-cta">
             </button>
 
-            <div class="plan-features">
-              <p class="features-label">
+            <details class="plan-features" open>
+              <summary class="features-label">
                 @if (plan.type === 'free') {
                   What's included:
                 } @else {
                   Everything in {{ getPreviousPlanName(plan) }}, plus:
                 }
-              </p>
+              </summary>
               @for (feature of getKeyFeatures(plan); track feature) {
                 <div class="feature-row">
                   <i class="pi pi-check"></i>
                   <span>{{ feature }}</span>
                 </div>
               }
-            </div>
+            </details>
           </div>
         }
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  <section class="compare-section" id="compare">
+    <div class="container">
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th class="feature-col"></th>
+              <th class="plan-col">Free</th>
+              <th class="plan-col starter-col">Starter</th>
+              <th class="plan-col pro-col">Pro</th>
+              <th class="plan-col enterprise-col">Enterprise</th>
+            </tr>
+            <tr class="price-row">
+              <th></th>
+              <th>$0</th>
+              <th class="starter-col">$9/mo</th>
+              <th class="pro-col">$29/mo</th>
+              <th class="enterprise-col">$99/mo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (category of comparisonCategories; track category.name) {
+              <tr class="category-row">
+                <td [attr.colspan]="5">{{ category.name }}</td>
+              </tr>
+              @for (row of category.rows; track row.feature) {
+                <tr>
+                  <td class="feature-col">{{ row.feature }}</td>
+                  @for (plan of ['free', 'starter', 'pro', 'enterprise']; track plan) {
+                    <td class="value-col" [class]="plan + '-col'">
+                      @if (row[plan] === true) {
+                        <i class="pi pi-check-circle cell-yes"></i>
+                      } @else if (row[plan] === false) {
+                        <span class="cell-no">&mdash;</span>
+                      } @else {
+                        <span class="cell-text">{{ row[plan] }}</span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Link back to plans -->
+      <div class="scroll-link-wrap">
+        <a class="scroll-link" (click)="scrollTo('plans')">
+          <i class="pi pi-arrow-up"></i> Back to plans
+        </a>
       </div>
     </div>
   </section>
@@ -111,10 +163,18 @@
           </div>
 
           <div class="help-point">
+            <div class="point-icon"><i class="pi pi-bolt"></i></div>
+            <div class="point-content">
+              <h6>Small sites &amp; creators</h6>
+              <p><strong>Starter</strong> gives you 100K events, 2 websites, 6-month retention, custom event tracking, session analytics, UTM attribution, and email support at $9/mo.</p>
+            </div>
+          </div>
+
+          <div class="help-point">
             <div class="point-icon"><i class="pi pi-chart-line"></i></div>
             <div class="point-content">
               <h6>Growing businesses</h6>
-              <p><strong>Pro</strong> unlocks the full analytics suite — scroll depth, sessions, entry/exit pages, unique visitors, geographic data, UTM attribution, and CSV exports at $19/mo.</p>
+              <p><strong>Pro</strong> unlocks the full analytics suite — scroll depth, sessions, entry/exit pages, unique visitors, geographic data, UTM attribution, and CSV exports at $29/mo.</p>
             </div>
           </div>
 
@@ -122,7 +182,7 @@
             <div class="point-icon"><i class="pi pi-globe"></i></div>
             <div class="point-content">
               <h6>Enterprise-grade</h6>
-              <p><strong>Enterprise</strong> adds form tracking, error monitoring, Web Vitals, rage/dead click detection, heatmap data, tooltip UX insights, browser/OS detection, API access, and priority support at $79/mo.</p>
+              <p><strong>Enterprise</strong> adds form tracking, error monitoring, Web Vitals, rage/dead click detection, heatmap data, tooltip UX insights, browser/OS detection, API access, and priority support at $99/mo.</p>
             </div>
           </div>
         </div>

@@ -31,6 +31,7 @@
   // Plan-based feature gating
   const PLAN_FEATURES = {
     free: ['page_views', 'clicks', 'custom_events'],
+    starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
     pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
     enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'tooltip_tracking', 'error_tracking', 'rage_clicks', 'web_vitals']
   };
@@ -490,7 +491,7 @@
 
   // Log a one-time summary of active tracking features to the browser console
   function logTrackingCapabilities() {
-    const planColors = { free: '#6b7280', pro: '#7c3aed', enterprise: '#0ea5e9' };
+    const planColors = { free: '#6b7280', starter: '#f59e0b', pro: '#7c3aed', enterprise: '#0ea5e9' };
     const planColor = planColors[currentPlan] || '#6b7280';
     const allFeatures = Object.keys(FEATURE_LABELS);
     const active   = allFeatures.filter(f => planFeatures.includes(f));

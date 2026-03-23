@@ -265,6 +265,10 @@
                 @switch (userPlan) {
                   @case ('free') {
                     Access to {{ availableFeatures.length }} basic tracking features.
+                    <a routerLink="/dashboard/plans">Upgrade to Starter</a> to unlock more features.
+                  }
+                  @case ('starter') {
+                    Access to {{ availableFeatures.length }} tracking features.
                     <a routerLink="/dashboard/plans">Upgrade to Pro</a> to unlock {{ proFeatures.length }} more features.
                   }
                   @case ('pro') {
@@ -325,7 +329,7 @@
                         <span class="feature-label">{{ featureDescriptions[feature]?.label || feature }}</span>
                         <p-tag
                           [value]="getFeatureMinPlan(feature).toUpperCase()"
-                          [severity]="getFeatureMinPlan(feature) === 'pro' ? 'info' : 'success'"
+                          [severity]="getFeatureMinPlan(feature) === 'enterprise' ? 'success' : getFeatureMinPlan(feature) === 'pro' ? 'info' : 'warn'"
                           styleClass="plan-require-tag">
                         </p-tag>
                       </div>

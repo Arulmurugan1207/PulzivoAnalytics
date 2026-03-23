@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
@@ -55,6 +55,13 @@ interface UsageMetric {
   apiKeysUsed: number;
 }
 
+interface StripeStatus {
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  billingCycle: string | null;
+}
+
 @Component({
   selector: 'app-dashboard-billing',
   standalone: true,
@@ -81,9 +88,17 @@ export class DashboardBilling implements OnInit {
   paymentHistory = signal<PaymentItem[]>([]);
   usageData = signal<UsageData | null>(null);
   usageMetrics = signal<UsageMetric[]>([]);
-  
+  stripeStatus = signal<StripeStatus | null>(null);
+
   loading = signal(false);
+  loadingPlan = signal(true);
+  loadingUsage = signal(true);
+  loadingChart = signal(true);
+  loadingHistory = signal(true);
+  loadingPayments = signal(true);
   showCancelDialog = signal(false);
+  showProBanner = signal(localStorage.getItem('billing_dismiss_pro_banner') !== '1');
+  showEnterpriseBanner = signal(localStorage.getItem('billing_dismiss_enterprise_banner') !== '1');
   
   usageChartData: any;
   usageChartOptions: any;
@@ -91,7 +106,8 @@ export class DashboardBilling implements OnInit {
   constructor(
     private authService: AuthService,
     private http: HttpClient,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private route: ActivatedRoute
   ) {
     this.initializeChartOptions();
   }
@@ -99,68 +115,182 @@ export class DashboardBilling implements OnInit {
   ngOnInit() {
     this.user = this.authService.getUserData();
     this.loadBillingData();
+
+    // Show success toast if redirected back from Stripe checkout
+    this.route.queryParams.subscribe(params => {
+      if (params['upgraded'] === 'true') {
+        const plan = params['plan'] || 'pro';
+        const sessionId = params['session_id'];
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Upgrade Successful!',
+          detail: `Welcome to ${plan.charAt(0).toUpperCase() + plan.slice(1)}! Activating your plan...`,
+          life: 6000
+        });
+
+        if (sessionId) {
+          // Sync directly from the Stripe checkout session — no webhook needed
+          this.http.post<{ plan: string; billingCycle: string }>(
+            `${environment.apiUrl}/billing/sync-from-checkout`,
+            { sessionId, userId: this.user._id }
+          ).subscribe({
+            next: (result) => {
+              this.updateLocalPlan(result.plan);
+              // Clear any stale cancellation flag from a previous downgrade request
+              const stored = JSON.parse(localStorage.getItem('userData') || '{}');
+              if (stored.user) {
+                delete stored.user.scheduledDowngrade;
+                localStorage.setItem('userData', JSON.stringify(stored));
+              }
+              this.loadBillingData();
+            },
+            error: (err) => {
+              console.error('sync-from-checkout failed:', err);
+              this.refreshPlanStatus();
+            }
+          });
+        } else {
+          this.refreshPlanStatus();
+        }
+      }
+    });
+  }
+
+  updateLocalPlan(plan: string) {
+    this.user.plan = plan;
+    this.authService.updateUserData({ plan });
+  }
+
+  refreshPlanStatus() {
+    const userId = this.user._id;
+    this.http.get<any>(`${environment.apiUrl}/billing/status/${userId}`)
+      .subscribe({
+        next: (status) => {
+          this.updateLocalPlan(status.plan);
+          this.user.plan = status.plan;
+          if (status.subscription) {
+            this.stripeStatus.set({
+              status: status.subscription.status,
+              currentPeriodEnd: status.subscription.currentPeriodEnd,
+              cancelAtPeriodEnd: status.subscription.cancelAtPeriodEnd,
+              billingCycle: status.billingCycle,
+            });
+          }
+        },
+        error: () => {} // Non-critical
+      });
+  }
+
+  dismissBanner(type: 'pro' | 'enterprise') {
+    if (type === 'pro') {
+      localStorage.setItem('billing_dismiss_pro_banner', '1');
+      this.showProBanner.set(false);
+    } else {
+      localStorage.setItem('billing_dismiss_enterprise_banner', '1');
+      this.showEnterpriseBanner.set(false);
+    }
+  }
+
+  openPortal() {
+    this.loading.set(true);
+    this.http.post<{ url: string }>(`${environment.apiUrl}/billing/portal`, {
+      userId: this.user._id
+    }).subscribe({
+      next: ({ url }) => {
+        window.location.href = url;
+      },
+      error: (error) => {
+        this.loading.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: error.error?.error || 'Unable to open billing portal. Please try again.'
+        });
+      }
+    });
   }
 
   loadBillingData() {
     this.loading.set(true);
     const userId = this.user._id;
 
-    // Load all billing data in parallel
     Promise.all([
+      this.loadStripeStatus(userId),
+      this.loadUsageData(userId),
+      this.loadUsageMetrics(userId),
       this.loadPlanHistory(userId),
       this.loadPaymentHistory(userId),
-      this.loadUsageData(userId),
-      this.loadUsageMetrics(userId)
     ]).finally(() => {
       this.loading.set(false);
     });
   }
 
-  loadPlanHistory(userId: string): Promise<void> {
+  loadStripeStatus(userId: string): Promise<void> {
+    this.loadingPlan.set(true);
     return new Promise((resolve) => {
-      this.http.get<any>(`${environment.apiUrl}/users/${userId}/plan-history`)
+      this.http.get<any>(`${environment.apiUrl}/billing/status/${userId}`)
+        .subscribe({
+          next: (status) => {
+            if (status.subscription) {
+              this.stripeStatus.set({
+                status: status.subscription.status,
+                currentPeriodEnd: status.subscription.currentPeriodEnd,
+                cancelAtPeriodEnd: status.subscription.cancelAtPeriodEnd,
+                billingCycle: status.billingCycle,
+              });
+            }
+            this.loadingPlan.set(false);
+            resolve();
+          },
+          error: () => { this.loadingPlan.set(false); resolve(); }
+        });
+    });
+  }
+
+  loadPlanHistory(userId: string): Promise<void> {
+    this.loadingHistory.set(true);
+    return new Promise((resolve) => {
+      this.http.get<any>(`${environment.apiUrl}/billing/plan-history/${userId}`)
         .subscribe({
           next: (response) => {
             this.planHistory.set(response.history || []);
+            this.loadingHistory.set(false);
             resolve();
           },
-          error: (error) => {
-            console.error('Failed to load plan history:', error);
-            // Set empty array as fallback
-            this.planHistory.set([]);
-            resolve();
-          }
+          error: () => { this.planHistory.set([]); this.loadingHistory.set(false); resolve(); }
         });
     });
   }
 
   loadPaymentHistory(userId: string): Promise<void> {
+    this.loadingPayments.set(true);
     return new Promise((resolve) => {
-      this.http.get<any>(`${environment.apiUrl}/users/${userId}/payments`)
+      this.http.get<any>(`${environment.apiUrl}/billing/invoices/${userId}`)
         .subscribe({
           next: (response) => {
-            this.paymentHistory.set(response.payments || []);
+            this.paymentHistory.set(response.invoices || []);
+            this.loadingPayments.set(false);
             resolve();
           },
-          error: (error) => {
-            console.error('Failed to load payment history:', error);
-            this.paymentHistory.set([]);
-            resolve();
-          }
+          error: () => { this.paymentHistory.set([]); this.loadingPayments.set(false); resolve(); }
         });
     });
   }
 
   loadUsageData(userId: string): Promise<void> {
+    this.loadingUsage.set(true);
     return new Promise((resolve) => {
       this.http.get<any>(`${environment.apiUrl}/users/${userId}/billing/current`)
         .subscribe({
           next: (response) => {
             this.usageData.set(response);
+            this.loadingUsage.set(false);
             resolve();
           },
           error: (error) => {
             console.error('Failed to load usage data:', error);
+            this.loadingUsage.set(false);
             resolve();
           }
         });
@@ -168,6 +298,7 @@ export class DashboardBilling implements OnInit {
   }
 
   loadUsageMetrics(userId: string): Promise<void> {
+    this.loadingChart.set(true);
     return new Promise((resolve) => {
       const endDate = new Date();
       const startDate = new Date();
@@ -182,11 +313,13 @@ export class DashboardBilling implements OnInit {
         next: (response) => {
           this.usageMetrics.set(response.metrics || []);
           this.updateUsageChart(response.metrics || []);
+          this.loadingChart.set(false);
           resolve();
         },
         error: (error) => {
           console.error('Failed to load usage metrics:', error);
           this.usageMetrics.set([]);
+          this.loadingChart.set(false);
           resolve();
         }
       });
@@ -304,30 +437,9 @@ export class DashboardBilling implements OnInit {
   }
 
   confirmCancellation() {
-    this.loading.set(true);
-    const userId = this.user._id;
-
-    this.http.post(`${environment.apiUrl}/users/${userId}/cancel-subscription`, {})
-      .subscribe({
-        next: () => {
-          this.loading.set(false);
-          this.showCancelDialog.set(false);
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Subscription Cancelled',
-            detail: 'Your subscription will remain active until the end of the current billing period'
-          });
-          this.loadBillingData();
-        },
-        error: (error) => {
-          this.loading.set(false);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: error.error?.message || 'Failed to cancel subscription'
-          });
-        }
-      });
+    this.showCancelDialog.set(false);
+    // Redirect to Stripe Customer Portal for cancellation
+    this.openPortal();
   }
 
   exportBillingData() {
@@ -355,7 +467,8 @@ export class DashboardBilling implements OnInit {
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
+      currencyDisplay: 'narrowSymbol'
     }).format(amount);
   }
 
@@ -368,6 +481,10 @@ export class DashboardBilling implements OnInit {
   }
 
   getNextBillingDate(): string {
+    const stripe = this.stripeStatus();
+    if (stripe?.currentPeriodEnd) {
+      return this.formatDate(stripe.currentPeriodEnd);
+    }
     const usage = this.usageData();
     if (usage) {
       return this.formatDate(usage.currentPeriodEnd);
@@ -379,12 +496,49 @@ export class DashboardBilling implements OnInit {
     return this.user?.plan || 'free';
   }
 
+  getBillingCycle(): string {
+    return this.stripeStatus()?.billingCycle === 'year' ? 'Annual' : 'Monthly';
+  }
+
   getCurrentPlanPrice(): string {
     const plan = this.getCurrentPlan();
+    const yearly = this.stripeStatus()?.billingCycle === 'year';
     switch (plan) {
-      case 'pro': return '$19/mo';
-      case 'enterprise': return '$79/mo';
-      default: return '$0/mo';
+      case 'starter':    return yearly ? '$86 USD/yr' : '$9 USD/mo';
+      case 'pro':        return yearly ? '$278 USD/yr' : '$29 USD/mo';
+      case 'enterprise': return yearly ? '$950 USD/yr' : '$99 USD/mo';
+      default: return 'Free';
+    }
+  }
+
+  getSubscriptionStatusLabel(): string {
+    const s = this.stripeStatus();
+    if (!s) return '';
+    if (s.cancelAtPeriodEnd) {
+      if (s.currentPeriodEnd) {
+        const d = new Date(s.currentPeriodEnd);
+        if (d.getFullYear() > 1970) return `Cancels ${this.formatDate(s.currentPeriodEnd)}`;
+      }
+      return 'Cancellation Scheduled';
+    }
+    switch (s.status) {
+      case 'active':   return 'Active';
+      case 'trialing': return 'Trial';
+      case 'past_due': return 'Past Due';
+      case 'canceled': return 'Cancelled';
+      default:         return s.status;
+    }
+  }
+
+  getSubscriptionStatusSeverity(): 'success' | 'warn' | 'danger' | 'secondary' {
+    const s = this.stripeStatus();
+    if (!s) return 'secondary';
+    if (s.cancelAtPeriodEnd) return 'warn';
+    switch (s.status) {
+      case 'active':   return 'success';
+      case 'trialing': return 'info' as any;
+      case 'past_due': return 'danger';
+      default:         return 'secondary';
     }
   }
 }
