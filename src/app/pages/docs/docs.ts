@@ -24,7 +24,7 @@ interface NavItem {
   id: string;
   label: string;
   icon: string;
-  plan?: 'free' | 'pro' | 'enterprise';
+  plan?: 'free' | 'starter' | 'pro' | 'enterprise';
 }
 
 @Component({
@@ -106,33 +106,54 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   faqItems = [
     {
       question: 'How small is Pulzivo?',
-      answer: 'Just 5KB gzipped - smaller than a typical image. Zero dependencies, zero bloat.'
+      answer: 'Just 5KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
     },
     {
-      question: 'Does it work with SPAs?',
-      answer: 'Yes! Automatically detects route changes in React, Vue, Angular, and other frameworks. No manual Router setup required - just include the script and it works.'
+      question: 'Does it work with React, Vue, Angular, Next.js?',
+      answer: 'Yes. The SDK automatically detects route changes via pushState/popstate, so navigation in any SPA framework is tracked with zero configuration. See the Framework Guides section for copy-paste examples.'
     },
     {
       question: 'What data is collected automatically?',
-      answer: 'Page views, referrers, user agent, screen size, and click events. All privacy-focused and GDPR compliant.'
+      answer: 'Page views, referrer, UTM parameters, scroll depth, click events, session duration, and performance metrics. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
     },
     {
-      question: 'Can I track custom events?',
-      answer: 'Yes! Custom event tracking is available on all plans including Free. Use PulzivoAnalytics(\'event\', \'name\', data) to track any action in your app.'
+      question: 'Can I track custom events on the free plan?',
+      answer: 'Yes — custom event tracking is available on all plans including Free. Use PulzivoAnalytics(\'event\', \'name\', data) to track any user action.'
     },
     {
-      question: 'How do I view my data?',
-      answer: 'Access your real-time dashboard at Pulzivo/dashboard with beautiful charts and insights.'
+      question: 'How long is data retained?',
+      answer: 'Free plan: 30 days. Starter: 90 days. Pro: 1 year. Enterprise: unlimited. You can export your data at any time from the dashboard.'
+    },
+    {
+      question: 'Is there a rate limit?',
+      answer: 'The SDK batches events and sends them every 15 seconds, so normal usage never hits rate limits. Free plan allows up to 10,000 events/month. Upgrade for higher limits.'
+    },
+    {
+      question: 'Will it affect my page speed / Core Web Vitals?',
+      answer: 'No. The script loads asynchronously, adds ~5KB to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
+    },
+    {
+      question: 'How do I migrate from Google Analytics?',
+      answer: 'Just add the Pulzivo script tag alongside (or instead of) your GA snippet. Your existing GA setup is not affected. Custom events use PulzivoAnalytics(\'event\', ...) instead of gtag(\'event\', ...) — the shape is similar.'
+    },
+    {
+      question: 'Does it use cookies?',
+      answer: 'No cookies at all. Sessions are tracked using a combination of tab-scoped memory and localStorage, which does not require cookie consent banners under GDPR.'
+    },
+    {
+      question: 'Can I self-host the SDK?',
+      answer: 'Yes — download pulzivo-analytics.js from pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
     }
   ];
 
   navItems: NavItem[] = [
     { id: 'getting-started', label: 'Getting Started', icon: 'pi-play', plan: 'free' },
     { id: 'configuration', label: 'Configuration', icon: 'pi-cog', plan: 'free' },
-    { id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'pro' },
+    { id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'free' },
     { id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'free' },
-    { id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro' },
-    { id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'pro' },
+    { id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'free' },
+    { id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'starter' },
+    { id: 'frameworks', label: 'Framework Guides', icon: 'pi-th-large', plan: 'free' },
     { id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free' },
     { id: 'debugging', label: 'Debugging', icon: 'pi-code', plan: 'free' },
     { id: 'faq', label: 'FAQ', icon: 'pi-question-circle' },
@@ -142,6 +163,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   getPlanBadgeClass(plan?: string): string {
     switch(plan) {
       case 'free': return 'plan-badge-free';
+      case 'starter': return 'plan-badge-starter';
       case 'pro': return 'plan-badge-pro';
       case 'enterprise': return 'plan-badge-enterprise';
       default: return '';
@@ -151,6 +173,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   getPlanLabel(plan?: string): string {
     switch(plan) {
       case 'free': return 'FREE';
+      case 'starter': return 'STARTER';
       case 'pro': return 'PRO';
       case 'enterprise': return 'ENTERPRISE';
       default: return '';
@@ -352,6 +375,79 @@ PulzivoAnalytics('event', 'impression_click', {
     'debug-configuration': `<script src="https://pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="my-website"
         data-debug="true"></script>`,
+    'framework-react': `// src/analytics.ts — add once at the top level of your app
+declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
+
+export function track(event: string, data?: Record<string, unknown>) {
+  if (typeof PulzivoAnalytics !== 'undefined') {
+    PulzivoAnalytics('event', event, data ?? {});
+  }
+}
+
+// Usage in any component:
+import { track } from './analytics';
+
+function SignupButton() {
+  return (
+    <button onClick={() => track('signup_clicked', { source: 'hero' })}>
+      Get Started
+    </button>
+  );
+}`,
+    'framework-nextjs': `// app/layout.tsx (Next.js App Router)
+import Script from 'next/script';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <head>
+        <Script
+          src="https://pulzivo.com/pulzivo-analytics.min.js"
+          data-api-key={process.env.NEXT_PUBLIC_PULZIVO_KEY}
+          strategy="afterInteractive"
+        />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}`,
+    'framework-vue': `// composables/useAnalytics.ts
+declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
+
+export function useAnalytics() {
+  function track(event: string, data?: Record<string, unknown>) {
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', event, data ?? {});
+    }
+  }
+  return { track };
+}
+
+// Usage in a component:
+import { useAnalytics } from '@/composables/useAnalytics';
+
+const { track } = useAnalytics();
+track('button_clicked', { button: 'cta' });`,
+    'framework-angular': `// src/app/services/analytics.service.ts
+import { Injectable } from '@angular/core';
+
+declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
+
+@Injectable({ providedIn: 'root' })
+export class AnalyticsService {
+  track(event: string, data: Record<string, unknown> = {}) {
+    if (typeof PulzivoAnalytics !== 'undefined') {
+      PulzivoAnalytics('event', event, data);
+    }
+  }
+}
+
+// Usage in any component:
+constructor(private analytics: AnalyticsService) {}
+
+onButtonClick() {
+  this.analytics.track('cta_clicked', { source: 'hero' });
+}`,
   };
 
   async copyScript() {

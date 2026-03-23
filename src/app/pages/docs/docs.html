@@ -416,46 +416,85 @@
         </p-accordion>
       </section>
 
+      <!-- Framework Guides -->
+      <section id="frameworks" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-th-large"></i> Framework Guides</h1>
+        </div>
+        <p class="lead">Copy-paste integration for the most popular frameworks. One script tag + one helper — done.</p>
+
+        <h3>React</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-react'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['framework-react'] }}</code></pre>
+        </div>
+
+        <h3>Next.js (App Router)</h3>
+        <p>Use the <code>next/script</code> component with <code>strategy="afterInteractive"</code> so Pulzivo never blocks SSR rendering.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-nextjs'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['framework-nextjs'] }}</code></pre>
+        </div>
+
+        <h3>Vue 3 / Nuxt</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-vue'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['framework-vue'] }}</code></pre>
+        </div>
+
+        <h3>Angular</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-angular'])" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['framework-angular'] }}</code></pre>
+        </div>
+
+        <div class="info-box">
+          <h4><i class="pi pi-info-circle"></i> TypeScript declaration</h4>
+          <p>Add <code>declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) =&gt; void) | undefined;</code> once in a <code>globals.d.ts</code> file to avoid repeating it in every file.</p>
+        </div>
+      </section>
+
       <!-- Dashboard -->
       <section id="dashboard" class="doc-section">
         <h1><i class="pi pi-chart-bar"></i> Dashboard Analytics</h1>
-        <p class="lead">Real-time insights and comprehensive reporting.</p>
+        <p class="lead">Your real-time analytics hub — sign up and your data starts flowing in under 60 seconds.</p>
 
-        <p-message severity="info" [text]="'We are building a comprehensive analytics dashboard. Stay tuned for updates!'" 
-                   styleClass="w-full">
-          <ng-template pTemplate>
-            <div class="flex align-items-center gap-2">
-              <i class="pi pi-wrench" style="font-size: 1.5rem"></i>
-              <div>
-                <h4 style="margin: 0 0 0.5rem 0">Coming Soon!</h4>
-                <p style="margin: 0">We're building a comprehensive analytics dashboard. Stay tuned for updates!</p>
-              </div>
-            </div>
-          </ng-template>
-        </p-message>
-
-        <h3>Planned Features</h3>
         <div class="feature-grid">
           <div class="feature-card">
             <i class="pi pi-users"></i>
             <h4>Live Visitors</h4>
-            <p>Real-time active users</p>
+            <p>Real-time active users on your site right now</p>
           </div>
           <div class="feature-card">
-            <i class="pi pi-eye"></i>
-            <h4>Page Views</h4>
-            <p>Most popular pages</p>
+            <i class="pi pi-chart-line"></i>
+            <h4>Page Views & Sessions</h4>
+            <p>Daily, weekly, monthly trends with breakdown</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-bolt"></i>
+            <h4>Custom Events</h4>
+            <p>Every event you track, searchable and filterable</p>
           </div>
           <div class="feature-card">
             <i class="pi pi-map"></i>
-            <h4>Geographic Data</h4>
-            <p>Audience location</p>
+            <h4>Traffic Sources</h4>
+            <p>UTM attribution, referrers, direct vs organic</p>
           </div>
           <div class="feature-card">
-            <i class="pi pi-mobile"></i>
-            <h4>Device Analytics</h4>
-            <p>Mobile vs desktop</p>
+            <i class="pi pi-filter"></i>
+            <h4>Funnels</h4>
+            <p>Multi-step conversion funnels with drop-off analysis</p>
           </div>
+          <div class="feature-card">
+            <i class="pi pi-key"></i>
+            <h4>API Key Management</h4>
+            <p>Create, rotate, and manage keys per project</p>
+          </div>
+        </div>
+
+        <div class="info-box" style="margin-top: 1.5rem;">
+          <h4><i class="pi pi-arrow-right"></i> Access your dashboard</h4>
+          <p>Go to <strong>pulzivo.com/dashboard</strong> after signing up. Data appears within seconds of adding the script tag.</p>
         </div>
       </section>
 
