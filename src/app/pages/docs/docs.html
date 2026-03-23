@@ -4,15 +4,82 @@
     <div class="sidebar-header">
       <h3>Documentation</h3>
     </div>
+
+    <!-- Sidebar Search -->
+    <div class="sidebar-search-wrapper">
+      <div class="sidebar-search-box" [class.focused]="sidebarSearchFocused">
+        <i class="pi pi-search sidebar-search-icon"></i>
+        <input
+          type="text"
+          class="sidebar-search-input"
+          placeholder="Search docs or actions…"
+          [(ngModel)]="sidebarSearch"
+          (focus)="sidebarSearchFocused = true"
+          (keydown)="onSearchKeydown($event)"
+          autocomplete="off"
+          spellcheck="false" />
+        @if (sidebarSearch) {
+          <button class="sidebar-search-clear" (click)="clearSidebarSearch()" title="Clear">
+            <i class="pi pi-times"></i>
+          </button>
+        } @else {
+          <span class="sidebar-search-kbd">⌘K</span>
+        }
+      </div>
+
+      <!-- Results dropdown -->
+      @if (sidebarSearch.trim() && sidebarSearchFocused) {
+        <div class="sidebar-search-results">
+          @if (searchResults.length === 0) {
+            <div class="search-no-results">
+              <i class="pi pi-search"></i>
+              No results for "<strong>{{ sidebarSearch }}</strong>"
+            </div>
+          }
+          @for (result of searchResults; track result.label; let i = $index) {
+            <button
+              class="search-result-item"
+              [class.selected]="selectedResultIndex === i"
+              [class.is-action]="result.type === 'action'"
+              (click)="selectSearchResult(result)"
+              (mouseenter)="selectedResultIndex = i">
+              <span class="search-result-icon">
+                <i class="pi" [ngClass]="result.icon"></i>
+              </span>
+              <span class="search-result-body">
+                <span class="search-result-label">{{ result.label }}</span>
+                <span class="search-result-desc">{{ result.description }}</span>
+              </span>
+              <span class="search-result-type">
+                @if (result.type === 'action') {
+                  <i class="pi pi-bolt" title="Action"></i>
+                } @else {
+                  <i class="pi pi-arrow-right" title="Go to section"></i>
+                }
+              </span>
+            </button>
+          }
+          <div class="search-results-footer">
+            <span><kbd>↑↓</kbd> navigate</span>
+            <span><kbd>↵</kbd> select</span>
+            <span><kbd>Esc</kbd> close</span>
+          </div>
+        </div>
+      }
+    </div>
+
     <nav class="sidebar-nav">
-      @for (item of navItems; track item.id) {
-        <a 
-          class="nav-item" 
+      @for (item of filteredNavItems; track item.id) {
+        <a
+          class="nav-item"
           [class.active]="activeSection() === item.id"
           (click)="trackNavClick(item.id)">
           <i class="pi" [ngClass]="item.icon"></i>
           <span>{{ item.label }}</span>
         </a>
+      }
+      @if (sidebarSearch.trim() && filteredNavItems.length === 0) {
+        <div class="nav-no-match">No sections match</div>
       }
     </nav>
   </aside>
@@ -25,6 +92,9 @@
       <section id="getting-started" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-play"></i> Getting Started</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'getting-started'" (click)="copyAnchorLink('getting-started')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'getting-started' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Quick setup guide to integrate Pulzivo Analytics in under 60 seconds.</p>
 
@@ -33,7 +103,11 @@
             <div class="step-number">1</div>
             <div class="step-content">
               <h3>Include the Script</h3>
-              <p>Add this to the <code>&lt;head&gt;</code> or <code>&lt;body&gt;</code> of your HTML:</p>
+              <p>Add this one line to the <code>&lt;head&gt;</code> section of your HTML. Replace <code>YOUR_API_KEY</code> with your actual key.</p>
+              <div class="api-key-hint">
+                <i class="pi pi-key"></i>
+                <span>Find your API key in <strong>Dashboard → API Keys</strong> — copy the key that starts with <code>PULZ-</code></span>
+              </div>
               <div class="code-block-wrapper">
                 <button pButton 
                         type="button" 
@@ -45,6 +119,7 @@
                         size="small"></button>
                 <pre class="code-block"><code>{{ codeBlocks['script-tag'] }}</code></pre>
               </div>
+              <p class="step-note"><i class="pi pi-info-circle"></i> <strong>Not a developer?</strong> Skip down to the <a (click)="trackNavClick('no-code-platforms')" class="inline-link">No-Code Platforms</a> section — we have step-by-step guides for WordPress, Shopify, and Webflow.</p>
             </div>
           </div>
 
@@ -65,8 +140,32 @@
           <div class="step-item">
             <div class="step-number">3</div>
             <div class="step-content">
-              <h3>Verify Setup</h3>
-              <p>Open your browser's console with debug mode enabled to see initialization logs.</p>
+              <h3>Did It Work? ✓</h3>
+              <p>No console needed. Just follow these 3 steps:</p>
+              <ol class="verify-checklist">
+                <li>
+                  <i class="pi pi-check-circle"></i>
+                  <div>
+                    <strong>Visit your own website</strong> in a browser tab
+                    <span class="verify-note">Any page — your homepage is fine</span>
+                  </div>
+                </li>
+                <li>
+                  <i class="pi pi-check-circle"></i>
+                  <div>
+                    <strong>Wait 15–30 seconds</strong>
+                    <span class="verify-note">The SDK batches events every 15 seconds</span>
+                  </div>
+                </li>
+                <li>
+                  <i class="pi pi-check-circle"></i>
+                  <div>
+                    <strong>Open your <a href="/dashboard/overview" class="inline-link">Pulzivo Dashboard</a></strong> and look for a page view
+                    <span class="verify-note">You should see your visit appear in Overview or Events</span>
+                  </div>
+                </li>
+              </ol>
+              <p class="step-note"><i class="pi pi-code"></i> <strong>Developer?</strong> Add <code>data-debug="true"</code> to the script tag to see every event logged in your browser console in real time.</p>
               <button pButton type="button" label="View Debugging Guide" icon="pi pi-arrow-right" iconPos="right" (click)="trackDebugGuideClick()" severity="secondary"></button>
             </div>
           </div>
@@ -125,10 +224,155 @@
         </p-card>
       </section>
 
+      <!-- No-Code Platforms -->
+      <section id="no-code-platforms" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-globe"></i> No-Code Platforms</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'no-code-platforms'" (click)="copyAnchorLink('no-code-platforms')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'no-code-platforms' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Not a developer? No problem. Add Pulzivo to your site in under 2 minutes — no coding skills needed.</p>
+
+        <div class="nocode-intro">
+          <i class="pi pi-lightbulb"></i>
+          <div>
+            <strong>How it works:</strong> Every website — WordPress, Shopify, Webflow — lets you add custom code to the <code>&lt;head&gt;</code> section. That's just a special area that loads on every page before anything is visible. You paste your Pulzivo script there once, and every single page on your site gets tracked automatically. Think of it like installing a security camera once that covers the whole building.
+          </div>
+        </div>
+
+        <!-- WordPress -->
+        <div class="nocode-platform">
+          <div class="nocode-platform-header">
+            <div class="nocode-platform-icon nocode-wp">
+              <i class="pi pi-globe"></i>
+            </div>
+            <div>
+              <h3>WordPress</h3>
+              <p>Works on any WordPress site — hosted or self-hosted</p>
+            </div>
+            <span class="nocode-badge">Recommended: Use a Plugin</span>
+          </div>
+
+          <div class="nocode-method">
+            <div class="nocode-method-label recommended">
+              <i class="pi pi-star-fill"></i> Easiest — No Code At All
+            </div>
+            <ol class="nocode-steps">
+              <li>In your WordPress dashboard, go to <strong>Plugins → Add New</strong></li>
+              <li>Search for <strong>"Insert Headers and Footers"</strong> and install it (free, 1M+ installs)</li>
+              <li>Go to <strong>Settings → Insert Headers and Footers</strong></li>
+              <li>Paste your Pulzivo script into the <strong>"Scripts in Header"</strong> box</li>
+              <li>Click <strong>Save</strong> — done. Every page is now tracked.</li>
+            </ol>
+          </div>
+
+          <div class="nocode-method">
+            <div class="nocode-method-label developer">
+              <i class="pi pi-code"></i> Alternative — Edit Theme Directly
+            </div>
+            <div class="code-block-wrapper">
+              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-wordpress'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <pre class="code-block"><code>{{ codeBlocks['nocode-wordpress'] }}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shopify -->
+        <div class="nocode-platform">
+          <div class="nocode-platform-header">
+            <div class="nocode-platform-icon nocode-shopify">
+              <i class="pi pi-shopping-cart"></i>
+            </div>
+            <div>
+              <h3>Shopify</h3>
+              <p>Track your entire store — product views, cart events, checkouts</p>
+            </div>
+          </div>
+
+          <div class="nocode-method">
+            <div class="nocode-method-label recommended">
+              <i class="pi pi-star-fill"></i> One-Time Setup — Tracks Every Page
+            </div>
+            <ol class="nocode-steps">
+              <li>From your Shopify Admin, go to <strong>Online Store → Themes</strong></li>
+              <li>Click <strong>Actions → Edit Code</strong> on your active theme</li>
+              <li>Find and open <strong>layout/theme.liquid</strong></li>
+              <li>Find the closing <code>&lt;/head&gt;</code> tag (use Ctrl+F to search)</li>
+              <li>Paste your Pulzivo script tag just <strong>before</strong> that closing tag</li>
+              <li>Click <strong>Save</strong> — your entire store is tracked.</li>
+            </ol>
+            <div class="code-block-wrapper" style="margin-top:1rem;">
+              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-shopify'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <pre class="code-block"><code>{{ codeBlocks['nocode-shopify'] }}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Webflow -->
+        <div class="nocode-platform">
+          <div class="nocode-platform-header">
+            <div class="nocode-platform-icon nocode-webflow">
+              <i class="pi pi-th-large"></i>
+            </div>
+            <div>
+              <h3>Webflow</h3>
+              <p>Add once at project level — applies to every published page</p>
+            </div>
+          </div>
+
+          <div class="nocode-method">
+            <div class="nocode-method-label recommended">
+              <i class="pi pi-star-fill"></i> Project Settings — 4 Clicks
+            </div>
+            <ol class="nocode-steps">
+              <li>Open your Webflow project</li>
+              <li>Click the <strong>⚙ Project Settings</strong> gear icon</li>
+              <li>Go to the <strong>Custom Code</strong> tab</li>
+              <li>Paste your Pulzivo script into the <strong>"Head Code"</strong> box</li>
+              <li>Click <strong>Save Changes</strong>, then <strong>Publish</strong> your site</li>
+            </ol>
+            <div class="code-block-wrapper" style="margin-top:1rem;">
+              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-webflow'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <pre class="code-block"><code>{{ codeBlocks['nocode-webflow'] }}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Google Tag Manager -->
+        <div class="nocode-platform">
+          <div class="nocode-platform-header">
+            <div class="nocode-platform-icon nocode-gtm">
+              <i class="pi pi-tag"></i>
+            </div>
+            <div>
+              <h3>Google Tag Manager</h3>
+              <p>Already use GTM? Add Pulzivo as a custom HTML tag</p>
+            </div>
+          </div>
+          <div class="nocode-method">
+            <div class="code-block-wrapper">
+              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-gtm'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <pre class="code-block"><code>{{ codeBlocks['nocode-gtm'] }}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="nocode-help-box">
+          <i class="pi pi-question-circle"></i>
+          <div>
+            <strong>Still stuck?</strong> These platforms update their UIs occasionally. If the steps above don't match what you see, email us at <strong>support&#64;pulzivo.com</strong> with a screenshot — we'll help you get set up in minutes.
+          </div>
+        </div>
+      </section>
+
       <!-- Configuration -->
       <section id="configuration" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-cog"></i> Configuration Options</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'configuration'" (click)="copyAnchorLink('configuration')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'configuration' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Customize Pulzivo behavior using data attributes.</p>
 
@@ -169,6 +413,9 @@
       <section id="automatic-tracking" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-chart-line"></i> Automatic Tracking</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'automatic-tracking'" (click)="copyAnchorLink('automatic-tracking')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'automatic-tracking' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Zero-code analytics for common user interactions.</p>
 
@@ -195,6 +442,9 @@
       <section id="custom-events" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-bolt"></i> Custom Events</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'custom-events'" (click)="copyAnchorLink('custom-events')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'custom-events' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Track custom user actions and business events.</p>
 
@@ -235,6 +485,9 @@
       <section id="user-management" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-user"></i> User Management</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'user-management'" (click)="copyAnchorLink('user-management')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'user-management' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Track authenticated users and maintain privacy.</p>
 
@@ -265,6 +518,9 @@
       <section id="promo-tracking" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-megaphone"></i> Campaign & Promo Tracking</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'promo-tracking'" (click)="copyAnchorLink('promo-tracking')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'promo-tracking' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Track marketing campaigns and promotional content using custom events.</p>
 
@@ -305,10 +561,140 @@
         </div>
       </section>
 
+      <!-- Error Tracking -->
+      <section id="error-tracking" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-exclamation-circle"></i> Error Tracking <span class="plan-pill plan-pill-pro">PRO</span></h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'error-tracking'" (click)="copyAnchorLink('error-tracking')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'error-tracking' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Automatically catch unhandled JavaScript errors and promise rejections — no extra libraries needed.</p>
+
+        <div class="info-callout info-callout-blue">
+          <i class="pi pi-info-circle"></i>
+          <div>
+            <strong>Zero-config capture</strong> — Pulzivo hooks into <code>window.onerror</code> and <code>unhandledrejection</code> automatically. Every crash is recorded as a <code>js_error</code> event with message, file, line, column, and stack trace so you can reproduce it instantly.
+          </div>
+        </div>
+
+        <h3>Automatic Error Capture (default)</h3>
+        <p>No code changes needed — just add the script tag and errors start flowing into your Events dashboard.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['error-auto'] }}</code></pre>
+        </div>
+
+        <h3>Manual Error Tracking</h3>
+        <p>Track handled errors with full context — plan type, user state, whatever matters to you.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-manual'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['error-manual'] }}</code></pre>
+        </div>
+
+        <h3>React Error Boundary</h3>
+        <p>Capture React render errors before they reach <code>window.onerror</code>:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-custom-boundary'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['error-custom-boundary'] }}</code></pre>
+        </div>
+
+        <h3>Opt-out of Automatic Capture</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['error-disable'] }}</code></pre>
+        </div>
+
+        <div class="feature-grid" style="margin-top:1.5rem;">
+          <div class="feature-card">
+            <i class="pi pi-exclamation-triangle" style="color:#f59e0b;"></i>
+            <h4>JS Errors</h4>
+            <p>Unhandled exceptions with full stack trace</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-times-circle" style="color:#ef4444;"></i>
+            <h4>Promise Rejections</h4>
+            <p>Async failures — fetch errors, timeouts, etc.</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-bolt" style="color:#6366f1;"></i>
+            <h4>Manual Errors</h4>
+            <p>Business logic errors with custom context</p>
+          </div>
+          <div class="feature-card">
+            <i class="pi pi-search" style="color:#10b981;"></i>
+            <h4>Searchable</h4>
+            <p>Find all <code>js_error</code> events in your dashboard instantly</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rage Clicks & Web Vitals -->
+      <section id="rage-clicks-vitals" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-bolt"></i> Rage Clicks & Web Vitals <span class="plan-pill plan-pill-pro">PRO</span></h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'rage-clicks-vitals'" (click)="copyAnchorLink('rage-clicks-vitals')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'rage-clicks-vitals' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Spot user frustration and performance regressions before they cost you conversions.</p>
+
+        <h3>Rage Click Detection</h3>
+        <p>A <strong>rage click</strong> is when a user clicks the same element 3+ times within 500ms — a clear signal of frustration (broken button, spinner that won't go away, unresponsive UI).</p>
+        <div class="info-callout info-callout-orange">
+          <i class="pi pi-exclamation-triangle"></i>
+          <div><strong>Auto-detected</strong> — no setup needed. Fires a <code>rage_click</code> event you can find in your Events dashboard immediately.</div>
+        </div>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['rage-click-auto'] }}</code></pre>
+        </div>
+        <div class="code-block-wrapper" style="margin-top:1rem;">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['rage-click-disable'] }}</code></pre>
+        </div>
+
+        <h3>Web Vitals (LCP · CLS · INP)</h3>
+        <p>Core Web Vitals are Google's official UX metrics and directly impact your SEO ranking. Pulzivo captures all three automatically via <code>PerformanceObserver</code>.</p>
+
+        <div class="vitals-grid">
+          <div class="vital-card vital-green">
+            <div class="vital-label">LCP</div>
+            <div class="vital-name">Largest Contentful Paint</div>
+            <div class="vital-target">Target &lt; 2.5s</div>
+            <div class="vital-desc">How fast your main content loads</div>
+          </div>
+          <div class="vital-card vital-yellow">
+            <div class="vital-label">CLS</div>
+            <div class="vital-name">Cumulative Layout Shift</div>
+            <div class="vital-target">Target &lt; 0.1</div>
+            <div class="vital-desc">How stable your layout is while loading</div>
+          </div>
+          <div class="vital-card vital-purple">
+            <div class="vital-label">INP</div>
+            <div class="vital-name">Interaction to Next Paint</div>
+            <div class="vital-target">Target &lt; 200ms</div>
+            <div class="vital-desc">How fast your UI responds to clicks</div>
+          </div>
+        </div>
+
+        <div class="code-block-wrapper" style="margin-top:1.5rem;">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['web-vitals-auto'] }}</code></pre>
+        </div>
+        <div class="code-block-wrapper" style="margin-top:1rem;">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['web-vitals-disable'] }}</code></pre>
+        </div>
+      </section>
+
       <!-- Owner Exclusion -->
       <section id="owner-exclusion" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-eye-slash"></i> Owner Exclusion</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'owner-exclusion'" (click)="copyAnchorLink('owner-exclusion')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'owner-exclusion' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Prevent your own activity from polluting your analytics data. Choose the method that fits your workflow.</p>
 
@@ -367,12 +753,15 @@
       <section id="debugging" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-code"></i> Debugging</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'debugging'" (click)="copyAnchorLink('debugging')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'debugging' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Troubleshoot and verify your analytics implementation.</p>
 
         <h3>Enable Debug Mode</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['debug-configuration'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['debug-configuration'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
           <pre class="code-block"><code>{{ codeBlocks['debug-configuration'] }}</code></pre>
         </div>
 
@@ -396,11 +785,33 @@
 
       <!-- FAQ -->
       <section id="faq" class="doc-section">
-        <h1><i class="pi pi-question-circle"></i> FAQ</h1>
+        <div class="section-header">
+          <h1><i class="pi pi-question-circle"></i> FAQ</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'faq'" (click)="copyAnchorLink('faq')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'faq' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
         <p class="lead">Common questions and answers.</p>
 
+        <div class="faq-search-wrapper">
+          <i class="pi pi-search faq-search-icon"></i>
+          <input pInputText type="text" [(ngModel)]="faqSearch" placeholder="Search questions…" class="faq-search-input" />
+          @if (faqSearch) {
+            <button class="faq-search-clear" (click)="faqSearch = ''" title="Clear search">
+              <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+
+        @if (filteredFaqItems.length === 0) {
+          <div class="faq-no-results">
+            <i class="pi pi-search"></i>
+            <p>No questions match "<strong>{{ faqSearch }}</strong>"</p>
+          </div>
+        }
+
         <p-accordion [multiple]="true">
-          @for (faq of faqItems; track faq.question; let idx = $index) {
+          @for (faq of filteredFaqItems; track faq.question; let idx = $index) {
             <p-accordion-panel [value]="idx.toString()" (click)="trackFaqOpen(faq.question)">
               <p-accordion-header>
                 <span class="faq-header">
@@ -414,37 +825,42 @@
             </p-accordion-panel>
           }
         </p-accordion>
+
+        <p class="faq-count">{{ filteredFaqItems.length }} of {{ faqItems.length }} questions</p>
       </section>
 
       <!-- Framework Guides -->
       <section id="frameworks" class="doc-section">
         <div class="section-header">
           <h1><i class="pi pi-th-large"></i> Framework Guides</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'frameworks'" (click)="copyAnchorLink('frameworks')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'frameworks' ? 'pi-check' : 'pi-link'"></i>
+          </button>
         </div>
         <p class="lead">Copy-paste integration for the most popular frameworks. One script tag + one helper — done.</p>
 
         <h3>React</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-react'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-react'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-react'] }}</code></pre>
         </div>
 
         <h3>Next.js (App Router)</h3>
         <p>Use the <code>next/script</code> component with <code>strategy="afterInteractive"</code> so Pulzivo never blocks SSR rendering.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-nextjs'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-nextjs'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-nextjs'] }}</code></pre>
         </div>
 
         <h3>Vue 3 / Nuxt</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-vue'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-vue'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-vue'] }}</code></pre>
         </div>
 
         <h3>Angular</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['framework-angular'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-angular'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-angular'] }}</code></pre>
         </div>
 
@@ -454,9 +870,93 @@
         </div>
       </section>
 
+      <!-- Advanced -->
+      <section id="advanced" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-shield"></i> Advanced — TypeScript, CSP & SPA Patterns</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'advanced'" (click)="copyAnchorLink('advanced')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'advanced' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Production-ready patterns for TypeScript projects, strict CSP environments, and complex SPA architectures.</p>
+
+        <!-- API consistency callout -->
+        <div class="info-callout info-callout-blue" style="margin-bottom:2rem;">
+          <i class="pi pi-info-circle"></i>
+          <div>
+            <strong>Two API styles — both are identical under the hood.</strong><br>
+            You may see both styles in examples:
+            <br><br>
+            <code>PulzivoAnalytics('event', 'click', data)</code> — functional style (recommended)<br>
+            <code>window.PulzivoAnalytics.trackEvent('click', data)</code> — object style (also valid)<br>
+            <br>
+            They call the same internal function. Pick one and be consistent in your codebase.
+          </div>
+        </div>
+
+        <h3>TypeScript — Full Type Declarations</h3>
+        <p>Pulzivo is a script-tag SDK with no npm package. Create a <code>globals.d.ts</code> file once at your project root — no <code>&#64;types/</code> install needed, TypeScript picks it up automatically.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-global-declare'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['ts-global-declare'] }}</code></pre>
+        </div>
+
+        <h3>Safe Wrapper — Handle SSR + Not-Yet-Loaded</h3>
+        <p>Use this wrapper in every component instead of calling <code>PulzivoAnalytics</code> directly. It handles Next.js SSR (no <code>window</code> on the server) and the SDK loading async:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-safe-call'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['ts-safe-call'] }}</code></pre>
+        </div>
+
+        <h3>SPA Race Condition — The Queue Pattern</h3>
+        <p>The script loads <strong>asynchronously</strong>. Your component code runs immediately. Without a queue, calls made before the script finishes loading would be lost. Pulzivo handles this automatically — here's how:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-ready-queue'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['ts-ready-queue'] }}</code></pre>
+        </div>
+
+        <h3>Content Security Policy (CSP)</h3>
+        <p>If your app sets CSP headers, whitelist these two domains. Everything else is blocked — no third-party data sharing.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-headers'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['csp-headers'] }}</code></pre>
+        </div>
+
+        <h4>Next.js CSP via next.config.js</h4>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-nextjs'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['csp-nextjs'] }}</code></pre>
+        </div>
+
+        <h3>Network Tab — What a Successful Request Looks Like</h3>
+        <p>When debugging, open <strong>DevTools → Network → XHR</strong> and filter for <code>analytics/log</code>. Here's exactly what you should see:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-network'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['advanced-network'] }}</code></pre>
+        </div>
+
+        <h3>Next.js — Production SSR Pattern</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-nextjs-ssr'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['advanced-nextjs-ssr'] }}</code></pre>
+        </div>
+
+        <h3>Angular — APP_INITIALIZER for Guaranteed Load Order</h3>
+        <p>Use <code>APP_INITIALIZER</code> when you need the SDK fully ready before any component renders — e.g. when you identify users on startup:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-angular-init'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <pre class="code-block"><code>{{ codeBlocks['advanced-angular-init'] }}</code></pre>
+        </div>
+      </section>
+
       <!-- Dashboard -->
       <section id="dashboard" class="doc-section">
-        <h1><i class="pi pi-chart-bar"></i> Dashboard Analytics</h1>
+        <div class="section-header">
+          <h1><i class="pi pi-chart-bar"></i> Dashboard Analytics</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'dashboard'" (click)="copyAnchorLink('dashboard')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'dashboard' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
         <p class="lead">Your real-time analytics hub — sign up and your data starts flowing in under 60 seconds.</p>
 
         <div class="feature-grid">

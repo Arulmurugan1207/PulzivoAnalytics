@@ -411,6 +411,16 @@
   padding: 0.45rem 1rem 0.45rem 0.45rem;
   border: 1px solid rgba(15,23,42,0.08);
   box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.15);
+    transform: translateY(-1px);
+    .step-badge { background: linear-gradient(135deg, #6366f1, #818cf8); }
+  }
 }
 
 .step-badge {
@@ -726,11 +736,103 @@ h2 {
   color: #fff !important;
 }
 
+.cta-btn-docs {
+  color: rgba(255,255,255,0.9) !important;
+  border-color: rgba(255,255,255,0.35) !important;
+  &:hover {
+    background: rgba(255,255,255,0.1) !important;
+    border-color: rgba(255,255,255,0.7) !important;
+    color: #fff !important;
+  }
+}
+
+// ============================================================
+// Docs Teaser Strip
+// ============================================================
+.docs-teaser {
+  background: #f0f4ff;
+  border-top: 1px solid #dde5ff;
+  border-bottom: 1px solid #dde5ff;
+  padding: 1.5rem 0;
+}
+
+.docs-teaser-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.docs-teaser-left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.docs-teaser-book {
+  font-size: 1.75rem;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.docs-teaser-title {
+  margin: 0 0 0.15rem 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.docs-teaser-sub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.docs-teaser-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+}
+
+.docs-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #c7d2fe;
+  color: #4f46e5;
+  border-radius: 99px;
+  padding: 0.3rem 0.875rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #6366f1;
+    transform: translateY(-1px);
+  }
+}
+
+.docs-teaser-btn {
+  flex-shrink: 0;
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #fff !important;
+  white-space: nowrap;
+}
+
 .cta-btn-ghost {
   color: rgba(255,255,255,0.75) !important;
   border-color: rgba(255,255,255,0.2) !important;
   &:hover { color: #fff !important; border-color: rgba(255,255,255,0.5) !important; }
 }
+
+
 
 .cta-actions {
   display: flex;

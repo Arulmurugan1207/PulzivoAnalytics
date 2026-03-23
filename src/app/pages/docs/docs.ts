@@ -1,6 +1,7 @@
-﻿import { Component, signal, OnInit, OnDestroy, AfterViewChecked } from '@angular/core';
+﻿import { Component, signal, computed, OnInit, OnDestroy, AfterViewChecked, HostListener, ElementRef } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { MessageModule } from 'primeng/message';
@@ -8,7 +9,8 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
-import { RouterModule, ActivatedRoute } from '@angular/router';
+import { InputTextModule } from 'primeng/inputtext';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
@@ -25,12 +27,22 @@ interface NavItem {
   label: string;
   icon: string;
   plan?: 'free' | 'starter' | 'pro' | 'enterprise';
+  keywords?: string[];
+}
+
+interface SearchResult {
+  type: 'section' | 'action';
+  label: string;
+  description: string;
+  icon: string;
+  sectionId?: string;
+  action?: () => void;
 }
 
 @Component({
   selector: 'app-docs',
   standalone: true,
-  imports: [CommonModule, ButtonModule, CardModule, MessageModule, TableModule, TagModule, DividerModule, AccordionModule, RouterModule],
+  imports: [CommonModule, FormsModule, ButtonModule, CardModule, MessageModule, TableModule, TagModule, DividerModule, AccordionModule, InputTextModule, RouterModule],
   templateUrl: './docs.html',
   styleUrl: './docs.scss',
 })
@@ -38,12 +50,20 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   script = `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
   copied = signal(false);
   activeSection = signal('getting-started');
+  anchorCopied = signal<string | null>(null);
+  faqSearch = '';
+
+  // Sidebar search
+  sidebarSearch = '';
+  sidebarSearchFocused = false;
+  selectedResultIndex = -1;
+
   private observer?: IntersectionObserver;
   private highlighted = false;
   private readonly startTime = Date.now();
   private viewedSections = new Set<string>();
 
-  constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute) {
+  constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute, private router: Router, private el: ElementRef) {
     this.meta.updateTag({ name: 'description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more — the pulse of modern product analytics.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/docs' });
       this.meta.updateTag({ property: 'og:title', content: 'Documentation | Pulzivo Analytics' });
@@ -100,6 +120,18 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       type: 'Flag', 
       required: false, 
       description: 'Add this attribute to disable automatic scroll depth tracking' 
+    },
+    {
+      attribute: 'data-disable-rage-clicks',
+      type: 'Flag',
+      required: false,
+      description: 'Add this attribute to disable automatic rage click detection'
+    },
+    {
+      attribute: 'data-disable-web-vitals',
+      type: 'Flag',
+      required: false,
+      description: 'Add this attribute to disable automatic Web Vitals (LCP, CLS, FID) reporting'
     }
   ];
 
@@ -129,6 +161,10 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       answer: 'The SDK batches events and sends them every 15 seconds, so normal usage never hits rate limits. Free plan allows up to 10,000 events/month. Upgrade for higher limits.'
     },
     {
+      question: 'What happens when I hit my monthly event limit?',
+      answer: 'When you reach your plan\'s monthly event limit, the SDK automatically stops sending new events for the rest of that billing month — no data is lost on the client side, it just won\'t be recorded server-side until your limit resets. You\'ll receive an email warning at 80% and 100% of your limit. Upgrade your plan at any time from the dashboard to restore tracking immediately.'
+    },
+    {
       question: 'Will it affect my page speed / Core Web Vitals?',
       answer: 'No. The script loads asynchronously, adds ~5KB to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
     },
@@ -143,21 +179,98 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     {
       question: 'Can I self-host the SDK?',
       answer: 'Yes — download pulzivo-analytics.js from pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
+    },
+    {
+      question: 'What are rage clicks and does Pulzivo detect them?',
+      answer: 'Rage clicks happen when a user clicks the same element 3+ times in quick succession — usually a sign of frustration (broken button, slow response). Pulzivo automatically detects rage clicks and fires a rage_click event with the element details. You can find them in your Events dashboard by searching for "rage_click".'
+    },
+    {
+      question: 'What Web Vitals does Pulzivo report?',
+      answer: 'Pulzivo automatically measures LCP (Largest Contentful Paint), CLS (Cumulative Layout Shift), and FID/INP (First Input Delay / Interaction to Next Paint). These appear as web_vital events in your dashboard and help you spot performance regressions before they impact conversions.'
+    },
+    {
+      question: 'How does error tracking work?',
+      answer: 'Pulzivo automatically captures unhandled JavaScript errors (window.onerror) and unhandled promise rejections. Each error event includes the message, stack trace, file, and line number. You can also manually track errors with PulzivoAnalytics(\'error\', \'payment_failed\', { reason: \'card_declined\' }).'
+    },
+    {
+      question: 'How do I exclude my own visits from analytics?',
+      answer: 'Run PulzivoAnalytics.disableTracking() once in your browser console — it persists via localStorage so all your future visits on that device are excluded. You can also use role-based exclusion (setOwner(true)) after login. See the Owner Exclusion section for all 5 methods.'
+    },
+    {
+      question: 'Can I share a link to a specific section of the docs?',
+      answer: 'Yes! Every section has a permanent anchor URL. Click the # link next to any section heading to copy the direct URL (e.g. pulzivo.com/docs#error-tracking). You can share these with your team or bookmark them.'
     }
   ];
 
+  get filteredFaqItems() {
+    if (!this.faqSearch.trim()) return this.faqItems;
+    const q = this.faqSearch.toLowerCase();
+    return this.faqItems.filter(f =>
+      f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q)
+    );
+  }
+
   navItems: NavItem[] = [
-    { id: 'getting-started', label: 'Getting Started', icon: 'pi-play', plan: 'free' },
-    { id: 'configuration', label: 'Configuration', icon: 'pi-cog', plan: 'free' },
-    { id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'free' },
-    { id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'free' },
-    { id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'free' },
-    { id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'starter' },
-    { id: 'frameworks', label: 'Framework Guides', icon: 'pi-th-large', plan: 'free' },
-    { id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free' },
-    { id: 'debugging', label: 'Debugging', icon: 'pi-code', plan: 'free' },
-    { id: 'faq', label: 'FAQ', icon: 'pi-question-circle' },
-    { id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar' },
+    {
+      id: 'getting-started', label: 'Getting Started', icon: 'pi-play', plan: 'free',
+      keywords: ['install', 'setup', 'script', 'tag', 'html', 'start', 'begin', 'quick', 'add', 'include', 'copy', 'first', 'verify', 'check', 'api key']
+    },
+    {
+      id: 'no-code-platforms', label: 'No-Code Platforms', icon: 'pi-globe', plan: 'free',
+      keywords: ['wordpress', 'shopify', 'webflow', 'wix', 'gtm', 'google tag manager', 'no code', 'nocode', 'plugin', 'theme', 'liquid', 'non-developer', 'store', 'ecommerce']
+    },
+    {
+      id: 'configuration', label: 'Configuration', icon: 'pi-cog', plan: 'free',
+      keywords: ['data-api-key', 'batch', 'debug', 'disable', 'options', 'attributes', 'batch-interval', 'page-views', 'clicks', 'scroll', 'configure', 'settings']
+    },
+    {
+      id: 'automatic-tracking', label: 'Automatic Tracking', icon: 'pi-chart-line', plan: 'free',
+      keywords: ['auto', 'automatic', 'page view', 'click', 'scroll', 'session', 'spa', 'route', 'navigation', 'pushstate', 'popstate', 'zero config']
+    },
+    {
+      id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'free',
+      keywords: ['track', 'event', 'custom', 'click', 'ecommerce', 'purchase', 'cart', 'identify', 'send', 'batch', 'trackevent', 'pulzivoanalytics', 'button', 'form']
+    },
+    {
+      id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'free',
+      keywords: ['user', 'email', 'identify', 'login', 'logout', 'authenticated', 'privacy', 'gdpr', 'setusemail', 'clearuseremail', 'pii']
+    },
+    {
+      id: 'promo-tracking', label: 'Campaign Tracking', icon: 'pi-megaphone', plan: 'starter',
+      keywords: ['campaign', 'utm', 'promo', 'impression', 'banner', 'ad', 'marketing', 'source', 'medium', 'referrer', 'attribution', 'data-track-impression']
+    },
+    {
+      id: 'error-tracking', label: 'Error Tracking', icon: 'pi-exclamation-circle', plan: 'pro',
+      keywords: ['error', 'crash', 'exception', 'onerror', 'promise', 'rejection', 'bug', 'unhandled', 'stack trace', 'react error boundary', 'js error']
+    },
+    {
+      id: 'rage-clicks-vitals', label: 'Rage Clicks & Web Vitals', icon: 'pi-bolt', plan: 'pro',
+      keywords: ['rage', 'click', 'frustrated', 'web vitals', 'lcp', 'cls', 'inp', 'fid', 'performance', 'core web vitals', 'lighthouse', 'seo', 'layout shift', 'paint']
+    },
+    {
+      id: 'frameworks', label: 'Framework Guides', icon: 'pi-th-large', plan: 'free',
+      keywords: ['react', 'next', 'nextjs', 'next.js', 'vue', 'nuxt', 'angular', 'framework', 'integration', 'component', 'hook', 'composable', 'service', 'spa']
+    },
+    {
+      id: 'advanced', label: 'Advanced (TypeScript / CSP)', icon: 'pi-shield', plan: 'free',
+      keywords: ['typescript', 'csp', 'ssr', 'server side', 'nextjs', 'angular', 'types', 'declare', 'race condition', 'queue', 'app_initializer', 'network', 'content security policy', 'globals.d.ts', 'safe wrapper', 'cors', 'payload', '429', 'limit']
+    },
+    {
+      id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free',
+      keywords: ['owner', 'exclude', 'self', 'my visits', 'filter', 'localstorage', 'disable tracking', 'setowner', 'disabletracking', 'admin', 'developer', 'localhost', 'staging']
+    },
+    {
+      id: 'debugging', label: 'Debugging', icon: 'pi-code', plan: 'free',
+      keywords: ['debug', 'console', 'log', 'devtools', 'network', 'troubleshoot', 'not working', 'test', 'verify', 'data-debug', 'checklist', 'cors', '404']
+    },
+    {
+      id: 'faq', label: 'FAQ', icon: 'pi-question-circle',
+      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '5kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
+    },
+    {
+      id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar',
+      keywords: ['dashboard', 'overview', 'live', 'realtime', 'visitors', 'funnel', 'api key', 'report', 'users', 'traffic']
+    },
   ];
   
   getPlanBadgeClass(plan?: string): string {
@@ -179,6 +292,177 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       default: return '';
     }
   }
+
+  // ── Sidebar search ────────────────────────────────────────
+
+  private actionItems: SearchResult[] = [
+    {
+      type: 'action', label: 'Copy script tag', description: 'Copy the Pulzivo <script> tag to clipboard',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['script-tag'])
+    },
+    {
+      type: 'action', label: 'Copy React example', description: 'Copy the React analytics helper',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['framework-react'])
+    },
+    {
+      type: 'action', label: 'Copy Next.js example', description: 'Copy the Next.js App Router integration',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['framework-nextjs'])
+    },
+    {
+      type: 'action', label: 'Copy Vue example', description: 'Copy the Vue 3 composable',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['framework-vue'])
+    },
+    {
+      type: 'action', label: 'Copy Angular example', description: 'Copy the Angular analytics service',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['framework-angular'])
+    },
+    {
+      type: 'action', label: 'Copy TypeScript types', description: 'Copy the globals.d.ts type declarations',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['ts-global-declare'])
+    },
+    {
+      type: 'action', label: 'Copy CSP headers', description: 'Copy Content-Security-Policy configuration',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['csp-headers'])
+    },
+    {
+      type: 'action', label: 'Copy WordPress guide', description: 'Copy WordPress plugin installation steps',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['nocode-wordpress'])
+    },
+    {
+      type: 'action', label: 'Copy Shopify guide', description: 'Copy Shopify theme.liquid steps',
+      icon: 'pi-copy', action: () => this.copyCode(this.codeBlocks['nocode-shopify'])
+    },
+    {
+      type: 'action', label: 'Open Dashboard', description: 'Go to your analytics dashboard',
+      icon: 'pi-chart-bar', action: () => this.router.navigate(['/dashboard/overview'])
+    },
+    {
+      type: 'action', label: 'View Live Demo', description: 'Open the Pulzivo demo dashboard',
+      icon: 'pi-play', action: () => this.router.navigate(['/demo/overview'])
+    },
+    {
+      type: 'action', label: 'Disable my tracking', description: 'Scroll to owner exclusion — exclude yourself',
+      icon: 'pi-eye-slash', action: () => this.trackNavClick('owner-exclusion')
+    },
+  ];
+
+  get searchResults(): SearchResult[] {
+    const q = this.sidebarSearch.trim().toLowerCase();
+    if (!q) return [];
+
+    const results: SearchResult[] = [];
+
+    // Section matches
+    for (const item of this.navItems) {
+      const labelMatch = item.label.toLowerCase().includes(q);
+      const keywordMatch = item.keywords?.some(k => k.includes(q) || q.includes(k.split(' ')[0])) ?? false;
+      if (labelMatch || keywordMatch) {
+        results.push({
+          type: 'section',
+          label: item.label,
+          description: this.getSectionDescription(item.id),
+          icon: item.icon,
+          sectionId: item.id
+        });
+      }
+    }
+
+    // FAQ matches
+    const faqMatches = this.faqItems.filter(f =>
+      f.question.toLowerCase().includes(q) || f.answer.toLowerCase().includes(q)
+    );
+    for (const faq of faqMatches.slice(0, 2)) {
+      results.push({
+        type: 'section',
+        label: faq.question,
+        description: 'FAQ answer',
+        icon: 'pi-question-circle',
+        sectionId: 'faq'
+      });
+    }
+
+    // Action matches
+    for (const action of this.actionItems) {
+      if (action.label.toLowerCase().includes(q) || action.description.toLowerCase().includes(q)) {
+        results.push(action);
+      }
+    }
+
+    return results.slice(0, 8);
+  }
+
+  get filteredNavItems(): NavItem[] {
+    const q = this.sidebarSearch.trim().toLowerCase();
+    if (!q) return this.navItems;
+    return this.navItems.filter(item =>
+      item.label.toLowerCase().includes(q) ||
+      (item.keywords?.some(k => k.includes(q)) ?? false)
+    );
+  }
+
+  private getSectionDescription(id: string): string {
+    const map: Record<string, string> = {
+      'getting-started':    'Install the script tag and verify setup',
+      'no-code-platforms':  'WordPress, Shopify, Webflow, GTM guides',
+      'configuration':      'data-* attributes and options',
+      'automatic-tracking': 'Page views, clicks, SPA routing',
+      'custom-events':      'PulzivoAnalytics() event API',
+      'user-management':    'User identity, login/logout tracking',
+      'promo-tracking':     'UTM parameters, impression tracking',
+      'error-tracking':     'JS errors, promise rejections',
+      'rage-clicks-vitals': 'LCP, CLS, INP and frustration signals',
+      'frameworks':         'React, Next.js, Vue, Angular',
+      'advanced':           'TypeScript types, CSP, SSR patterns',
+      'owner-exclusion':    'Exclude your own visits from data',
+      'debugging':          'Debug mode, console, troubleshooting',
+      'faq':                'Common questions and answers',
+      'dashboard':          'Live visitors, events, funnels',
+    };
+    return map[id] ?? '';
+  }
+
+  selectSearchResult(result: SearchResult) {
+    if (result.type === 'section' && result.sectionId) {
+      this.trackNavClick(result.sectionId);
+    } else if (result.type === 'action' && result.action) {
+      result.action();
+    }
+    this.clearSidebarSearch();
+  }
+
+  clearSidebarSearch() {
+    this.sidebarSearch = '';
+    this.selectedResultIndex = -1;
+  }
+
+  onSearchKeydown(event: KeyboardEvent) {
+    const results = this.searchResults;
+    if (event.key === 'Escape') {
+      this.clearSidebarSearch();
+      (event.target as HTMLElement).blur();
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.selectedResultIndex = Math.min(this.selectedResultIndex + 1, results.length - 1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.selectedResultIndex = Math.max(this.selectedResultIndex - 1, -1);
+    } else if (event.key === 'Enter' && this.selectedResultIndex >= 0) {
+      event.preventDefault();
+      this.selectSearchResult(results[this.selectedResultIndex]);
+    } else {
+      this.selectedResultIndex = -1;
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocClick(event: MouseEvent) {
+    const sidebar = this.el.nativeElement.querySelector('.docs-sidebar');
+    if (sidebar && !sidebar.contains(event.target as Node)) {
+      this.sidebarSearchFocused = false;
+      this.selectedResultIndex = -1;
+    }
+  }
+
 
   codeBlocks: { [key: string]: string } = {
     'script-tag': `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
@@ -448,6 +732,280 @@ constructor(private analytics: AnalyticsService) {}
 onButtonClick() {
   this.analytics.track('cta_clicked', { source: 'hero' });
 }`,
+    // ── Error Tracking ────────────────────────────────────────
+    'error-auto': `<!-- Automatic JS error capture is ON by default -->
+<!-- window.onerror + unhandledrejection → recorded as 'js_error' events -->
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"></script>`,
+    'error-manual': `// Track a handled error manually
+try {
+  await processPayment(card);
+} catch (err) {
+  PulzivoAnalytics('error', 'payment_failed', {
+    reason: err.message,
+    code:   err.code,
+    plan:   selectedPlan
+  });
+}`,
+    'error-custom-boundary': `// React Error Boundary
+class ErrorBoundary extends React.Component {
+  componentDidCatch(error, info) {
+    PulzivoAnalytics('error', 'react_render_error', {
+      message:    error.message,
+      component:  info.componentStack?.split('\\n')[1]?.trim()
+    });
+  }
+}`,
+    'error-disable': `<!-- Opt-out of automatic JS error capture -->
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"
+        data-disable-errors></script>`,
+    // ── Rage Clicks & Web Vitals ──────────────────────────────
+    'rage-click-auto': `<!-- Rage click detection is ON by default (3 clicks in 500 ms) -->
+<!-- Fires a 'rage_click' event with element info automatically -->
+
+// Find rage clicks in your dashboard → Events → search "rage_click"
+// Event data shape:
+{
+  element:   'button#checkout',   // CSS selector of frustrating element
+  clicks:    5,                   // how many times they clicked
+  interval:  320                  // ms between first and last click
+}`,
+    'rage-click-disable': `<!-- Opt-out of rage click detection -->
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"
+        data-disable-rage-clicks></script>`,
+    'web-vitals-auto': `<!-- Web Vitals are captured automatically via PerformanceObserver -->
+<!-- No extra code needed — data flows into your Events dashboard -->
+
+// Metrics recorded as 'web_vital' events:
+{
+  metric: 'LCP',    // Largest Contentful Paint (ms) — target < 2500
+  value:  1840,
+  rating: 'good'    // 'good' | 'needs-improvement' | 'poor'
+}
+
+// All three metrics captured:
+// LCP  — Largest Contentful Paint   (< 2.5s = good)
+// CLS  — Cumulative Layout Shift    (< 0.1  = good)
+// INP  — Interaction to Next Paint  (< 200ms = good)`,
+    'web-vitals-disable': `<!-- Opt-out of Web Vitals collection -->
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"
+        data-disable-web-vitals></script>`,
+
+    // ── No-Code Platforms ─────────────────────────────────────
+    'nocode-wordpress': `<!-- Option A: Use a plugin (no code at all) -->
+1. Install the free plugin "Insert Headers and Footers"
+   (Plugins → Add New → search "Insert Headers and Footers")
+2. Go to Settings → Insert Headers and Footers
+3. Paste your Pulzivo script tag into the "Scripts in Header" box:
+
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"></script>
+
+4. Click Save. Done — tracking starts on every page.
+
+<!-- Option B: Edit your theme directly (ask your developer) -->
+1. Go to Appearance → Theme Editor → header.php
+2. Paste the script tag just before the closing </head> tag
+3. Click Update File`,
+
+    'nocode-shopify': `<!-- Shopify — paste once, tracks every page automatically -->
+1. Go to your Shopify Admin
+2. Online Store → Themes → Actions → Edit Code
+3. Open layout/theme.liquid
+4. Find the closing </head> tag
+5. Paste your script tag just before it:
+
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"></script>
+
+6. Click Save. Your entire store is now tracked.`,
+
+    'nocode-webflow': `<!-- Webflow — project-level (all pages at once) -->
+1. Open your Webflow project
+2. Go to Project Settings → Custom Code tab
+3. Paste your script tag into the "Head Code" box:
+
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"></script>
+
+4. Click Save Changes, then Publish your site.
+   That's it — every page is tracked automatically.`,
+
+    'nocode-gtm': `<!-- Google Tag Manager — if you already use GTM -->
+1. Open your GTM workspace
+2. Tags → New → Tag Configuration → Custom HTML
+3. Paste:
+
+<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"></script>
+
+4. Triggering → All Pages
+5. Save and Publish. Done.`,
+
+    // ── Advanced / TypeScript / CSP ───────────────────────────
+    'ts-global-declare': `// globals.d.ts  (create this file once at your project root)
+// No npm install needed — Pulzivo is a script-tag SDK.
+
+type PulzivoCmd =
+  | ['event', string, Record<string, unknown>]
+  | ['identify', string]
+  | ['page', string]
+  | ['error', string, Record<string, unknown>]
+  | [() => void];
+
+declare function PulzivoAnalytics(...args: PulzivoCmd[0]): void;
+declare namespace PulzivoAnalytics {
+  function trackEvent(name: string, data?: Record<string, unknown>): void;
+  function setUserEmail(email: string): void;
+  function clearUserEmail(): void;
+  function disableTracking(): void;
+  function enableTracking(): void;
+  function setOwner(isOwner: boolean, persist?: boolean): void;
+  function sendBatch(): Promise<void>;
+}`,
+
+    'ts-safe-call': `// Safe wrapper — use this in every component instead of calling directly
+// Handles: SDK not yet loaded, SSR (Next.js), TypeScript types
+
+export function track(event: string, data: Record<string, unknown> = {}) {
+  if (typeof window === 'undefined') return;          // SSR guard
+  if (typeof PulzivoAnalytics === 'undefined') return; // not yet loaded
+  PulzivoAnalytics('event', event, data);
+}
+
+// Usage — clean, typed, zero boilerplate:
+track('signup_clicked', { plan: 'pro', source: 'hero' });`,
+
+    'ts-ready-queue': `// The SDK uses a command queue — calls made before load are
+// automatically replayed once the script finishes loading.
+// This means you never need to wait or check for readiness:
+
+PulzivoAnalytics('event', 'page_loaded', { route: '/dashboard' });
+// ↑ Safe to call immediately — queued if SDK hasn't loaded yet.
+
+// If you need to run code exactly when SDK is ready:
+PulzivoAnalytics(() => {
+  console.log('SDK ready, version:', (window as any).__PULZIVO_VERSION__);
+});`,
+
+    'csp-headers': `# Content-Security-Policy headers to add to your server / CDN
+
+# The two domains Pulzivo needs:
+script-src  'self' https://pulzivo.com;
+connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;
+
+# Full example header:
+Content-Security-Policy:
+  default-src 'self';
+  script-src  'self' https://pulzivo.com;
+  connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;`,
+
+    'csp-nextjs': `// next.config.js — add CSP headers for Pulzivo
+const securityHeaders = [
+  {
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' https://pulzivo.com",
+      "connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com",
+    ].join('; ')
+  }
+];
+
+module.exports = {
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  }
+};`,
+
+    'advanced-network': `// What a successful Pulzivo batch request looks like in DevTools:
+
+POST https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log
+Content-Type: application/json
+
+// Request body (array of events):
+{
+  "apiKey": "YOUR_API_KEY",
+  "events": [
+    {
+      "event_name": "page_view",
+      "page": "/dashboard",
+      "referrer": "https://google.com",
+      "session_id": "sess_abc123",
+      "timestamp": 1711234567890
+    }
+  ]
+}
+
+// Success response:
+HTTP 200 OK
+{ "received": 1 }
+
+// Limit reached response:
+HTTP 429 Too Many Requests
+{ "error": "monthly_limit_reached", "limit": 10000, "used": 10001 }`,
+
+    'advanced-nextjs-ssr': `// app/layout.tsx — correct Next.js App Router integration
+// SSR guard + typeof window check built in automatically.
+import Script from 'next/script';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <head>
+        <Script
+          src="https://pulzivo.com/pulzivo-analytics.min.js"
+          data-api-key={process.env.NEXT_PUBLIC_PULZIVO_KEY}
+          strategy="afterInteractive"   // ← never blocks SSR render
+          id="pulzivo-analytics"
+        />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
+}
+
+// In any Server Component or Client Component:
+'use client';
+import { track } from '@/lib/analytics'; // your safe wrapper
+
+export function SignupButton() {
+  return <button onClick={() => track('signup_clicked', { source: 'hero' })}>
+    Get Started
+  </button>;
+}`,
+
+    'advanced-angular-init': `// src/app/app.config.ts — guaranteed load order with APP_INITIALIZER
+import { ApplicationConfig, APP_INITIALIZER } from '@angular/core';
+import { AnalyticsService } from './services/analytics.service';
+
+function initAnalytics(analytics: AnalyticsService) {
+  return () => analytics.waitForSDK();
+}
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ... your other providers
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initAnalytics,
+      deps: [AnalyticsService],
+      multi: true
+    }
+  ]
+};
+
+// analytics.service.ts — waitForSDK with timeout
+waitForSDK(timeoutMs = 3000): Promise<void> {
+  return new Promise(resolve => {
+    if (typeof PulzivoAnalytics !== 'undefined') { resolve(); return; }
+    const t = setTimeout(resolve, timeoutMs); // don't block app forever
+    PulzivoAnalytics(() => { clearTimeout(t); resolve(); });
+  });
+}`,
   };
 
   async copyScript() {
@@ -470,6 +1028,17 @@ onButtonClick() {
     } catch (e) {
       console.error('Copy failed', e);
       return false;
+    }
+  }
+
+  async copyAnchorLink(sectionId: string) {
+    try {
+      const url = `${window.location.origin}/docs#${sectionId}`;
+      await navigator.clipboard.writeText(url);
+      this.anchorCopied.set(sectionId);
+      setTimeout(() => this.anchorCopied.set(null), 2000);
+    } catch (e) {
+      console.error('Copy anchor failed', e);
     }
   }
 
