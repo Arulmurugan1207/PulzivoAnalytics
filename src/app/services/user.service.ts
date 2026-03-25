@@ -12,7 +12,16 @@ export interface User {
   plan?: 'free' | 'pro' | 'enterprise';
   role?: 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
   createdDate: string;
+  lastLoginDate?: string | null;
   apiKeysCount: number;
+}
+
+export interface GrowthStats {
+  todayCount: number;
+  weekCount: number;
+  monthCount: number;
+  totalCount: number;
+  trend: { date: string; count: number }[];
 }
 
 export interface UsersResponse {
@@ -46,6 +55,13 @@ export class UserService {
    */
   getAllUsers(): Observable<UsersResponse> {
     return this.http.get<UsersResponse>(`${this.apiUrl}/users`);
+  }
+
+  /**
+   * Get sign-up growth KPIs and 30-day daily trend
+   */
+  getGrowthStats(): Observable<GrowthStats> {
+    return this.http.get<GrowthStats>(`${this.apiUrl}/users/growth-stats`);
   }
 
   /**

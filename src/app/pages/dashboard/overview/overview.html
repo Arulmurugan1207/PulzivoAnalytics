@@ -12,12 +12,12 @@
         placeholder="Select API Key"
         [style]="{ width: '320px' }">
         <ng-template #selectedItem let-item>
-          <span>{{ item.name }} <span style="color: #94a3b8; font-size: 0.8rem;">({{ item.apiKey }})</span></span>
+          <span>{{ item.name }}</span>
         </ng-template>
         <ng-template #item let-item>
-          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div style="display: flex; flex-direction: column; gap: 0.1rem;">
             <span>{{ item.name }}</span>
-            <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
+            <span style="color: #94a3b8; font-size: 0.75rem; font-family: monospace;">{{ item.apiKey }}</span>
           </div>
         </ng-template>
       </p-select>
@@ -53,6 +53,20 @@
       </p-popover>
     </div>
 
+    <!-- Compare to Previous Period Toggle -->
+    <button
+      class="compare-toggle"
+      [class.compare-active]="showComparison"
+      (click)="toggleComparison()"
+      pTooltip="Compare this period to the previous equivalent period"
+      tooltipPosition="bottom">
+      <i class="pi pi-chart-line"></i>
+      <span>{{ showComparison ? 'Comparing' : 'Compare' }}</span>
+      @if (showComparison) {
+        <span class="compare-badge">vs prev</span>
+      }
+    </button>
+
     <!-- Manual Refresh Button -->
     @if (!demoService.isDemoMode()) {
       <button 
@@ -82,19 +96,39 @@
 <!-- Main Content with Tabs -->
 <div class="overview-container">
   @if (availableApiKeys.length > 0) {
+
+  <!-- Tab Nav -->
+  <div class="tab-nav">
+    @for (tab of overviewTabs; track tab.id) {
+      <button
+        class="tab-nav-btn"
+        [class.active]="activeTab === tab.id"
+        [title]="tab.label"
+        (click)="setActiveTab(tab.id)">
+        <i [class]="tab.icon"></i>
+        <span class="tab-label">{{ tab.label }}</span>
+      </button>
+    }
+  </div>
+
   <div class="tab-content">
+
+    <!-- ══════════════════════════════════════════
+         TAB 1 — OVERVIEW
+         KPIs · Page Views Trend · Devices · Top Pages · Countries · Sessions
+    ══════════════════════════════════════════ -->
+    @if (activeTab === 'overview') {
       <div class="metrics-grid">
-        <!-- Key Metrics Cards -->
+
+        <!-- KPI Cards -->
         <div class="metrics-row">
-          <!-- Main Metrics -->
+
           <div class="metric-card theme-blue" data-section="live-analytics">
             <div class="metric-header">
-              <h3>
-                Live Analytics
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Real-time visitors currently on your site. Updates every 30 seconds. Use this to monitor campaign launches or viral content."
-                   tooltipPosition="top"
-                   data-tooltip-id="live-analytics-info"></i>
+              <h3>Live Visitors
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Real-time visitors currently on your site. Updates every 30 seconds."
+                   tooltipPosition="top"></button>
               </h3>
               @if (loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -109,18 +143,29 @@
             } @else {
               <div class="metric-value">{{ metrics.liveVisitors | number }}</div>
               <div class="metric-label">Live Visitors</div>
-              <div class="metric-change positive">+8.2% from yesterday</div>
+              @if (showComparison) {
+                <div [class]="'metric-change ' + formatTrend(trends.totalPageViews).cssClass">
+                  {{ formatTrend(trends.totalPageViews).label }}
+                </div>
+              }
+              @if (liveCountries.length) {
+                <div class="live-geo-strip">
+                  @for (c of liveCountries; track c.country) {
+                    <span class="live-geo-pill" [pTooltip]="c.country + ': ' + c.count" tooltipPosition="top">
+                      {{ c.flag }} <span class="geo-count">{{ c.count }}</span>
+                    </span>
+                  }
+                </div>
+              }
             }
           </div>
 
           <div class="metric-card theme-violet" data-section="total-page-views">
             <div class="metric-header">
-              <h3>
-                Total Page Views
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Total number of pages viewed across all sessions. Includes repeat views by the same user. Higher is better for content sites."
-                   tooltipPosition="top"
-                   data-tooltip-id="page-views-info"></i>
+              <h3>Total Page Views
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Total number of pages viewed across all sessions. Includes repeat views by the same user."
+                   tooltipPosition="top"></button>
               </h3>
               @if (loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -135,18 +180,20 @@
             } @else {
               <div class="metric-value">{{ metrics.totalPageViews | number }}</div>
               <div class="metric-label">Total Page Views</div>
-              <div class="metric-change positive">+12.4% this week</div>
+              @if (showComparison) {
+                <div [class]="'metric-change ' + formatTrend(trends.totalPageViews).cssClass">
+                  {{ formatTrend(trends.totalPageViews).label }}
+                </div>
+              }
             }
           </div>
 
           <div class="metric-card theme-rose" data-section="bounce-rate" [class.locked-section]="!hasFeature('sessions')">
             <div class="metric-header">
-              <h3>
-                Bounce Rate
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="% of visitors who leave after viewing only one page. Lower is better. 40-60% is average. High bounce = poor landing page experience."
-                   tooltipPosition="top"
-                   data-tooltip-id="bounce-rate-info"></i>
+              <h3>Bounce Rate
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="% of visitors who leave after viewing only one page. Lower is better."
+                   tooltipPosition="top"></button>
               </h3>
               @if (hasFeature('sessions') && loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -171,18 +218,20 @@
             } @else {
               <div class="metric-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
               <div class="metric-label">Bounce Rate</div>
-              <div class="metric-change positive">-5.3% improvement</div>
+              @if (showComparison) {
+                <div [class]="'metric-change ' + formatTrend(trends.bounceRate, true).cssClass">
+                  {{ formatTrend(trends.bounceRate, true).label }}
+                </div>
+              }
             }
           </div>
 
           <div class="metric-card theme-teal" data-section="unique-visitors" [class.locked-section]="!hasFeature('unique_visitors')">
             <div class="metric-header">
-              <h3>
-                Unique Visitors
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Number of distinct users who visited today. Counted once per user regardless of page views. Key metric for reach and audience size."
-                   tooltipPosition="top"
-                   data-tooltip-id="unique-visitors-info"></i>
+              <h3>Unique Visitors
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Number of distinct users who visited. Counted once per user regardless of page views."
+                   tooltipPosition="top"></button>
               </h3>
               @if (hasFeature('unique_visitors') && loadingStates.metrics) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -206,32 +255,38 @@
               </div>
             } @else {
               <div class="metric-value">{{ (metrics.uniqueVisitors ?? 0) | number }}</div>
-              <div class="metric-label">Unique Visitors Today</div>
-              <div class="metric-change neutral">distinct users since midnight</div>
+              <div class="metric-label">Unique Visitors</div>
+              @if (showComparison) {
+                <div [class]="'metric-change ' + formatTrend(trends.uniqueVisitors).cssClass">
+                  {{ formatTrend(trends.uniqueVisitors).label }}
+                </div>
+              }
             }
           </div>
         </div>
 
         <!-- Charts Row -->
         <div class="charts-row">
+
           <!-- Page Views Trend -->
           <div class="chart-card theme-blue" data-section="page-views-trend">
             <div class="card-header">
-              <h3>
-                Page Views Trend
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Visual timeline of page views over time. Spot traffic patterns, peak hours, and growth trends. Switch between hourly, daily, weekly views."
-                   tooltipPosition="top"
-                   data-tooltip-id="page-views-trend-info"></i>
+              <h3>Page Views Trend
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Visual timeline of page views. Spot traffic patterns, peak hours, and growth trends."
+                   tooltipPosition="top"></button>
               </h3>
+              @if (showComparison) {
+                <div class="chart-compare-legend">
+                  <span class="clegend-dot" style="background:#2a6df6"></span><span>This period</span>
+                  <span class="clegend-dot" style="background:#6366f1"></span><span>Prev. period</span>
+                </div>
+              }
               @if (availableTrendPeriods.length > 1) {
                 <div class="trend-period-toggle">
                   @for (p of availableTrendPeriods; track p.value) {
-                    <button
-                      class="period-btn"
-                      [class.active]="trendPeriod === p.value"
-                      (click)="setTrendPeriod(p.value)"
-                      [disabled]="loadingStates.pageViews">
+                    <button class="period-btn" [class.active]="trendPeriod === p.value"
+                      (click)="setTrendPeriod(p.value)" [disabled]="loadingStates.pageViews">
                       {{ p.label }}
                     </button>
                   }
@@ -242,9 +297,7 @@
               }
             </div>
             @if (loadingStates.pageViews) {
-              <div class="chart-skeleton">
-                <p-skeleton width="100%" height="200px"></p-skeleton>
-              </div>
+              <div class="chart-skeleton"><p-skeleton width="100%" height="200px"></p-skeleton></div>
             } @else {
               <div class="bar-chart-wrap">
                 <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
@@ -255,12 +308,10 @@
           <!-- Device Breakdown -->
           <div class="chart-card theme-violet" data-section="device-breakdown" [class.locked-section]="!hasFeature('unique_visitors')">
             <div class="card-header">
-              <h3>
-                Device Breakdown
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Distribution of users by device type. Optimize your design for the devices your audience uses most. Mobile-first if >60% mobile traffic."
-                   tooltipPosition="top"
-                   data-tooltip-id="device-breakdown-info"></i>
+              <h3>Device Breakdown
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Distribution of users by device type. Optimize design for your most-used devices."
+                   tooltipPosition="top"></button>
               </h3>
               @if (hasFeature('unique_visitors') && loadingStates.devices) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -272,32 +323,27 @@
                   <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>Device Breakdown</h4>
-                  <p>See how your visitors split across Desktop, Mobile, and Tablet. Upgrade to Pro to unlock device analytics.</p>
+                  <p>See how visitors split across Desktop, Mobile, and Tablet.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
             } @else if (loadingStates.devices) {
-              <div class="chart-skeleton">
-                <p-skeleton width="100%" height="200px"></p-skeleton>
-              </div>
+              <div class="chart-skeleton"><p-skeleton width="100%" height="200px"></p-skeleton></div>
             } @else {
               <div class="donut-chart-wrap">
                 <p-chart type="doughnut" [data]="doughnutChartData" [options]="doughnutChartOptions"></p-chart>
               </div>
               <div class="donut-legend">
                 <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#2a6df6"></span>
-                  <span>Desktop</span>
+                  <span class="donut-dot" style="background:#2a6df6"></span><span>Desktop</span>
                   <span class="donut-pct">{{ deviceBreakdown.desktopPercentage | number:'1.0-0' }}%</span>
                 </div>
                 <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#6f41ff"></span>
-                  <span>Mobile</span>
+                  <span class="donut-dot" style="background:#6f41ff"></span><span>Mobile</span>
                   <span class="donut-pct">{{ deviceBreakdown.mobilePercentage | number:'1.0-0' }}%</span>
                 </div>
                 <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#f59e0b"></span>
-                  <span>Tablet</span>
+                  <span class="donut-dot" style="background:#f59e0b"></span><span>Tablet</span>
                   <span class="donut-pct">{{ deviceBreakdown.tabletPercentage | number:'1.0-0' }}%</span>
                 </div>
               </div>
@@ -305,16 +351,15 @@
           </div>
         </div>
 
-        <!-- Data Tables Row -->
+        <!-- Top Pages + Countries -->
         <div class="tables-row">
-          <!-- Top Pages -->
+
           <div class="data-card theme-indigo">
             <div class="card-header">
-              <h3>
-                Top Pages
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Most viewed pages ranked by traffic. Identify your best content and optimize high-traffic pages for conversions."
-                   tooltipPosition="top"></i>
+              <h3>Top Pages
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Most viewed pages ranked by traffic. Identify your best content."
+                   tooltipPosition="top"></button>
               </h3>
               @if (loadingStates.topPages) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -330,22 +375,16 @@
                 }
               </div>
             } @else {
-              <p-table
-                [value]="topPages"
-                [paginator]="true"
-                [rows]="topPagesRows"
-                [totalRecords]="topPagesTotal"
-                [rowsPerPageOptions]="[10, 25, 50]"
-                [lazy]="true"
-                [first]="(topPagesPage - 1) * topPagesRows"
-                (onPage)="onTopPageChange($event)"
-                styleClass="p-datatable-sm"
-                [loading]="loadingStates.topPages">
+              <p-table [value]="topPages" [paginator]="true" [rows]="topPagesRows" [totalRecords]="topPagesTotal"
+                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(topPagesPage-1)*topPagesRows"
+                (onPage)="onTopPageChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.topPages">
                 <ng-template #header>
                   <tr>
                     <th>Page</th>
                     <th class="col-num">Views</th>
                     <th class="col-num">%</th>
+                    <th class="col-num" pTooltip="Average time spent on this page (seconds)" tooltipPosition="top">Avg Time</th>
+                    <th class="col-num" pTooltip="Average scroll depth reached on this page" tooltipPosition="top">Scroll</th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-page>
@@ -356,23 +395,35 @@
                     </td>
                     <td class="col-num">{{ page.views | number }}</td>
                     <td class="col-num">{{ page.percentage | number:'1.1-1' }}%</td>
+                    <td class="col-num">
+                      @if (page.avgTimeOnPage != null) {
+                        {{ formatDuration(page.avgTimeOnPage) }}
+                      } @else {
+                        <span class="no-data-dash">—</span>
+                      }
+                    </td>
+                    <td class="col-num">
+                      @if (page.avgScrollDepth != null) {
+                        {{ page.avgScrollDepth | number:'1.0-0' }}%
+                      } @else {
+                        <span class="no-data-dash">—</span>
+                      }
+                    </td>
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
-                  <tr><td colspan="3" class="no-data-row">No page data yet</td></tr>
+                  <tr><td colspan="5" class="no-data-row">No page data yet</td></tr>
                 </ng-template>
               </p-table>
             }
           </div>
 
-          <!-- Geographic Data -->
           <div class="data-card theme-teal" [class.locked-section]="!hasFeature('sessions')">
             <div class="card-header">
-              <h3>
-                Top Countries
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Geographic distribution of your audience. Use this to localize content, plan regional campaigns, and optimize for timezones."
-                   tooltipPosition="top"></i>
+              <h3>Top Countries
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Geographic distribution of your audience. Localize content for top regions."
+                   tooltipPosition="top"></button>
               </h3>
               @if (loadingStates.geography) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -398,13 +449,9 @@
                 }
               </div>
             } @else {
-              <p-table [value]="geoData" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+              <p-table [value]="geoData" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
                 <ng-template #header>
-                  <tr>
-                    <th>Country</th>
-                    <th class="col-num">Visitors</th>
-                    <th class="col-num">%</th>
-                  </tr>
+                  <tr><th>Country</th><th class="col-num">Visitors</th><th class="col-num">%</th></tr>
                 </ng-template>
                 <ng-template #body let-geo>
                   <tr>
@@ -421,162 +468,87 @@
           </div>
         </div>
 
-        <!-- Entry & Exit Pages Row -->
-        <div class="data-row">
-          <!-- Entry Pages -->
-          <div class="data-card theme-emerald" [class.locked-section]="!hasFeature('page_exit')">
+        <!-- Session Insights -->
+        <div class="vitals-row">
+          <div class="chart-card session-card" [class.locked-section]="!hasFeature('sessions')">
             <div class="card-header">
-              <h3>
-                Top Entry Pages
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="First pages users land on. Optimize these for strong first impressions and clear CTAs. High entrances = good SEO or ad targeting."
-                   tooltipPosition="top"></i>
+              <h3>Session Insights
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Avg session duration, new vs returning visitors, scroll depth, time on page."
+                   tooltipPosition="top"></button>
               </h3>
-              @if (hasFeature('page_exit') && loadingStates.entryExit) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-              }
             </div>
-            @if (!hasFeature('page_exit')) {
+            @if (!hasFeature('sessions')) {
               <div class="locked-overlay">
                 <div class="locked-content">
                   <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
-                  <h4>Top Entry Pages</h4>
-                  <p>Entry &amp; exit page tracking requires Pro. Upgrade to Pro to unlock.</p>
+                  <h4>Session Insights</h4>
+                  <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
-            } @else if (loadingStates.entryExit) {
-              <div class="table-skeleton">
-                @for (i of [1,2,3,4,5]; track i) {
-                  <div class="table-skeleton-row">
-                    <p-skeleton width="70%" height="1rem"></p-skeleton>
-                    <p-skeleton width="15%" height="1rem"></p-skeleton>
-                  </div>
+            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+              <div class="session-skeleton">
+                @for (item of [1,2,3]; track item) {
+                  <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>
                 }
               </div>
             } @else {
-              <p-table [value]="entryPages" styleClass="p-datatable-sm">
-                <ng-template #header>
-                  <tr>
-                    <th>Page</th>
-                    <th class="col-num">Entrances</th>
-                    <th class="col-num">%</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-page>
-                  <tr>
-                    <td class="page-cell">
-                      <div class="page-path">{{ page.path }}</div>
-                    </td>
-                    <td class="col-num">{{ page.entrances | number }}</td>
-                    <td class="col-num">{{ page.percentage | number:'1.1-1' }}%</td>
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr>
-                    <td colspan="3" class="no-data-row">
-                      <div style="text-align: center; padding: 1.5rem;">
-                        <i class="pi pi-sign-in" style="font-size: 2rem; color: #a7f3d0; margin-bottom: 0.5rem;"></i>
-                        <div style="font-size: 0.875rem; color: #64748b;">
-                          No entry pages tracked yet
-                        </div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
-                          Track <code style="background: #f0fdf6; padding: 2px 6px; border-radius: 3px;">page_view</code> events to see where users land
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            }
-          </div>
-
-          <!-- Exit Pages -->
-          <div class="data-card theme-rose" [class.locked-section]="!hasFeature('page_exit')">
-            <div class="card-header">
-              <h3>
-                Top Exit Pages
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Last pages users visit before leaving. High exit rates may indicate dead ends, broken links, or conversion completion. Checkout pages should have high exits."
-                   tooltipPosition="top"></i>
-              </h3>
-              @if (hasFeature('page_exit') && loadingStates.entryExit) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-              }
-            </div>
-            @if (!hasFeature('page_exit')) {
-              <div class="locked-overlay">
-                <div class="locked-content">
-                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
-                  <i class="pi pi-lock lock-icon"></i>
-                  <h4>Top Exit Pages</h4>
-                  <p>Entry &amp; exit page tracking requires Pro. Upgrade to Pro to unlock.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+              <div class="session-stats">
+                <div class="session-stat">
+                  <div class="stat-icon blue"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Avg Session Duration</span>
+                    <span class="stat-value">{{ formatDuration(sessionStats.avgSessionDuration || metrics.avgSessionDuration) }}</span>
+                    @if (showComparison) {
+                      <span [class]="'stat-trend ' + formatTrend(trends.avgSessionDuration).cssClass">{{ formatTrend(trends.avgSessionDuration).label }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon indigo"><i class="pi pi-copy"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Pages / Session</span><span class="stat-value">{{ (sessionStats.avgPagesPerSession || metrics.avgPagesPerSession || 0) | number:'1.1-1' }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon green"><i class="pi pi-user-plus"></i></div>
+                  <div class="stat-body"><span class="stat-label">New Visitors</span><span class="stat-value">{{ metrics.newVsReturning.new | number }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon purple"><i class="pi pi-refresh"></i></div>
+                  <div class="stat-body"><span class="stat-label">Returning Visitors</span><span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon orange"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Time on Page</span><span class="stat-value">{{ formatDuration(metrics.avgTimeOnPage ?? 0) }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon teal"><i class="pi pi-arrow-down"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Scroll Depth</span><span class="stat-value">{{ (metrics.avgScrollDepth ?? 0) | number:'1.0-0' }}%</span></div>
                 </div>
               </div>
-            } @else if (loadingStates.entryExit) {
-              <div class="table-skeleton">
-                @for (i of [1,2,3,4,5]; track i) {
-                  <div class="table-skeleton-row">
-                    <p-skeleton width="70%" height="1rem"></p-skeleton>
-                    <p-skeleton width="15%" height="1rem"></p-skeleton>
-                    <p-skeleton width="15%" height="1rem"></p-skeleton>
-                  </div>
-                }
-              </div>
-            } @else {
-              <p-table [value]="exitPages" styleClass="p-datatable-sm">
-                <ng-template #header>
-                  <tr>
-                    <th>Page</th>
-                    <th class="col-num">Exits</th>
-                    <th class="col-num">Exit Rate</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-page>
-                  <tr>
-                    <td class="page-cell">
-                      <div class="page-path">{{ page.path }}</div>
-                    </td>
-                    <td class="col-num">{{ page.exits | number }}</td>
-                    <td class="col-num">
-                      <span [class]="'exit-rate ' + (page.exitRate > 70 ? 'high' : page.exitRate > 40 ? 'medium' : 'low')">
-                        {{ page.exitRate | number:'1.0-0' }}%
-                      </span>
-                    </td>
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr>
-                    <td colspan="3" class="no-data-row">
-                      <div style="text-align: center; padding: 1.5rem;">
-                        <i class="pi pi-sign-out" style="font-size: 2rem; color: #ffc9d2; margin-bottom: 0.5rem;"></i>
-                        <div style="font-size: 0.875rem; color: #64748b;">
-                          No exit pages tracked yet
-                        </div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
-                          Track <code style="background: #fff0f3; padding: 2px 6px; border-radius: 3px;">page_view</code> events to see where users leave
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
             }
           </div>
         </div>
 
-        <!-- Traffic Sources Row -->
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════
+         TAB 2 — ACQUISITION
+         Traffic Sources · UTM Campaigns · Entry Pages · Exit Pages
+    ══════════════════════════════════════════ -->
+    @if (activeTab === 'acquisition') {
+      <div class="metrics-grid">
+
         <div class="tables-row">
-          <!-- Traffic Sources -->
+
           <div class="data-card theme-amber" [class.locked-section]="!hasFeature('utm_attribution')">
             <div class="card-header">
-              <h3>
-                Traffic Sources
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Where your visitors come from: Direct (typed URL), Referral (other sites), Search (Google/Bing), Social (Twitter/FB). Focus marketing on top sources."
-                   tooltipPosition="top"></i>
+              <h3>Traffic Sources
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Where visitors come from: Direct, Referral, Search, Social. Focus marketing on top sources."
+                   tooltipPosition="top"></button>
               </h3>
               @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -588,7 +560,7 @@
                   <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>Traffic Sources</h4>
-                  <p>UTM attribution &amp; traffic sources require Pro. Upgrade to unlock.</p>
+                  <p>UTM attribution & traffic sources require Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
@@ -602,13 +574,9 @@
                 }
               </div>
             } @else {
-              <p-table [value]="trafficSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+              <p-table [value]="trafficSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
                 <ng-template #header>
-                  <tr>
-                    <th>Source</th>
-                    <th class="col-num">Visits</th>
-                    <th class="col-num">%</th>
-                  </tr>
+                  <tr><th>Source</th><th class="col-num">Visits</th><th class="col-num">%</th></tr>
                 </ng-template>
                 <ng-template #body let-src>
                   <tr>
@@ -624,14 +592,12 @@
             }
           </div>
 
-          <!-- UTM Campaigns -->
           <div class="data-card theme-orange" [class.locked-section]="!hasFeature('utm_attribution')">
             <div class="card-header">
-              <h3>
-                UTM Campaigns
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Track marketing campaigns using UTM parameters (utm_source, utm_medium, utm_campaign). Measure ROI of ads, emails, and social posts."
-                   tooltipPosition="top"></i>
+              <h3>UTM Campaigns
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Track marketing campaigns using UTM parameters. Measure ROI of ads, emails, and social posts."
+                   tooltipPosition="top"></button>
               </h3>
               @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
@@ -643,7 +609,7 @@
                   <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>UTM Campaigns</h4>
-                  <p>UTM campaign tracking requires Pro. Upgrade to unlock.</p>
+                  <p>UTM campaign tracking requires Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
@@ -657,14 +623,9 @@
                 }
               </div>
             } @else {
-              <p-table [value]="utmSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+              <p-table [value]="utmSources" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
                 <ng-template #header>
-                  <tr>
-                    <th>Source</th>
-                    <th>Campaign</th>
-                    <th>Medium</th>
-                    <th class="col-num">Visits</th>
-                  </tr>
+                  <tr><th>Source</th><th>Campaign</th><th>Medium</th><th class="col-num">Visits</th></tr>
                 </ng-template>
                 <ng-template #body let-utm>
                   <tr>
@@ -682,128 +643,327 @@
           </div>
         </div>
 
-        <!-- Browser & OS Row -->
-        <div class="tables-row">
-          <!-- Browser Breakdown -->
-          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
+        <!-- Attribution Model -->
+        <div class="data-card theme-violet" [class.locked-section]="!hasFeature('utm_attribution')">
+          <div class="card-header">
+            <h3>Attribution Model
+              <button class="pi pi-info-circle section-info-icon"
+                 pTooltip="How credit is assigned to channels: First Touch = who brought them, Last Touch = who converted them, Linear = shared credit."
+                 tooltipPosition="top"></button>
+            </h3>
+            @if (hasFeature('utm_attribution') && loadingStates.attribution) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!hasFeature('utm_attribution')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Attribution Model</h4>
+                <p>Multi-touch attribution requires Pro.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else if (loadingStates.attribution) {
+            <div class="table-skeleton">
+              @for (item of [1,2,3,4,5]; track item) {
+                <div class="skeleton-row">
+                  <p-skeleton width="45%" height="1rem" styleClass="mb-1"></p-skeleton>
+                  <p-skeleton width="30%" height="0.875rem"></p-skeleton>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="attribution-tabs">
+              <button class="attr-tab" [class.active]="activeAttributionModel === 'firstTouch'" (click)="activeAttributionModel = 'firstTouch'">First Touch</button>
+              <button class="attr-tab" [class.active]="activeAttributionModel === 'lastTouch'"  (click)="activeAttributionModel = 'lastTouch'">Last Touch</button>
+              <button class="attr-tab" [class.active]="activeAttributionModel === 'linear'"     (click)="activeAttributionModel = 'linear'">Linear</button>
+            </div>
+            <div class="attribution-list">
+              @for (entry of attribution[activeAttributionModel]; track entry.source) {
+                <div class="attribution-row">
+                  <div class="attr-source">
+                    <span class="source-icon">
+                      @if (entry.source === 'Direct') { <i class="pi pi-home"></i> }
+                      @else if (entry.source === 'google') { <i class="pi pi-search"></i> }
+                      @else { <i class="pi pi-link"></i> }
+                    </span>
+                    <span class="source-name">{{ entry.source }}</span>
+                  </div>
+                  <div class="attr-bar-wrap">
+                    <div class="attr-bar" [style.width.%]="entry.percentage"></div>
+                  </div>
+                  <span class="attr-pct">{{ entry.percentage | number:'1.1-1' }}%</span>
+                  <span class="attr-val">{{ entry.value | number:'1.0-0' }}</span>
+                </div>
+              }
+              @if (!attribution[activeAttributionModel]?.length) {
+                <p class="no-data-row">No attribution data yet</p>
+              }
+            </div>
+            <div class="attribution-footer">
+              <span>{{ attribution.totalSessions | number }} total sessions analysed</span>
+            </div>
+          }
+        </div>
+
+        <div class="data-row">
+
+          <div class="data-card theme-emerald" [class.locked-section]="!hasFeature('page_exit')">
             <div class="card-header">
-              <h3>
-                Browsers
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Browser usage breakdown. Test your site on popular browsers. Safari dominance = many iOS users. Chrome dominance = general audience."
-                   tooltipPosition="top"></i>
+              <h3>Top Entry Pages
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="First pages users land on. Optimize for strong first impressions and clear CTAs."
+                   tooltipPosition="top"></button>
               </h3>
-              @if (hasFeature('client_hints') && loadingStates.browsers) {
+              @if (hasFeature('page_exit') && loadingStates.entryExit) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (!hasFeature('client_hints')) {
+            @if (!hasFeature('page_exit')) {
               <div class="locked-overlay">
                 <div class="locked-content">
-                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
-                  <h4>Browsers</h4>
-                  <p>Browser &amp; OS detection requires client hints. Upgrade to Enterprise.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  <h4>Top Entry Pages</h4>
+                  <p>Entry & exit page tracking requires Pro.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
-            } @else if (loadingStates.browsers) {
+            } @else if (loadingStates.entryExit) {
               <div class="table-skeleton">
-                @for (item of [1,2,3,4]; track item) {
-                  <div class="skeleton-row">
-                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
-                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                @for (i of [1,2,3,4,5]; track i) {
+                  <div class="table-skeleton-row">
+                    <p-skeleton width="70%" height="1rem"></p-skeleton>
+                    <p-skeleton width="15%" height="1rem"></p-skeleton>
                   </div>
                 }
               </div>
             } @else {
-              <p-table [value]="browsers" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+              <p-table [value]="entryPages" styleClass="p-datatable-sm">
                 <ng-template #header>
-                  <tr>
-                    <th>Browser</th>
-                    <th class="col-bar">Share</th>
-                    <th class="col-num">%</th>
-                  </tr>
+                  <tr><th>Page</th><th class="col-num">Entrances</th><th class="col-num">%</th></tr>
                 </ng-template>
-                <ng-template #body let-browser>
+                <ng-template #body let-page>
                   <tr>
-                    <td>{{ browser.name }}</td>
-                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="browser.percentage"></div></div></td>
-                    <td class="col-num">{{ browser.percentage | number:'1.0-0' }}%</td>
+                    <td class="page-cell"><div class="page-path">{{ page.path }}</div></td>
+                    <td class="col-num">{{ page.entrances | number }}</td>
+                    <td class="col-num">{{ page.percentage | number:'1.1-1' }}%</td>
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
-                  <tr><td colspan="3" class="no-data-row">No browser data yet</td></tr>
+                  <tr><td colspan="3" class="no-data-row">No entry pages tracked yet</td></tr>
                 </ng-template>
               </p-table>
             }
           </div>
 
-          <!-- OS Breakdown -->
-          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
+          <div class="data-card theme-rose" [class.locked-section]="!hasFeature('page_exit')">
             <div class="card-header">
-              <h3>
-                Operating Systems
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="OS distribution of your visitors. High Windows = enterprise users. High MacOS/iOS = premium audience. Android = developing markets."
-                   tooltipPosition="top"></i>
+              <h3>Top Exit Pages
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Last pages users visit before leaving. High exit rates may indicate dead ends or completed conversions."
+                   tooltipPosition="top"></button>
               </h3>
-              @if (hasFeature('client_hints') && loadingStates.browsers) {
+              @if (hasFeature('page_exit') && loadingStates.entryExit) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-            @if (!hasFeature('client_hints')) {
+            @if (!hasFeature('page_exit')) {
               <div class="locked-overlay">
                 <div class="locked-content">
-                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
-                  <h4>Operating Systems</h4>
-                  <p>OS detection via client hints requires Enterprise. Upgrade to unlock.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  <h4>Top Exit Pages</h4>
+                  <p>Entry & exit page tracking requires Pro.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
-            } @else if (loadingStates.browsers) {
+            } @else if (loadingStates.entryExit) {
               <div class="table-skeleton">
-                @for (item of [1,2,3,4]; track item) {
-                  <div class="skeleton-row">
-                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
-                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                @for (i of [1,2,3,4,5]; track i) {
+                  <div class="table-skeleton-row">
+                    <p-skeleton width="70%" height="1rem"></p-skeleton>
+                    <p-skeleton width="15%" height="1rem"></p-skeleton>
+                    <p-skeleton width="15%" height="1rem"></p-skeleton>
                   </div>
                 }
               </div>
             } @else {
-              <p-table [value]="operatingSystems" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 25, 50]" styleClass="p-datatable-sm">
+              <p-table [value]="exitPages" styleClass="p-datatable-sm">
                 <ng-template #header>
-                  <tr>
-                    <th>OS</th>
-                    <th class="col-bar">Share</th>
-                    <th class="col-num">%</th>
-                  </tr>
+                  <tr><th>Page</th><th class="col-num">Exits</th><th class="col-num">Exit Rate</th></tr>
                 </ng-template>
-                <ng-template #body let-os>
+                <ng-template #body let-page>
                   <tr>
-                    <td>{{ os.name }}</td>
-                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="os.percentage"></div></div></td>
-                    <td class="col-num">{{ os.percentage | number:'1.0-0' }}%</td>
+                    <td class="page-cell"><div class="page-path">{{ page.path }}</div></td>
+                    <td class="col-num">{{ page.exits | number }}</td>
+                    <td class="col-num">
+                      <span [class]="'exit-rate ' + (page.exitRate > 70 ? 'high' : page.exitRate > 40 ? 'medium' : 'low')">
+                        {{ page.exitRate | number:'1.0-0' }}%
+                      </span>
+                    </td>
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
-                  <tr><td colspan="3" class="no-data-row">No OS data yet</td></tr>
+                  <tr><td colspan="3" class="no-data-row">No exit pages tracked yet</td></tr>
                 </ng-template>
               </p-table>
             }
           </div>
         </div>
 
-        <!-- Clicks & Custom Events Row -->
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════
+         TAB 3 — BEHAVIOUR
+         Top Clicks · Custom Events · Form Interactions · Tooltip Insights
+    ══════════════════════════════════════════ -->
+    @if (activeTab === 'behaviour') {
+      <div class="metrics-grid">
+
+        <!-- ── Cohort Retention ─────────────────────────────────────────── -->
+        <div class="chart-card theme-indigo full-width-card" [class.locked-section]="!isPlanAtLeast('pro')">
+          <div class="card-header">
+            <h3>Cohort Retention
+              <button class="pi pi-info-circle section-info-icon"
+                 pTooltip="Weekly cohorts show what % of users who first visited in that week came back in weeks +1 to +4. Higher % = stronger product stickiness."
+                 tooltipPosition="top"></button>
+            </h3>
+            <span class="card-subtitle">Weekly user return rates — measure product stickiness</span>
+            @if (loadingStates.cohortRetention) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!isPlanAtLeast('pro')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-pro"><i class="pi pi-crown"></i> Pro Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Cohort Retention</h4>
+                <p>Cohort analysis requires Pro or Enterprise.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else if (loadingStates.cohortRetention) {
+            @for (i of [1,2,3,4,5]; track i) {
+              <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+            }
+          } @else if (!cohortRetention.length) {
+            <div class="no-data-row">Not enough data yet — cohorts need at least 2 weeks of returning users</div>
+          } @else {
+            <div class="cohort-table-wrap">
+              <table class="cohort-table">
+                <thead>
+                  <tr>
+                    <th class="cohort-week-col">Cohort</th>
+                    <th class="cohort-total-col">Users</th>
+                    <th class="cohort-cell-col">Week 0</th>
+                    <th class="cohort-cell-col">Week 1</th>
+                    <th class="cohort-cell-col">Week 2</th>
+                    <th class="cohort-cell-col">Week 3</th>
+                    <th class="cohort-cell-col">Week 4</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of cohortRetention; track row.week) {
+                    <tr>
+                      <td class="cohort-week-col">{{ row.label }}</td>
+                      <td class="cohort-total-col text-muted">{{ row.total | number }}</td>
+                      <td class="cohort-cell cohort-base" pTooltip="Week 0: 100% (all new users)" tooltipPosition="top">100%</td>
+                      <td [class]="'cohort-cell ' + cohortCellClass(row.w1)"
+                          [pTooltip]="'Week 1: ' + row.w1 + '% returned'" tooltipPosition="top">
+                        {{ row.w1 | number:'1.1-1' }}%
+                      </td>
+                      <td [class]="'cohort-cell ' + cohortCellClass(row.w2)"
+                          [pTooltip]="'Week 2: ' + row.w2 + '% returned'" tooltipPosition="top">
+                        {{ row.w2 | number:'1.1-1' }}%
+                      </td>
+                      <td [class]="'cohort-cell ' + cohortCellClass(row.w3)"
+                          [pTooltip]="'Week 3: ' + row.w3 + '% returned'" tooltipPosition="top">
+                        {{ row.w3 | number:'1.1-1' }}%
+                      </td>
+                      <td [class]="'cohort-cell ' + cohortCellClass(row.w4)"
+                          [pTooltip]="'Week 4: ' + row.w4 + '% returned'" tooltipPosition="top">
+                        {{ row.w4 | number:'1.1-1' }}%
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              <div class="cohort-legend">
+                <span class="cohort-legend-item"><span class="cohort-swatch cohort-high"></span>≥ 40%</span>
+                <span class="cohort-legend-item"><span class="cohort-swatch cohort-mid"></span>25–40%</span>
+                <span class="cohort-legend-item"><span class="cohort-swatch cohort-low"></span>10–25%</span>
+                <span class="cohort-legend-item"><span class="cohort-swatch cohort-none"></span>&lt; 10%</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- ── User Paths ───────────────────────────────────────────────── -->
+        <div class="chart-card theme-sky full-width-card" [class.locked-section]="!isPlanAtLeast('pro')">
+          <div class="card-header">
+            <h3>User Paths
+              <button class="pi pi-info-circle section-info-icon"
+                 pTooltip="Top page-to-page navigation flows from real sessions. Shows how users actually move through your site."
+                 tooltipPosition="top"></button>
+            </h3>
+            <span class="card-subtitle">
+              Most common navigation flows
+              @if (userPathsTotalSessions) {
+                <span class="text-muted" style="margin-left:0.5rem;">from {{ userPathsTotalSessions | number }} sessions</span>
+              }
+            </span>
+            @if (loadingStates.userPaths) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!isPlanAtLeast('pro')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-pro"><i class="pi pi-crown"></i> Pro Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>User Paths</h4>
+                <p>Session journey analysis requires Pro or Enterprise.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else if (loadingStates.userPaths) {
+            @for (i of [1,2,3,4,5,6]; track i) {
+              <p-skeleton height="2.2rem" styleClass="mb-2"></p-skeleton>
+            }
+          } @else if (!userPaths.length) {
+            <div class="no-data-row">No multi-page sessions yet — users need to visit at least 2 pages per session</div>
+          } @else {
+            <div class="user-paths-list">
+              @for (path of userPaths; track path.from + path.to) {
+                <div class="user-path-row">
+                  <div class="path-nodes">
+                    <span class="path-node path-from" [pTooltip]="path.from" tooltipPosition="top">{{ path.from }}</span>
+                    <span class="path-arrow"><i class="pi pi-arrow-right"></i></span>
+                    <span class="path-node path-to" [pTooltip]="path.to" tooltipPosition="top">{{ path.to }}</span>
+                  </div>
+                  <div class="path-bar-wrap">
+                    <div class="path-bar" [style.width.%]="(path.count / maxPathCount) * 100"></div>
+                  </div>
+                  <div class="path-count">{{ path.count | number }}</div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
         <div class="tables-row">
+
           <div class="chart-card theme-rose">
             <div class="card-header">
-              <h3>
-                Top Clicks
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Most clicked elements on your site. Identify popular CTAs, navigation patterns, and user engagement hotspots. Optimize high-click elements."
-                   tooltipPosition="top"></i>
+              <h3>Top Clicks
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Most clicked elements. Identify popular CTAs, navigation patterns, and engagement hotspots."
+                   tooltipPosition="top"></button>
               </h3>
               <span class="card-subtitle">Most clicked elements</span>
               @if (loadingStates.clicks) {
@@ -815,23 +975,11 @@
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
             } @else {
-              <p-table
-                [value]="topClicks"
-                [paginator]="true"
-                [rows]="topClicksRows"
-                [totalRecords]="topClicksTotal"
-                [rowsPerPageOptions]="[10, 25, 50]"
-                [lazy]="true"
-                [first]="(topClicksPage - 1) * topClicksRows"
-                (onPage)="onTopClicksChange($event)"
-                styleClass="p-datatable-sm"
-                [loading]="loadingStates.clicks">
+              <p-table [value]="topClicks" [paginator]="true" [rows]="topClicksRows" [totalRecords]="topClicksTotal"
+                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(topClicksPage-1)*topClicksRows"
+                (onPage)="onTopClicksChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.clicks">
                 <ng-template #header>
-                  <tr>
-                    <th>Label</th>
-                    <th>Type</th>
-                    <th class="col-num">Count</th>
-                  </tr>
+                  <tr><th>Label</th><th>Type</th><th class="col-num">Count</th></tr>
                 </ng-template>
                 <ng-template #body let-click>
                   <tr>
@@ -849,11 +997,10 @@
 
           <div class="chart-card theme-emerald">
             <div class="card-header">
-              <h3>
-                Custom Events
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Track custom actions like button clicks, video plays, downloads, purchases. Use PulzivoAnalytics('event', 'name', data) to track business-critical actions."
-                   tooltipPosition="top"></i>
+              <h3>Custom Events
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Track custom actions like purchases, video plays, downloads. Use PulzivoAnalytics('event', 'name', data)."
+                   tooltipPosition="top"></button>
               </h3>
               <span class="card-subtitle">Application events fired</span>
               @if (loadingStates.customEvents) {
@@ -865,29 +1012,17 @@
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
             } @else {
-              <p-table
-                [value]="customEvents"
-                [paginator]="true"
-                [rows]="customEventsRows"
-                [totalRecords]="customEventsTotal"
-                [rowsPerPageOptions]="[10, 25, 50]"
-                [lazy]="true"
-                [first]="(customEventsPage - 1) * customEventsRows"
-                (onPage)="onCustomEventsChange($event)"
-                styleClass="p-datatable-sm"
-                [loading]="loadingStates.customEvents">
+              <p-table [value]="customEvents" [paginator]="true" [rows]="customEventsRows" [totalRecords]="customEventsTotal"
+                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(customEventsPage-1)*customEventsRows"
+                (onPage)="onCustomEventsChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.customEvents">
                 <ng-template #header>
-                  <tr>
-                    <th>Event Name</th>
-                    <th>Last Seen</th>
-                    <th class="col-num">Count</th>
-                  </tr>
+                  <tr><th>Event Name</th><th>Last Seen</th><th class="col-num">Count</th></tr>
                 </ng-template>
                 <ng-template #body let-ev>
                   <tr [class.auth-event]="isAuthEvent(ev.name)">
                     <td class="truncate">
                       @if (isAuthEvent(ev.name)) {
-                        <i [class]="getEventIcon(ev.name)" style="margin-right: 6px; color: #8b5cf6;"></i>
+                        <i [class]="getEventIcon(ev.name)" style="margin-right:6px;color:#8b5cf6;"></i>
                       }
                       <strong [style.color]="isAuthEvent(ev.name) ? '#8b5cf6' : 'inherit'">{{ ev.name }}</strong>
                     </td>
@@ -903,107 +1038,52 @@
           </div>
         </div>
 
-        <!-- Form Interactions + Tooltip Insights Row -->
         <div class="tables-row">
-          <!-- Form Interactions -->
+
           <div class="chart-card theme-teal" [class.locked-section]="!hasFeature('form_tracking')">
             <div class="card-header">
-              <h3>
-                Form Interactions
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Monitor form performance: submissions, abandons, conversion rates, completion times. Low conversion = form friction. High abandonment = simplify your form."
-                   tooltipPosition="top"></i>
+              <h3>Form Interactions
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Monitor form performance: submissions, abandons, conversion rates, completion times."
+                   tooltipPosition="top"></button>
               </h3>
-              <span class="card-subtitle">Track form submissions &amp; abandonment</span>
+              <span class="card-subtitle">Track form submissions & abandonment</span>
               @if (hasFeature('form_tracking') && loadingStates.formInteractions) {
                 <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
               }
             </div>
-
             @if (!hasFeature('form_tracking')) {
               <div class="locked-overlay">
                 <div class="locked-content">
                   <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>Form Interactions</h4>
-                  <p>Form tracking &amp; funnel analytics require Enterprise. Upgrade to unlock.</p>
+                  <p>Form tracking requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
-            } @else {
-            <!-- Product Owner Insights -->
-            @if (!loadingStates.formInteractions && formInteractions.length > 0) {
-              <div class="insights-banner">
-                <i class="pi pi-lightbulb"></i>
-                <div class="insights-content">
-                  <strong>How to use this data:</strong>
-                  <ul>
-                    <li><strong>Low Conversion (&lt;50%)?</strong> Your form may be too long, confusing, or asking for too much info</li>
-                    <li><strong>High Abandonment?</strong> Check which fields users drop off at - simplify or remove unnecessary fields</li>
-                    <li><strong>Long Avg Time (&gt;60s)?</strong> Users are struggling - consider better labels, validation, or autofill</li>
-                    <li><strong>Compare forms:</strong> A/B test different form lengths to find optimal conversion rates</li>
-                  </ul>
-                </div>
-              </div>
-            }
-
-            @if (loadingStates.formInteractions) {
+            } @else if (loadingStates.formInteractions) {
               @for (i of [1,2,3,4,5]; track i) {
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
             } @else {
-              <p-table
-                [value]="formInteractions"
-                [paginator]="true"
-                [rows]="formInteractionsRows"
-                [totalRecords]="formInteractionsTotal"
-                [rowsPerPageOptions]="[10, 25, 50]"
-                [lazy]="true"
-                [first]="(formInteractionsPage - 1) * formInteractionsRows"
-                (onPage)="onFormInteractionsChange($event)"
-                styleClass="p-datatable-sm"
-                [loading]="loadingStates.formInteractions">
+              <p-table [value]="formInteractions" [paginator]="true" [rows]="formInteractionsRows" [totalRecords]="formInteractionsTotal"
+                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(formInteractionsPage-1)*formInteractionsRows"
+                (onPage)="onFormInteractionsChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.formInteractions">
                 <ng-template #header>
                   <tr>
                     <th>Form ID</th>
-                    <th class="col-num">
-                      Submissions
-                      <i class="pi pi-info-circle info-icon" 
-                         pTooltip="Total successful form submissions. Higher is better."
-                         tooltipPosition="top"></i>
-                    </th>
-                    <th class="col-num">
-                      Abandons
-                      <i class="pi pi-info-circle info-icon" 
-                         pTooltip="Users who started but didn't submit. Lower is better - high abandonment means friction in your form."
-                         tooltipPosition="top"></i>
-                    </th>
-                    <th class="col-num">
-                      Conv. Rate
-                      <i class="pi pi-info-circle info-icon" 
-                         pTooltip="(Submissions ÷ Starts) × 100. Industry average is 50-70%. Below 50% = needs improvement."
-                         tooltipPosition="top"></i>
-                    </th>
-                    <th class="col-num">
-                      Avg Time
-                      <i class="pi pi-info-circle info-icon" 
-                         pTooltip="Average seconds to complete. Longer times may indicate confusion or complexity. Optimize for &lt;30s for simple forms."
-                         tooltipPosition="top"></i>
-                    </th>
+                    <th class="col-num">Submissions</th>
+                    <th class="col-num">Abandons</th>
+                    <th class="col-num">Conv. Rate</th>
+                    <th class="col-num">Avg Time</th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-form>
                   <tr>
-                    <td class="truncate">
-                      <i class="pi pi-file-edit" style="margin-right: 6px; color: #14b8a6;"></i>
-                      <strong>{{ form.formId }}</strong>
-                    </td>
-                    <td class="col-num">
-                      <span class="metric-badge success">{{ form.submissions | number }}</span>
-                    </td>
-                    <td class="col-num">
-                      <span class="metric-badge warning">{{ form.abandons | number }}</span>
-                    </td>
+                    <td class="truncate"><i class="pi pi-file-edit" style="margin-right:6px;color:#14b8a6;"></i><strong>{{ form.formId }}</strong></td>
+                    <td class="col-num"><span class="metric-badge success">{{ form.submissions | number }}</span></td>
+                    <td class="col-num"><span class="metric-badge warning">{{ form.abandons | number }}</span></td>
                     <td class="col-num">
                       <span [class]="form.conversionRate >= 70 ? 'conversion-good' : form.conversionRate >= 50 ? 'conversion-ok' : 'conversion-poor'">
                         {{ form.conversionRate | number:'1.1-1' }}%
@@ -1013,40 +1093,18 @@
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
-                  <tr>
-                    <td colspan="5" class="no-data-row">
-                      <div style="text-align: center; padding: 2rem;">
-                        <i class="pi pi-inbox" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-                        <div style="font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">
-                          No form interactions tracked yet
-                        </div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 1rem;">
-                          Start tracking form events to see submission rates, abandonment, and completion times
-                        </div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; background: #f8fafc; padding: 0.75rem; border-radius: 6px; text-align: left; max-width: 500px; margin: 0 auto;">
-                          <strong style="color: #64748b;">Track these events:</strong><br>
-                          • <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem;">form_start</code> - When user begins filling form<br>
-                          • <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem;">form_submit</code> - When user submits form<br>
-                          • <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem;">form_abandon</code> - When user leaves without submitting<br>
-                          • <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 3px; font-size: 0.7rem;">form_field_interaction</code> - Field focus/blur events
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
+                  <tr><td colspan="5" class="no-data-row">No form interactions tracked yet</td></tr>
                 </ng-template>
               </p-table>
             }
-            }
           </div>
 
-          <!-- Tooltip Insights -->
           <div class="chart-card theme-violet" [class.locked-section]="!hasFeature('custom_dimensions')">
             <div class="card-header">
-              <h3>
-                Tooltip Insights
-                <i class="pi pi-info-circle section-info-icon"
-                   pTooltip="Shows which help icons and tooltips your users view the most. High views on a section = users are confused there. Use this to simplify your UI."
-                   tooltipPosition="top"></i>
+              <h3>Tooltip Insights
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Which help icons users view the most. High views = users confused there. Use this to simplify your UI."
+                   tooltipPosition="top"></button>
               </h3>
               <span class="card-subtitle">Which sections users need help with</span>
               @if (hasFeature('custom_dimensions') && loadingStates.tooltipInsights) {
@@ -1059,7 +1117,7 @@
                   <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>Tooltip Insights</h4>
-                  <p>Tooltip &amp; UX confusion tracking require Enterprise. Upgrade to unlock.</p>
+                  <p>Tooltip & UX confusion tracking require Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
@@ -1068,86 +1126,191 @@
                 <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
               }
             } @else {
-              <p-table
-                [value]="tooltipInsights"
-                [paginator]="true"
-                [rows]="tooltipInsightsRows"
-                [totalRecords]="tooltipInsightsTotal"
-                [rowsPerPageOptions]="[10, 25, 50]"
-                [lazy]="true"
-                [first]="(tooltipInsightsPage - 1) * tooltipInsightsRows"
-                (onPage)="onTooltipInsightsChange($event)"
-                styleClass="p-datatable-sm"
-                [loading]="loadingStates.tooltipInsights">
+              <p-table [value]="tooltipInsights" [paginator]="true" [rows]="tooltipInsightsRows" [totalRecords]="tooltipInsightsTotal"
+                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(tooltipInsightsPage-1)*tooltipInsightsRows"
+                (onPage)="onTooltipInsightsChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.tooltipInsights">
                 <ng-template #header>
-                  <tr>
-                    <th>Section</th>
-                    <th class="col-num">
-                      Hovers
-                      <i class="pi pi-info-circle info-icon"
-                         pTooltip="Number of times users hovered over this tooltip"
-                         tooltipPosition="top"></i>
-                    </th>
-                    <th class="col-num">
-                      Clicks
-                      <i class="pi pi-info-circle info-icon"
-                         pTooltip="Number of times users clicked the info icon"
-                         tooltipPosition="top"></i>
-                    </th>
-                    <th class="col-num">Total</th>
-                  </tr>
+                  <tr><th>Section</th><th class="col-num">Hovers</th><th class="col-num">Clicks</th><th class="col-num">Total</th></tr>
                 </ng-template>
                 <ng-template #body let-tip>
                   <tr>
                     <td>
                       <div class="tooltip-section-name">
-                        <i class="pi pi-question-circle" style="color: #8b5cf6; margin-right: 6px;"></i>
+                        <i class="pi pi-question-circle" style="color:#8b5cf6;margin-right:6px;"></i>
                         <strong>{{ tip.section | titlecase }}</strong>
                       </div>
                       @if (tip.tooltip_text) {
-                        <div class="text-muted text-xs" style="padding-left: 22px;">{{ tip.tooltip_text | slice:0:60 }}{{ tip.tooltip_text.length > 60 ? '…' : '' }}</div>
+                        <div class="text-muted text-xs" style="padding-left:22px;">{{ tip.tooltip_text | slice:0:60 }}{{ tip.tooltip_text.length > 60 ? '…' : '' }}</div>
                       }
                     </td>
-                    <td class="col-num">
-                      <span class="metric-badge info">{{ tip.views | number }}</span>
-                    </td>
-                    <td class="col-num">
-                      <span class="metric-badge warning">{{ tip.clicks | number }}</span>
-                    </td>
-                    <td class="col-num">
-                      <strong>{{ tip.total_interactions | number }}</strong>
-                    </td>
+                    <td class="col-num"><span class="metric-badge info">{{ tip.views | number }}</span></td>
+                    <td class="col-num"><span class="metric-badge warning">{{ tip.clicks | number }}</span></td>
+                    <td class="col-num"><strong>{{ tip.total_interactions | number }}</strong></td>
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
-                  <tr>
-                    <td colspan="4" class="no-data-row">
-                      <div style="text-align: center; padding: 2rem;">
-                        <i class="pi pi-info-circle" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-                        <div style="font-size: 1rem; font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">
-                          No tooltip views tracked yet
-                        </div>
-                        <div style="font-size: 0.875rem; color: #94a3b8;">
-                          Enterprise plan auto-tracks when users hover or click your <code style="background:#f1f5f9; padding: 2px 6px; border-radius: 3px;">data-tooltip</code> elements
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
+                  <tr><td colspan="4" class="no-data-row">No tooltip views tracked yet</td></tr>
                 </ng-template>
               </p-table>
             }
           </div>
         </div>
 
-        <!-- Core Web Vitals Row -->
+        <!-- ── Error Tracking + Rage/Dead Clicks ─────────────────────────── -->
+        <div class="tables-row">
+
+          <!-- Error Tracking -->
+          <div class="chart-card theme-rose" [class.locked-section]="!hasFeature('error_tracking')">
+            <div class="card-header">
+              <h3>Error Tracking
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="JS errors captured automatically. High count = broken UX for real users. Click a type to see affected pages."
+                   tooltipPosition="top"></button>
+              </h3>
+              <span class="card-subtitle">JavaScript errors & exceptions</span>
+              @if (hasFeature('error_tracking') && loadingStates.errorTracking) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (!hasFeature('error_tracking')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Error Tracking</h4>
+                  <p>JS error capture requires Enterprise.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.errorTracking) {
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+              }
+            } @else if (!errorTracking.length) {
+              <div class="no-data-row">No JS errors recorded — your site is clean! 🎉</div>
+            } @else {
+              <div class="error-list">
+                @for (err of errorTracking; track err.type + err.message) {
+                  <div class="error-row">
+                    <div class="error-header-row">
+                      <span class="error-type-badge" [class]="'err-' + err.type.toLowerCase()">{{ err.type }}</span>
+                      <span class="error-meta">
+                        <span class="error-users"><i class="pi pi-user"></i> {{ err.affectedUsers }}</span>
+                        <span class="error-time text-muted">{{ getTimeAgo(err.lastSeen) }}</span>
+                      </span>
+                    </div>
+                    <div class="error-message">{{ err.message }}</div>
+                    <div class="error-bar-row">
+                      <div class="error-bar-wrap">
+                        <div class="error-bar" [style.width.%]="(err.count / errorTracking[0].count) * 100"></div>
+                      </div>
+                      <span class="error-count">{{ err.count | number }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Rage & Dead Clicks -->
+          <div class="chart-card theme-amber" [class.locked-section]="!hasFeature('rage_clicks') && !hasFeature('dead_clicks')">
+            <div class="card-header">
+              <h3>Rage & Dead Clicks
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Rage clicks = frustrated rapid clicks. Dead clicks = clicks on non-interactive elements. Both signal UX friction."
+                   tooltipPosition="top"></button>
+              </h3>
+              <span class="card-subtitle">UX frustration signals</span>
+              @if ((hasFeature('rage_clicks') || hasFeature('dead_clicks')) && loadingStates.rageDeadClicks) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (!hasFeature('rage_clicks') && !hasFeature('dead_clicks')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Rage & Dead Clicks</h4>
+                  <p>Frustration signal tracking requires Enterprise.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.rageDeadClicks) {
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+              }
+            } @else {
+              <!-- Tab switcher -->
+              <div class="rage-tabs">
+                <button [class.active]="activeRageTab === 'rage'" (click)="activeRageTab = 'rage'" class="rage-tab">
+                  <i class="pi pi-bolt"></i> Rage Clicks <span class="rage-badge">{{ rageClicks.length }}</span>
+                </button>
+                <button [class.active]="activeRageTab === 'dead'" (click)="activeRageTab = 'dead'" class="rage-tab">
+                  <i class="pi pi-times-circle"></i> Dead Clicks <span class="rage-badge">{{ deadClicks.length }}</span>
+                </button>
+              </div>
+              @if (activeRageTab === 'rage') {
+                @if (!rageClicks.length) {
+                  <div class="no-data-row">No rage clicks detected — great UX! 👍</div>
+                } @else {
+                  <div class="rage-list">
+                    @for (click of rageClicks; track click.element + click.label) {
+                      <div class="rage-row">
+                        <div class="rage-info">
+                          <span class="rage-element">{{ click.element }}@if (click.label) {<span class="rage-label">["{{ click.label }}"]</span>}</span>
+                          <span class="rage-page text-muted text-xs">{{ click.page }}</span>
+                        </div>
+                        <div class="rage-stats">
+                          @if (click.avgClicks) {
+                            <span class="rage-avg-badge" pTooltip="Avg clicks per rage event" tooltipPosition="top">×{{ click.avgClicks }}</span>
+                          }
+                          <span class="rage-count">{{ click.count | number }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                @if (!deadClicks.length) {
+                  <div class="no-data-row">No dead clicks detected</div>
+                } @else {
+                  <div class="rage-list">
+                    @for (click of deadClicks; track click.element + click.label) {
+                      <div class="rage-row">
+                        <div class="rage-info">
+                          <span class="rage-element">{{ click.element }}@if (click.label) {<span class="rage-label">["{{ click.label }}"]</span>}</span>
+                          <span class="rage-page text-muted text-xs">{{ click.page }}</span>
+                        </div>
+                        <div class="rage-stats">
+                          <span class="rage-count">{{ click.count | number }}</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            }
+          </div>
+
+        </div>
+
+      </div>
+    }
+
+    <!-- ══════════════════════════════════════════
+         TAB 4 — TECHNICAL
+         Core Web Vitals · Browsers · Operating Systems
+    ══════════════════════════════════════════ -->
+    @if (activeTab === 'technical') {
+      <div class="metrics-grid">
+
         <div class="vitals-row">
           <div class="chart-card vitals-card" [class.locked-section]="!hasFeature('web_vitals')">
             <div class="card-header">
-              <h3>
-                Core Web Vitals
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="Google's performance metrics affecting SEO rankings. LCP (load speed), FID (interactivity), CLS (visual stability). Green = good, Yellow = needs improvement, Red = poor."
-                   tooltipPosition="top"></i>
+              <h3>Core Web Vitals
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Google's performance metrics affecting SEO. LCP (load speed), FID (interactivity), CLS (visual stability)."
+                   tooltipPosition="top"></button>
               </h3>
               <span class="card-subtitle">Google performance signals</span>
               @if (hasFeature('web_vitals') && loadingStates.webVitals) {
@@ -1160,7 +1323,7 @@
                   <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
                   <h4>Core Web Vitals</h4>
-                  <p>Performance metrics (LCP, FID, CLS) require Enterprise. Upgrade to unlock.</p>
+                  <p>Performance metrics (LCP, FID, CLS) require Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
@@ -1176,15 +1339,10 @@
               </div>
             } @else {
               <div class="vitals-grid">
-                <!-- LCP -->
                 <div class="vital-item" [class]="'vital-' + webVitals.LCP.rating">
                   <div class="vital-circle">
                     <span class="vital-value">
-                      @if (webVitals.LCP.avg !== null) {
-                        {{ (webVitals.LCP.avg / 1000) | number:'1.1-1' }}s
-                      } @else {
-                        —
-                      }
+                      @if (webVitals.LCP.avg !== null) { {{ (webVitals.LCP.avg / 1000) | number:'1.1-1' }}s } @else { — }
                     </span>
                   </div>
                   <div class="vital-info">
@@ -1194,16 +1352,10 @@
                     <span class="vital-threshold">&lt; 2.5s is good</span>
                   </div>
                 </div>
-
-                <!-- FID -->
                 <div class="vital-item" [class]="'vital-' + webVitals.FID.rating">
                   <div class="vital-circle">
                     <span class="vital-value">
-                      @if (webVitals.FID.avg !== null) {
-                        {{ webVitals.FID.avg | number:'1.0-0' }}ms
-                      } @else {
-                        —
-                      }
+                      @if (webVitals.FID.avg !== null) { {{ webVitals.FID.avg | number:'1.0-0' }}ms } @else { — }
                     </span>
                   </div>
                   <div class="vital-info">
@@ -1213,16 +1365,10 @@
                     <span class="vital-threshold">&lt; 100ms is good</span>
                   </div>
                 </div>
-
-                <!-- CLS -->
                 <div class="vital-item" [class]="'vital-' + webVitals.CLS.rating">
                   <div class="vital-circle">
                     <span class="vital-value">
-                      @if (webVitals.CLS.avg !== null) {
-                        {{ webVitals.CLS.avg | number:'1.2-2' }}
-                      } @else {
-                        —
-                      }
+                      @if (webVitals.CLS.avg !== null) { {{ webVitals.CLS.avg | number:'1.2-2' }} } @else { — }
                     </span>
                   </div>
                   <div class="vital-info">
@@ -1235,88 +1381,196 @@
               </div>
             }
           </div>
+        </div>
 
-          <!-- Session Insights -->
-          <div class="chart-card session-card" [class.locked-section]="!hasFeature('sessions')">
+        <div class="tables-row">
+
+          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
             <div class="card-header">
-              <h3>
-                Session Insights
-                <i class="pi pi-info-circle section-info-icon" 
-                   pTooltip="User engagement metrics: avg session duration, pages per session, new vs returning visitors. Higher = more engagement and loyalty."
-                   tooltipPosition="top"></i>
+              <h3>Browsers
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Browser usage breakdown. Test your site on popular browsers."
+                   tooltipPosition="top"></button>
               </h3>
+              @if (hasFeature('client_hints') && loadingStates.browsers) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
             </div>
-            @if (!hasFeature('sessions')) {
+            @if (!hasFeature('client_hints')) {
               <div class="locked-overlay">
                 <div class="locked-content">
-                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
                   <i class="pi pi-lock lock-icon"></i>
-                  <h4>Session Insights</h4>
-                  <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  <h4>Browsers</h4>
+                  <p>Browser & OS detection requires Enterprise.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
-            } @else if (loadingStates.metrics) {
-              <div class="session-skeleton">
-                @for (item of [1,2,3]; track item) {
-                  <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>
+            } @else if (loadingStates.browsers) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  </div>
                 }
               </div>
             } @else {
-              <div class="session-stats">
-                <div class="session-stat">
-                  <div class="stat-icon blue"><i class="pi pi-clock"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">Avg Session Duration</span>
-                    <span class="stat-value">{{ metrics.avgSessionDuration | number:'1.0-0' }}s</span>
-                  </div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon green"><i class="pi pi-user-plus"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">New Visitors</span>
-                    <span class="stat-value">{{ metrics.newVsReturning.new | number }}</span>
-                  </div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon purple"><i class="pi pi-refresh"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">Returning Visitors</span>
-                    <span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span>
-                  </div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon orange"><i class="pi pi-clock"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">Avg Time on Page</span>
-                    <span class="stat-value">{{ formatDuration(metrics.avgTimeOnPage ?? 0) }}</span>
-                  </div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon teal"><i class="pi pi-arrow-down"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">Avg Scroll Depth</span>
-                    <span class="stat-value">{{ (metrics.avgScrollDepth ?? 0) | number:'1.0-0' }}%</span>
-                  </div>
+              <p-table [value]="browsers" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr><th>Browser</th><th class="col-bar">Share</th><th class="col-num">%</th></tr>
+                </ng-template>
+                <ng-template #body let-browser>
+                  <tr>
+                    <td>{{ browser.name }}</td>
+                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="browser.percentage"></div></div></td>
+                    <td class="col-num">{{ browser.percentage | number:'1.0-0' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No browser data yet</td></tr>
+                </ng-template>
+              </p-table>
+            }
+          </div>
+
+          <div class="data-card theme-slate" [class.locked-section]="!hasFeature('client_hints')">
+            <div class="card-header">
+              <h3>Operating Systems
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="OS distribution. High Windows = enterprise users. High iOS = premium audience."
+                   tooltipPosition="top"></button>
+              </h3>
+              @if (hasFeature('client_hints') && loadingStates.browsers) {
+                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+              }
+            </div>
+            @if (!hasFeature('client_hints')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Operating Systems</h4>
+                  <p>OS detection requires Enterprise.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
                 </div>
               </div>
+            } @else if (loadingStates.browsers) {
+              <div class="table-skeleton">
+                @for (item of [1,2,3,4]; track item) {
+                  <div class="skeleton-row">
+                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
+                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p-table [value]="operatingSystems" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
+                <ng-template #header>
+                  <tr><th>OS</th><th class="col-bar">Share</th><th class="col-num">%</th></tr>
+                </ng-template>
+                <ng-template #body let-os>
+                  <tr>
+                    <td>{{ os.name }}</td>
+                    <td class="col-bar"><div class="bar-wrap"><div class="bar-fill" [style.width.%]="os.percentage"></div></div></td>
+                    <td class="col-num">{{ os.percentage | number:'1.0-0' }}%</td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr><td colspan="3" class="no-data-row">No OS data yet</td></tr>
+                </ng-template>
+              </p-table>
             }
           </div>
         </div>
+
+        <!-- ── Per-Page Web Vitals ──────────────────────────────────────── -->
+        <div class="chart-card theme-indigo full-width-card" [class.locked-section]="!hasFeature('web_vitals')">
+          <div class="card-header">
+            <h3>Per-Page Vitals
+              <button class="pi pi-info-circle section-info-icon"
+                 pTooltip="LCP, FID, CLS scores broken down per page. Find which pages are slowest and fix them first."
+                 tooltipPosition="top"></button>
+            </h3>
+            <span class="card-subtitle">Core Web Vitals score per URL</span>
+            @if (hasFeature('web_vitals') && loadingStates.pageVitals) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!hasFeature('web_vitals')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-enterprise"><i class="pi pi-crown"></i> Enterprise Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Per-Page Vitals</h4>
+                <p>Per-page performance metrics require Enterprise.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else if (loadingStates.pageVitals) {
+            @for (i of [1,2,3,4,5]; track i) {
+              <p-skeleton height="2.5rem" styleClass="mb-2"></p-skeleton>
+            }
+          } @else if (!pageVitals.length) {
+            <div class="no-data-row">No Web Vitals data yet — ensure web_vitals is enabled in your SDK config</div>
+          } @else {
+            <p-table [value]="pageVitals" styleClass="p-datatable-sm page-vitals-table">
+              <ng-template #header>
+                <tr>
+                  <th>Page</th>
+                  <th class="col-num">Samples</th>
+                  <th class="pv-cell">LCP</th>
+                  <th class="pv-cell">FID</th>
+                  <th class="pv-cell">CLS</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-pv>
+                <tr>
+                  <td class="page-title">{{ pv.page }}</td>
+                  <td class="col-num text-muted">{{ pv.count | number }}</td>
+                  <td class="pv-cell">
+                    @if (pv.avgLCP != null) {
+                      <span [class]="'vital-chip vital-chip-' + pv.lcpRating">
+                        {{ (pv.avgLCP / 1000) | number:'1.1-1' }}s
+                      </span>
+                    } @else { <span class="no-data-dash">—</span> }
+                  </td>
+                  <td class="pv-cell">
+                    @if (pv.avgFID != null) {
+                      <span [class]="'vital-chip vital-chip-' + pv.fidRating">
+                        {{ pv.avgFID | number:'1.0-0' }}ms
+                      </span>
+                    } @else { <span class="no-data-dash">—</span> }
+                  </td>
+                  <td class="pv-cell">
+                    @if (pv.avgCLS != null) {
+                      <span [class]="'vital-chip vital-chip-' + pv.clsRating">
+                        {{ pv.avgCLS | number:'1.2-2' }}
+                      </span>
+                    } @else { <span class="no-data-dash">—</span> }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="5" class="no-data-row">No per-page vitals data yet</td></tr>
+              </ng-template>
+            </p-table>
+          }
+        </div>
+
       </div>
-    </div>
+    }
+
+  </div><!-- /tab-content -->
 
   } @else {
     <!-- No API Keys empty state -->
     <div class="no-keys-empty-state">
-      <div class="empty-icon">
-        <i class="pi pi-chart-bar"></i>
-      </div>
+      <div class="empty-icon"><i class="pi pi-chart-bar"></i></div>
       <h2>No data to display</h2>
       <p>You don't have any API keys yet. Create an API key, add the tracking script to your website, and your analytics will appear here.</p>
       <a routerLink="/dashboard/api-keys" class="create-key-btn">
-        <i class="pi pi-plus"></i>
-        Create API Key
+        <i class="pi pi-plus"></i> Create API Key
       </a>
     </div>
   }

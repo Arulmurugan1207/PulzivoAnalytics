@@ -21,7 +21,6 @@ export const appConfig: ApplicationConfig = {
       pt: {
         tooltip: {
           root: {
-            // Make tooltips work on both hover and focus (better for mobile)
             'data-pc-section': 'root'
           }
         }

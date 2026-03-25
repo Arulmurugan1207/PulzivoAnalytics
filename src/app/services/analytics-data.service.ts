@@ -21,6 +21,74 @@ export interface AnalyticsMetrics {
   uniqueVisitors?: number;
   avgScrollDepth?: number;
   avgTimeOnPage?: number;
+  avgPagesPerSession?: number;
+}
+
+export interface SessionStats {
+  totalSessions: number;
+  avgPagesPerSession: number;
+  avgSessionDuration: number;
+  topEntryPages: { page: string; count: number; percentage: number }[];
+  topExitPages:  { page: string; count: number; percentage: number }[];
+}
+
+export interface AttributionEntry {
+  source: string;
+  value: number;
+  percentage: number;
+}
+
+export interface AttributionModel {
+  totalSessions: number;
+  firstTouch: AttributionEntry[];
+  lastTouch:  AttributionEntry[];
+  linear:     AttributionEntry[];
+}
+
+export interface CohortRow {
+  week: string;   // e.g. "2026-W12"
+  label: string;  // e.g. "2026 W12"
+  total: number;
+  w0: number;     // always 100
+  w1: number;     // % retained week +1
+  w2: number;
+  w3: number;
+  w4: number;
+}
+
+export interface UserPath {
+  from: string;
+  to: string;
+  count: number;
+}
+
+export interface ErrorEntry {
+  type: string;
+  message: string;
+  count: number;
+  affectedUsers: number;
+  lastSeen: string;
+  pageCount?: number;
+}
+
+export interface RageDeadClick {
+  element: string;
+  label: string;
+  page: string;
+  count: number;
+  avgClicks?: number;
+  lastSeen: string;
+}
+
+export interface PageVital {
+  page: string;
+  count: number;
+  avgLCP: number | null;
+  avgFID: number | null;
+  avgCLS: number | null;
+  lcpRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
+  fidRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
+  clsRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
 }
 
 export interface DeviceBreakdown {
@@ -42,6 +110,8 @@ export interface PageData {
   exitRate?: number;
   entrances?: number;
   exits?: number;
+  avgTimeOnPage?: number | null;
+  avgScrollDepth?: number | null;
 }
 
 export interface GeographicData {
@@ -144,7 +214,11 @@ export class AnalyticsDataService {
         conversionRate: data.conversionRate || 0,
         bounceRate: data.bounceRate || 0,
         avgSessionDuration: data.avgSessionDuration || 0,
-        newVsReturning: data.newVsReturning || { new: 0, returning: 0 }
+        newVsReturning: data.newVsReturning || { new: 0, returning: 0 },
+        uniqueVisitors: data.uniqueVisitors,
+        avgScrollDepth: data.avgScrollDepth,
+        avgTimeOnPage: data.avgTimeOnPage,
+        avgPagesPerSession: data.avgPagesPerSession
       })),
       catchError(() => of({
         liveVisitors: 0,
@@ -439,6 +513,99 @@ export class AnalyticsDataService {
         eventSource.close();
       };
     });
+  }
+
+  /**
+   * Get Session Stats — accurate session-level metrics using session_id grouping
+   */
+  getSessionStats(dateRange?: DateRange): Observable<SessionStats> {
+    return this.analyticsAPI.getSessionStats(dateRange).pipe(
+      map((data: any) => ({
+        totalSessions:       data.totalSessions       ?? 0,
+        avgPagesPerSession:  data.avgPagesPerSession  ?? 0,
+        avgSessionDuration:  data.avgSessionDuration  ?? 0,
+        topEntryPages:       data.topEntryPages        ?? [],
+        topExitPages:        data.topExitPages         ?? []
+      })),
+      catchError(() => of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] }))
+    );
+  }
+
+  /**
+   * Get Attribution Model — First Touch / Last Touch / Linear per source
+   */
+  getAttributionModel(dateRange?: DateRange): Observable<AttributionModel> {
+    return this.analyticsAPI.getAttributionModel(dateRange).pipe(
+      map((data: any) => ({
+        totalSessions: data.totalSessions ?? 0,
+        firstTouch:    data.firstTouch    ?? [],
+        lastTouch:     data.lastTouch     ?? [],
+        linear:        data.linear        ?? []
+      })),
+      catchError(() => of({ totalSessions: 0, firstTouch: [], lastTouch: [], linear: [] }))
+    );
+  }
+
+  /**
+   * Get Cohort Retention — weekly cohort rows (W0–W4 return rates)
+   */
+  getCohortRetention(dateRange?: DateRange): Observable<CohortRow[]> {
+    return this.analyticsAPI.getCohortRetention(dateRange).pipe(
+      map((data: any) => Array.isArray(data?.cohorts) ? data.cohorts : []),
+      catchError(() => of([]))
+    );
+  }
+
+  /**
+   * Get User Paths — top page-to-page session flows
+   */
+  getUserPaths(dateRange?: DateRange, limit = 15): Observable<{ paths: UserPath[]; totalSessions: number }> {
+    return this.analyticsAPI.getUserPaths(dateRange, limit).pipe(
+      map((data: any) => ({
+        paths: Array.isArray(data?.paths) ? data.paths : [],
+        totalSessions: data?.totalSessions ?? 0
+      })),
+      catchError(() => of({ paths: [], totalSessions: 0 }))
+    );
+  }
+
+  /**
+   * Get Error Tracking — JS errors by type/message
+   */
+  getErrorTracking(dateRange?: DateRange): Observable<{ errors: ErrorEntry[]; total: number }> {
+    return this.analyticsAPI.getErrorTracking(dateRange).pipe(
+      map((data: any) => ({
+        errors: Array.isArray(data?.errors) ? data.errors : [],
+        total: data?.total ?? 0
+      })),
+      catchError(() => of({ errors: [], total: 0 }))
+    );
+  }
+
+  /**
+   * Get Rage & Dead Clicks — per-element frustration signals
+   */
+  getRageDeadClicks(dateRange?: DateRange): Observable<{ rageClicks: RageDeadClick[]; deadClicks: RageDeadClick[] }> {
+    return this.analyticsAPI.getRageDeadClicks(dateRange).pipe(
+      map((data: any) => ({
+        rageClicks: Array.isArray(data?.rageClicks) ? data.rageClicks : [],
+        deadClicks: Array.isArray(data?.deadClicks) ? data.deadClicks : []
+      })),
+      catchError(() => of({ rageClicks: [], deadClicks: [] }))
+    );
+  }
+
+  /**
+   * Get Per-Page Web Vitals — LCP/FID/CLS per page
+   */
+  getPageVitals(dateRange?: DateRange): Observable<{ pages: PageVital[]; total: number }> {
+    return this.analyticsAPI.getPageVitals(dateRange).pipe(
+      map((data: any) => ({
+        pages: Array.isArray(data?.pages) ? data.pages : [],
+        total: data?.total ?? 0
+      })),
+      catchError(() => of({ pages: [], total: 0 }))
+    );
   }
 
 

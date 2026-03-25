@@ -27,7 +27,15 @@ import {
   UtmSource,
   BrowserData,
   WebVitals,
-  WebVitalMetric
+  WebVitalMetric,
+  SessionStats,
+  AttributionModel,
+  AttributionEntry,
+  CohortRow,
+  UserPath,
+  ErrorEntry,
+  RageDeadClick,
+  PageVital
 } from '../../../services/analytics-data.service';
 import { AnalyticsAPIService } from '../../../services/analytics-api.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
@@ -130,17 +138,68 @@ export class DashboardOverview implements OnInit, OnDestroy {
   tooltipInsightsTotal = 0;
   tooltipInsightsPage = 1;
   tooltipInsightsRows = 10;
-  isLiveEventsActive = true;
-  showLiveEvents = true;
+
+  sessionStats: SessionStats = {
+    totalSessions: 0,
+    avgPagesPerSession: 0,
+    avgSessionDuration: 0,
+    topEntryPages: [],
+    topExitPages: []
+  };
+
+  attribution: AttributionModel = {
+    totalSessions: 0,
+    firstTouch: [],
+    lastTouch: [],
+    linear: []
+  };
+
+  // Which attribution model tab is active in the UI
+  activeAttributionModel: 'firstTouch' | 'lastTouch' | 'linear' = 'lastTouch';
+
+  // Phase 3 — Cohort Retention & User Paths
+  cohortRetention: CohortRow[] = [];
+  userPaths: UserPath[] = [];
+  userPathsTotalSessions = 0;
+
+  // Phase 4 — Error Tracking, Rage/Dead Clicks, Per-Page Vitals
+  errorTracking: ErrorEntry[] = [];
+  errorTrackingTotal = 0;
+  rageClicks: RageDeadClick[] = [];
+  deadClicks: RageDeadClick[] = [];
+  pageVitals: PageVital[] = [];
+  activeRageTab: 'rage' | 'dead' = 'rage';
+
+  trends: { totalPageViews: number | null; uniqueVisitors: number | null; bounceRate: number | null; avgSessionDuration: number | null } = {
+    totalPageViews: null, uniqueVisitors: null, bounceRate: null, avgSessionDuration: null
+  };
+
+  /** Whether the "vs prev period" comparison badges + chart overlay are visible */
+  showComparison = false;
+
+  /** Previous-period chart data (filled when comparison is loaded) */
+  prevBarChartDataset: any = null;
+  isLiveEventsActive = false; // Live events disabled
+  showLiveEvents = false;
   isRefreshing = false;
   private liveEventsSubscription?: Subscription;
 
-  // Overview tabs management (reduced to 2 tabs)
-  activeTab = 'metrics';
+  // Tab management
+  activeTab = 'overview';
   overviewTabs = [
-    { id: 'metrics', label: 'Analytics Overview', icon: 'pi pi-chart-bar' },
-    { id: 'live', label: 'Live Events', icon: 'pi pi-bolt' }
+    { id: 'overview',     label: 'Overview',     icon: 'pi pi-chart-bar' },
+    { id: 'acquisition',  label: 'Acquisition',  icon: 'pi pi-arrow-down-right' },
+    { id: 'behaviour',    label: 'Behaviour',    icon: 'pi pi-users' },
+    { id: 'technical',    label: 'Technical',    icon: 'pi pi-gauge' },
   ];
+
+  // Track which tabs have already loaded their data (lazy load per tab)
+  private tabLoaded: Record<string, boolean> = {
+    overview: false,
+    acquisition: false,
+    behaviour: false,
+    technical: false,
+  };
 
   // Loading states
   loadingStates = {
@@ -159,7 +218,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     clicks: false,
     customEvents: false,
     formInteractions: false,
-    tooltipInsights: false
+    tooltipInsights: false,
+    sessionStats: false,
+    attribution: false,
+    cohortRetention: false,
+    userPaths: false,
+    errorTracking: false,
+    rageDeadClicks: false,
+    pageVitals: false
   };
   
   funnelLabels: string[] = [];
@@ -260,12 +326,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadUserPlan();
     this.loadAnalyticsPreferences();
     this.loadAnalyticsDataWithLoading();
-    this.loadFeaturesDataWithDelay();
-    this.loadLiveEventsWithDelay();
-    console.log('📊 Overview: Final user plan after loading:', this.userPlan);
-    console.log('🔓 Overview: Testing key features...');
-    console.log('   - scroll_depth:', this.hasFeature('scroll_depth'));
-    console.log('   - sessions:', this.hasFeature('sessions'));
+    // this.loadFeaturesDataWithDelay(); // no-op, removed
+    // this.loadLiveEventsWithDelay();   // Live events disabled
     this.loadApiKeys();
     this.applyPreset('Last 7 Days');
     // availableTrendPeriods initialized by applyPreset → emitDateRange → computeAvailablePeriods
@@ -284,7 +346,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       })
     );
 
-    this.startRealtimeEvents();
+    // this.startRealtimeEvents(); // Live events disabled
 
     // Funnel: track first time a signed-up user reaches the dashboard (activation)
     const firstVisitKey = 'pulzivo_dashboard_visited';
@@ -302,7 +364,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   private loadDemoData(): void {
     const d = this.demoService;
-    this.userPlan = 'pro';
+    this.userPlan = 'enterprise'; // demo shows full enterprise view
     this.isOwner = false;
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
@@ -311,25 +373,69 @@ export class DashboardOverview implements OnInit, OnDestroy {
       { label: 'Daily', value: 'daily' },
       { label: 'Weekly', value: 'weekly' }
     ];
+
+    // ── Overview tab ──────────────────────────────────────────────────────────
     this.metrics = { ...d.overviewMetrics } as any;
     this.deviceBreakdown = d.deviceBreakdown as any;
     this.topPages = d.topPages as any;
+    this.topPagesTotal = d.topPages.length;
     this.geoData = d.geoData as any;
-    this.trafficSources = d.trafficSources as any;
-    this.topClicks = d.topClicks as any;
-    this.customEvents = d.customEvents as any;
-    this.browsers = d.browsers as any;
-    this.utmSources = d.utmSources as any;
-    this.webVitals = d.webVitals as any;
-    this.funnelLabels = d.funnelData.labels;
-    this.funnelSteps = d.funnelData.steps;
-    this.realtimeEvents = d.realtimeEvents as any;
-    this.enabledFeatures = ['page_views', 'clicks', 'scroll_depth', 'unique_visitors', 'sessions', 'custom_events', 'web_vitals', 'rage_clicks', 'dead_clicks', 'form_tracking'];
-    this.availableFeatures = [...this.enabledFeatures];
+    this.trends = { ...d.overviewTrends };
+    this.prevBarChartDataset = d.prevBarChartDataset ?? null;
+    this.sessionStats = { ...d.sessionStats } as any;
     this.initChartOptions();
     this.barChartData = d.barChartData;
     this.doughnutChartData = d.doughnutChartData;
+    this.funnelLabels = d.funnelData.labels;
+    this.funnelSteps = d.funnelData.steps;
+    this.realtimeEvents = d.realtimeEvents as any;
+
+    // ── Acquisition tab ───────────────────────────────────────────────────────
+    this.trafficSources = d.trafficSources as any;
+    this.utmSources = d.utmSources as any;
+    this.entryPages = d.entryPages as any;
+    this.exitPages = d.exitPages as any;
+    this.attribution = d.attribution as any;
+
+    // ── Behaviour tab ─────────────────────────────────────────────────────────
+    this.cohortRetention = d.cohortRetention as any;
+    this.userPaths = d.userPaths as any;
+    this.userPathsTotalSessions = d.userPathsTotalSessions;
+    this.errorTracking = d.errorTracking as any;
+    this.errorTrackingTotal = d.errorTracking.length;
+    this.rageClicks = d.rageClicks as any;
+    this.deadClicks = d.deadClicks as any;
+    this.topClicks = d.topClicks as any;
+    this.topClicksTotal = d.topClicks.length;
+    this.customEvents = d.customEvents as any;
+    this.customEventsTotal = d.customEvents.length;
+    this.formInteractions = d.formInteractions as any;
+    this.formInteractionsTotal = d.formInteractions.length;
+    this.tooltipInsights = d.tooltipInsights as any;
+    this.tooltipInsightsTotal = d.tooltipInsights.length;
+
+    // ── Technical tab ─────────────────────────────────────────────────────────
+    this.webVitals = d.webVitals as any;
+    this.browsers = d.browsers as any;
+    this.operatingSystems = d.operatingSystems as any;
+    this.pageVitals = d.pageVitals as any;
+
+    // ── Plan features (enterprise shows everything) ────────────────────────────
+    this.enabledFeatures = [
+      'page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit',
+      'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution',
+      'user_identity', 'custom_events', 'client_hints', 'form_tracking',
+      'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals',
+      'resource_timing', 'heatmap_data', 'custom_dimensions'
+    ];
+    this.availableFeatures = [...this.enabledFeatures];
+
+    // ── Mark all tabs as already loaded (no lazy API calls in demo) ───────────
+    this.tabLoaded = { overview: true, acquisition: true, behaviour: true, technical: true };
+
+    // ── Clear all loading spinners ────────────────────────────────────────────
     Object.keys(this.loadingStates).forEach(k => (this.loadingStates as any)[k] = false);
+
     this.cdr.markForCheck();
   }
 
@@ -484,12 +590,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     }
     this.subscriptions.unsubscribe();
     this.subscriptions = new Subscription();
-    
+
+    // Reset tab-loaded state so each tab reloads fresh data for the new key
+    this.tabLoaded = { overview: false, acquisition: false, behaviour: false, technical: false };
+    this.activeTab = 'overview';
+
     if (this.selectedApiKey) {
       this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-      // Clear old data first to show loading state
       this.clearAllData();
-      // Load ALL fresh data with new API key (including tooltip insights)
       this.loadAnalyticsDataWithLoading();
     } else {
       this.clearAllData();
@@ -576,9 +684,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
     if (this.demoService.isDemoMode() || this.isRefreshing || !this.selectedApiKey) return;
     
     this.isRefreshing = true;
+    this.showComparison = false;  // reset compare on refresh
+    this.prevBarChartDataset = null;
     this.cdr.markForCheck();
 
-    // Reload all data
+    // Reload all data including comparison trends
     this.loadAllData();
 
     // Reset the auto-refresh timer (restart the 30s countdown)
@@ -666,6 +776,17 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.customEvents = [];
     this.tooltipInsights = [];
     this.tooltipInsightsTotal = 0;
+    this.formInteractions = [];
+    this.sessionStats = { totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] };
+    this.attribution = { totalSessions: 0, firstTouch: [], lastTouch: [], linear: [] };
+    this.cohortRetention = [];
+    this.userPaths = [];
+    this.userPathsTotalSessions = 0;
+    this.errorTracking = [];
+    this.errorTrackingTotal = 0;
+    this.rageClicks = [];
+    this.deadClicks = [];
+    this.pageVitals = [];
     this.updateBarChart();
     this.updateDoughnutChart();
   }
@@ -674,67 +795,123 @@ export class DashboardOverview implements OnInit, OnDestroy {
   setActiveTab(tabId: string): void {
     this.activeTab = tabId;
     this.cdr.markForCheck();
-    
-    // Load data for specific tab if needed
-    if (tabId === 'live' && !this.isLiveEventsActive) {
-      this.toggleLiveEvents();
+
+    // In demo mode all tabs are pre-loaded — no API calls needed
+    if (this.demoService.isDemoMode()) return;
+
+    // Lazy-load tab data only on first visit
+    if (!this.tabLoaded[tabId] && this.selectedApiKey) {
+      this.tabLoaded[tabId] = true;
+      switch (tabId) {
+        case 'overview':
+          // Already loaded on init — nothing to do
+          break;
+        case 'acquisition':
+          this.loadAcquisitionTab();
+          break;
+        case 'behaviour':
+          this.loadBehaviourTab();
+          break;
+        case 'technical':
+          this.loadTechnicalTab();
+          break;
+      }
+    }
+  }
+
+  private loadAcquisitionTab(): void {
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      this.loadingStates.attribution = true;
+      this.cdr.markForCheck();
+      this.loadTrafficSourcesWithDelay();
+      this.loadAttributionWithDelay();
+    }
+    if (this.hasFeature('page_exit')) {
+      this.loadingStates.entryExit = true;
+      this.cdr.markForCheck();
+      this.loadEntryExitPagesWithDelay();
+    }
+  }
+
+  private loadBehaviourTab(): void {
+    this.loadingStates.clicks = true;
+    this.loadingStates.cohortRetention = true;
+    this.loadingStates.userPaths = true;
+    this.cdr.markForCheck();
+    this.loadClicksWithDelay();
+    this.loadCohortRetentionWithDelay();
+    this.loadUserPathsWithDelay();
+
+    if (this.hasFeature('error_tracking')) {
+      this.loadingStates.errorTracking = true;
+      this.cdr.markForCheck();
+      this.loadErrorTrackingWithDelay();
+    }
+    if (this.hasFeature('rage_clicks') || this.hasFeature('dead_clicks')) {
+      this.loadingStates.rageDeadClicks = true;
+      this.cdr.markForCheck();
+      this.loadRageDeadClicksWithDelay();
+    }
+
+    if (this.hasFeature('custom_events')) {
+      this.loadingStates.customEvents = true;
+      this.cdr.markForCheck();
+      this.loadCustomEventsWithDelay();
+    }
+    if (this.hasFeature('form_tracking')) {
+      this.loadingStates.formInteractions = true;
+      this.cdr.markForCheck();
+      this.loadFormInteractionsWithDelay();
+    }
+    if (this.hasFeature('custom_dimensions')) {
+      this.loadingStates.tooltipInsights = true;
+      this.cdr.markForCheck();
+      this.loadTooltipInsightsWithDelay();
+    }
+  }
+
+  private loadTechnicalTab(): void {
+    if (this.hasFeature('web_vitals')) {
+      this.loadingStates.webVitals = true;
+      this.loadingStates.pageVitals = true;
+      this.cdr.markForCheck();
+      this.loadWebVitalsWithDelay();
+      this.loadPageVitalsWithDelay();
+    }
+    if (this.hasFeature('client_hints')) {
+      this.loadingStates.browsers = true;
+      this.cdr.markForCheck();
+      this.loadBrowsersWithDelay();
     }
   }
 
   // Loading management
   private async loadAnalyticsDataWithLoading(): Promise<void> {
-    // Always load free-tier data
+    // Only load Overview tab data on init — other tabs load lazily on first visit
     this.loadingStates.metrics = true;
     this.loadingStates.pageViews = true;
     this.loadingStates.devices = true;
     this.loadingStates.topPages = true;
-    this.loadingStates.clicks = true;
+    this.loadingStates.sessionStats = true;
     this.cdr.markForCheck();
 
     const promises: Promise<void>[] = [
       this.loadMetricsWithDelay(),
+      this.loadMetricsComparisonWithDelay(),
       this.loadPageViewsWithDelay(),
       this.loadDevicesWithDelay(),
       this.loadTopPagesWithDelay(),
-      this.loadClicksWithDelay(),
+      this.loadSessionStatsWithDelay(),
     ];
 
-    // Pro+ features — only fetch if user has access
     if (this.hasFeature('sessions')) {
       this.loadingStates.geography = true;
       promises.push(this.loadGeographyWithDelay());
     }
-    if (this.hasFeature('page_exit')) {
-      this.loadingStates.entryExit = true;
-      promises.push(this.loadEntryExitPagesWithDelay());
-    }
-    if (this.hasFeature('utm_attribution')) {
-      this.loadingStates.trafficSources = true;
-      promises.push(this.loadTrafficSourcesWithDelay());
-    }
-    if (this.hasFeature('custom_events')) {
-      this.loadingStates.customEvents = true;
-      promises.push(this.loadCustomEventsWithDelay());
-    }
-
-    // Enterprise-only features — only fetch if user has access
-    if (this.hasFeature('client_hints')) {
-      this.loadingStates.browsers = true;
-      promises.push(this.loadBrowsersWithDelay());
-    }
-    if (this.hasFeature('web_vitals')) {
-      this.loadingStates.webVitals = true;
-      promises.push(this.loadWebVitalsWithDelay());
-    }
-    if (this.hasFeature('form_tracking')) {
-      this.loadingStates.formInteractions = true;
-      promises.push(this.loadFormInteractionsWithDelay());
-    }
-    if (this.hasFeature('custom_dimensions')) {
-      promises.push(this.loadTooltipInsightsWithDelay());
-    }
 
     this.cdr.markForCheck();
+    this.tabLoaded['overview'] = true;
 
     try {
       await Promise.all(promises);
@@ -760,6 +937,45 @@ export class DashboardOverview implements OnInit, OnDestroy {
           }
         });
       }, 800 + Math.random() * 1000); // 800-1800ms delay
+    });
+  }
+
+  private async loadMetricsComparisonWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getMetricsComparison(this.currentDateRange ?? undefined).subscribe({
+          next: (data) => {
+            if (data?.trends) {
+              this.trends = {
+                totalPageViews:     data.trends.totalPageViews     ?? null,
+                uniqueVisitors:     data.trends.uniqueVisitors     ?? null,
+                bounceRate:         data.trends.bounceRate         ?? null,
+                avgSessionDuration: data.trends.avgSessionDuration ?? null,
+              };
+              // Store prev-period chart dataset if backend provides it
+              if ((data as any).prevPageViews) {
+                this.prevBarChartDataset = {
+                  label: 'Prev. Period',
+                  data: (data as any).prevPageViews,
+                  backgroundColor: 'rgba(99,102,241,0.18)',
+                  borderColor: '#6366f1',
+                  borderWidth: 2,
+                  borderRadius: 6,
+                  borderSkipped: false,
+                  barThickness: 24,
+                  type: 'bar'
+                };
+              }
+            }
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.trends = { totalPageViews: null, uniqueVisitors: null, bounceRate: null, avgSessionDuration: null };
+            resolve();
+          }
+        });
+      }, 700 + Math.random() * 400);
     });
   }
 
@@ -847,6 +1063,26 @@ export class DashboardOverview implements OnInit, OnDestroy {
     });
   }
 
+  private async loadSessionStatsWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getSessionStats(this.currentDateRange ?? undefined).subscribe({
+          next: (data: SessionStats) => {
+            this.sessionStats = data;
+            this.loadingStates.sessionStats = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.loadingStates.sessionStats = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 600 + Math.random() * 800);
+    });
+  }
+
   private async loadEntryExitPagesWithDelay(): Promise<void> {
     return new Promise(resolve => {
       setTimeout(() => {
@@ -869,6 +1105,137 @@ export class DashboardOverview implements OnInit, OnDestroy {
           resolve();
         });
       }, 500 + Math.random() * 700);
+    });
+  }
+
+  private async loadAttributionWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getAttributionModel(this.currentDateRange ?? undefined).subscribe({
+          next: (data: AttributionModel) => {
+            this.attribution = data;
+            this.loadingStates.attribution = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.loadingStates.attribution = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 500 + Math.random() * 700);
+    });
+  }
+
+  private async loadCohortRetentionWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getCohortRetention(this.currentDateRange ?? undefined).subscribe({
+          next: (data: CohortRow[]) => {
+            this.cohortRetention = data;
+            this.loadingStates.cohortRetention = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.cohortRetention = [];
+            this.loadingStates.cohortRetention = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 700 + Math.random() * 900);
+    });
+  }
+
+  private async loadUserPathsWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getUserPaths(this.currentDateRange ?? undefined).subscribe({
+          next: (data) => {
+            this.userPaths = data.paths;
+            this.userPathsTotalSessions = data.totalSessions;
+            this.loadingStates.userPaths = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.userPaths = [];
+            this.userPathsTotalSessions = 0;
+            this.loadingStates.userPaths = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 600 + Math.random() * 800);
+    });
+  }
+
+  private async loadErrorTrackingWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getErrorTracking(this.currentDateRange ?? undefined).subscribe({
+          next: (data) => {
+            this.errorTracking = data.errors;
+            this.errorTrackingTotal = data.total;
+            this.loadingStates.errorTracking = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.errorTracking = [];
+            this.errorTrackingTotal = 0;
+            this.loadingStates.errorTracking = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 800 + Math.random() * 700);
+    });
+  }
+
+  private async loadRageDeadClicksWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getRageDeadClicks(this.currentDateRange ?? undefined).subscribe({
+          next: (data) => {
+            this.rageClicks = data.rageClicks;
+            this.deadClicks = data.deadClicks;
+            this.loadingStates.rageDeadClicks = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.rageClicks = [];
+            this.deadClicks = [];
+            this.loadingStates.rageDeadClicks = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 700 + Math.random() * 600);
+    });
+  }
+
+  private async loadPageVitalsWithDelay(): Promise<void> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        this.analyticsDataService.getPageVitals(this.currentDateRange ?? undefined).subscribe({
+          next: (data) => {
+            this.pageVitals = data.pages;
+            this.loadingStates.pageVitals = false;
+            this.cdr.markForCheck();
+            resolve();
+          },
+          error: () => {
+            this.pageVitals = [];
+            this.loadingStates.pageVitals = false;
+            this.cdr.markForCheck();
+            resolve();
+          }
+        });
+      }, 900 + Math.random() * 800);
     });
   }
 
@@ -1216,35 +1583,43 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   private updateBarChart(): void {
-    this.barChartData = {
-      ...this.barChartData,
-      labels: this.pageViewsTrend.map(item => {
-        const raw = item.date;
-        if (this.trendPeriod === 'hourly') {
-          // Format: "2025-01-15T14:00" → "2 PM"
-          const d = new Date(raw + ':00');
-          return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-        }
-        if (this.trendPeriod === 'weekly') {
-          // Format: "2025-W05" — show as "Week 5"
-          const parts = raw.split('-W');
-          return parts.length === 2 ? `W${parts[1]}` : raw;
-        }
-        if (this.trendPeriod === 'monthly') {
-          // Format: "2025-01" → "Jan 25"
-          const [y, m] = raw.split('-');
-          const d = new Date(Number(y), Number(m) - 1, 1);
-          return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        }
-        // daily: "2025-01-15" → "Jan 15"
-        const date = new Date(raw + 'T00:00:00');
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }),
-      datasets: [{
-        ...this.barChartData.datasets[0],
-        data: this.pageViewsTrend.map(item => item.pageViews)
-      }]
+    const labels = this.pageViewsTrend.map(item => {
+      const raw = item.date;
+      if (this.trendPeriod === 'hourly') {
+        const d = new Date(raw + ':00');
+        return d.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+      }
+      if (this.trendPeriod === 'weekly') {
+        const parts = raw.split('-W');
+        return parts.length === 2 ? `W${parts[1]}` : raw;
+      }
+      if (this.trendPeriod === 'monthly') {
+        const [y, m] = raw.split('-');
+        const d = new Date(Number(y), Number(m) - 1, 1);
+        return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      }
+      const date = new Date(raw + 'T00:00:00');
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+
+    const currentDataset = {
+      ...this.barChartData.datasets?.[0],
+      label: 'This Period',
+      data: this.pageViewsTrend.map(item => item.pageViews)
     };
+
+    const datasets = this.showComparison && this.prevBarChartDataset
+      ? [currentDataset, this.prevBarChartDataset]
+      : [currentDataset];
+
+    this.barChartData = { ...this.barChartData, labels, datasets };
+  }
+
+  /** Toggle the "vs previous period" comparison overlay on/off */
+  toggleComparison(): void {
+    this.showComparison = !this.showComparison;
+    this.updateBarChart();
+    this.cdr.markForCheck();
   }
 
   private updateDoughnutChart(): void {
@@ -1431,6 +1806,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
       };
       this.trendPeriod = this.autoTrendPeriod(this.dateRangeValue[0], this.dateRangeValue[1]);
       this.availableTrendPeriods = this.computeAvailablePeriods(this.dateRangeValue[0], this.dateRangeValue[1]);
+      // Reset compare — new date range means new comparison context
+      this.showComparison = false;
+      this.prevBarChartDataset = null;
       if (this.selectedApiKey) {
         this.loadAllData();
       }
@@ -1472,8 +1850,53 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   // Plan gating helpers
-  hasFeature(feature: string): boolean {
-    const user = this.authService.getUserData();
+  /** Top countries from recent realtime events, shown as flag pills on the Live Visitors card */
+  get liveCountries(): { country: string; flag: string; count: number }[] {    // Build counts from recent realtime events first
+    const countMap: Record<string, number> = {};
+    for (const e of this.realtimeEvents) {
+      const c = (e as any).country;
+      if (c) countMap[c] = (countMap[c] || 0) + 1;
+    }
+    if (Object.keys(countMap).length) {
+      return Object.entries(countMap)
+        .sort((a, b) => b[1] - a[1]).slice(0, 5)
+        .map(([country, count]) => ({ country, count, flag: this.getFlagEmoji(country) }));
+    }
+    // Fallback: top 5 from geoData
+    return this.geoData.slice(0, 5).map(g => ({
+      country: g.country,
+      count: g.visitors,
+      flag: (g as any).flag || this.getFlagEmoji(g.country)
+    }));
+  }
+
+  private getFlagEmoji(country: string): string {
+    const flags: Record<string, string> = {
+      'United States': '🇺🇸', 'India': '🇮🇳', 'United Kingdom': '🇬🇧',
+      'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Germany': '🇩🇪',
+      'France': '🇫🇷', 'Japan': '🇯🇵', 'Netherlands': '🇳🇱',
+      'Singapore': '🇸🇬', 'Brazil': '🇧🇷', 'Spain': '🇪🇸',
+      'Italy': '🇮🇹', 'Poland': '🇵🇱', 'Sweden': '🇸🇪',
+      'US': '🇺🇸', 'GB': '🇬🇧', 'DE': '🇩🇪', 'FR': '🇫🇷',
+      'IN': '🇮🇳', 'CA': '🇨🇦', 'AU': '🇦🇺', 'NL': '🇳🇱',
+    };
+    return flags[country] || '🌐';
+  }
+
+  /** CSS class for cohort retention cell heat-map colouring */
+  cohortCellClass(pct: number): string {
+    if (pct >= 40) return 'cohort-high';
+    if (pct >= 25) return 'cohort-mid';
+    if (pct >= 10) return 'cohort-low';
+    return 'cohort-none';
+  }
+
+  /** Max path count (used to compute bar widths in user-paths card) */
+  get maxPathCount(): number {
+    return this.userPaths.length ? Math.max(...this.userPaths.map(p => p.count)) : 1;
+  }
+
+  hasFeature(feature: string): boolean {    const user = this.authService.getUserData();
     if (user?.role === 'owner') return true;
     return (PLAN_FEATURES[this.userPlan] || []).includes(feature);
   }
@@ -1676,5 +2099,18 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   getRandomMetricValue(): number {
     return Math.round(Math.random() * 10000 + 1000);
+  }
+
+  formatTrend(value: number | null, invertPositive = false): { label: string; cssClass: string } {
+    if (value === null) return { label: '—', cssClass: 'neutral' };
+    const sign = value >= 0 ? '+' : '';
+    const label = `${sign}${value.toFixed(1)}% vs prev. period`;
+    // For bounce rate, a decrease is good (invertPositive = true)
+    const isPositive = invertPositive ? value < 0 : value > 0;
+    const isNeutral = value === 0;
+    return {
+      label,
+      cssClass: isNeutral ? 'neutral' : isPositive ? 'positive' : 'negative'
+    };
   }
 }

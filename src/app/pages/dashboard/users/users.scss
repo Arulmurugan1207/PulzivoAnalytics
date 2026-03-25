@@ -4,6 +4,118 @@
   margin: 0 auto;
 }
 
+// ── Growth KPI Cards ──
+.growth-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 768px) { grid-template-columns: repeat(2, 1fr); }
+}
+
+.growth-kpi-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+
+  &.skeleton-card { min-height: 80px; }
+}
+
+.kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+
+  &.green  { background: #dcfce7; color: #16a34a; }
+  &.blue   { background: #dbeafe; color: #1d4ed8; }
+  &.violet { background: #ede9fe; color: #7c3aed; }
+  &.teal   { background: #ccfbf1; color: #0d9488; }
+}
+
+.kpi-body {
+  .kpi-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-value { font-size: 1.75rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
+  .kpi-sub   { font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem; }
+}
+
+// ── Trend Chart ──
+.trend-chart-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.trend-chart-header {
+  margin-bottom: 1rem;
+  h3 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    .pi { color: #2a6df6; font-size: 1rem; }
+  }
+}
+
+.trend-chart-wrap { height: 180px; }
+
+.no-trend-data {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+// ── "NEW" badge on user rows ──
+.new-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+}
+
+.user-name-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+// ── Last login column ──
+.last-login-text {
+  font-size: 0.85rem;
+  color: #475569;
+  white-space: nowrap;
+
+  &.never { color: #cbd5e1; font-style: italic; }
+}
+
+
+
 .users-header {
   display: flex;
   justify-content: space-between;

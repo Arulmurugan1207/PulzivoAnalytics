@@ -10,24 +10,16 @@
   <!-- Sidebar -->
   <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
     <div class="sidebar-header">
-      <div class="sidebar-brand" (click)="goHome()">
+      <div class="sidebar-brand" routerLink="/dashboard/overview">
         <i class="pi pi-chart-line"></i>
         @if (!sidebarCollapsed) {
-          <span>Pulzivo</span>
+          <span>Pulzivo <strong>Dashboard</strong></span>
         }
       </div>
     </div>
 
     <nav class="sidebar-nav">
-      <!-- Home link -->
-      <a class="nav-item" (click)="goHome()">
-        <i class="pi pi-arrow-left"></i>
-        @if (!sidebarCollapsed) {
-          <span>Back to Home</span>
-        }
-      </a>
-
-      <div class="nav-divider"></div>
+    
 
       <!-- Analytics section -->
       <div class="nav-section-label">
@@ -135,6 +127,10 @@
     </nav>
 
     <div class="sidebar-footer">
+      <a class="nav-item nav-item--home" (click)="goHome()" title="Back to pulzivo.com">
+        <i class="pi pi-home"></i>
+        @if (!sidebarCollapsed) { <span>Back to Home</span> }
+      </a>
       <button class="collapse-btn" (click)="sidebarCollapsed = !sidebarCollapsed">
         <i class="pi" [class.pi-chevron-left]="!sidebarCollapsed" [class.pi-chevron-right]="sidebarCollapsed"></i>
       </button>
@@ -149,6 +145,10 @@
         <h1 class="page-title">{{ getTabTitle() }}</h1>
       </div>
       <div class="topbar-right">
+        <button class="topbar-home-btn" (click)="goHome()" title="Back to pulzivo.com">
+          <i class="pi pi-home"></i>
+          <span class="topbar-home-label">pulzivo.com</span>
+        </button>
         <span class="date-text">{{ getTodayInfo() }}</span>
         <div class="user-menu" (click)="toggleUserDropdown($event)">
           <div class="user-avatar">{{ (user?.firstname || 'U')[0].toUpperCase() }}</div>

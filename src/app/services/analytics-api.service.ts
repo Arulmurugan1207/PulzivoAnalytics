@@ -359,5 +359,88 @@ export class AnalyticsAPIService {
       catchError(() => of({ totalPageViews: 0, scriptCopied: 0 }))
     );
   }
-}
 
+  /**
+   * Get Session Stats — accurate session-level metrics using session_id grouping
+   */
+  getSessionStats(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] });
+
+    return this.http.get(`${this.apiUrl}/analytics/session-stats?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] }))
+    );
+  }
+
+  /**
+   * Get Attribution Model — First Touch, Last Touch, Linear breakdown per source
+   */
+  getAttributionModel(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ totalSessions: 0, firstTouch: [], lastTouch: [], linear: [] });
+
+    return this.http.get(`${this.apiUrl}/analytics/attribution?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ totalSessions: 0, firstTouch: [], lastTouch: [], linear: [] }))
+    );
+  }
+
+  /**
+   * Get Cohort Retention — weekly cohort table showing W0–W4 return rates
+   */
+  getCohortRetention(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ cohorts: [] });
+
+    return this.http.get(`${this.apiUrl}/analytics/cohort-retention?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ cohorts: [] }))
+    );
+  }
+
+  /**
+   * Get User Paths — top page-to-page transition flows derived from sessions
+   */
+  getUserPaths(dateRange?: DateRange, limit = 15): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ paths: [], totalSessions: 0 });
+
+    return this.http.get(`${this.apiUrl}/analytics/user-paths?apiKey=${selectedApiKey}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ paths: [], totalSessions: 0 }))
+    );
+  }
+
+  /**
+   * Get Error Tracking — JS errors grouped by type + message
+   */
+  getErrorTracking(dateRange?: DateRange, limit = 20): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ errors: [], total: 0 });
+
+    return this.http.get(`${this.apiUrl}/analytics/error-tracking?apiKey=${selectedApiKey}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ errors: [], total: 0 }))
+    );
+  }
+
+  /**
+   * Get Rage & Dead Clicks — per-element frustration signals
+   */
+  getRageDeadClicks(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ rageClicks: [], deadClicks: [] });
+
+    return this.http.get(`${this.apiUrl}/analytics/rage-dead-clicks?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ rageClicks: [], deadClicks: [] }))
+    );
+  }
+
+  /**
+   * Get Per-Page Web Vitals — LCP/FID/CLS per page URL
+   */
+  getPageVitals(dateRange?: DateRange, limit = 15): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ pages: [], total: 0 });
+
+    return this.http.get(`${this.apiUrl}/analytics/page-vitals?apiKey=${selectedApiKey}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ pages: [], total: 0 }))
+    );
+  }
+}

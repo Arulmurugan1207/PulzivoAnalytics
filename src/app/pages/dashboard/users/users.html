@@ -2,12 +2,75 @@
   <!-- Header Section -->
   <div class="users-header">
     <div class="header-left">
-      <h2>Users Management</h2>
-      <p class="subtitle">View and manage all registered users</p>
+      <h2>Users &amp; Growth</h2>
+      <p class="subtitle">Sign-up activity, growth trends and user management</p>
     </div>
     <div class="header-right">
-      <span class="total-count">Total Users: {{ users.length }}</span>
+      <span class="total-count">{{ users.length }} total users</span>
     </div>
+  </div>
+
+  <!-- Growth KPI Cards -->
+  <div class="growth-kpis">
+    @if (loadingGrowth) {
+      @for (i of [1,2,3,4]; track i) {
+        <div class="growth-kpi-card skeleton-card">
+          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+            <div style="width:80px;height:12px;background:#e2e8f0;border-radius:4px"></div>
+            <div style="width:50px;height:28px;background:#e2e8f0;border-radius:4px"></div>
+          </div>
+        </div>
+      }
+    } @else {
+      <div class="growth-kpi-card">
+        <div class="kpi-icon green"><i class="pi pi-user-plus"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Today</div>
+          <div class="kpi-value">{{ growthStats.todayCount }}</div>
+          <div class="kpi-sub">new sign-ups</div>
+        </div>
+      </div>
+      <div class="growth-kpi-card">
+        <div class="kpi-icon blue"><i class="pi pi-calendar-week"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">This Week</div>
+          <div class="kpi-value">{{ growthStats.weekCount }}</div>
+          <div class="kpi-sub">new sign-ups</div>
+        </div>
+      </div>
+      <div class="growth-kpi-card">
+        <div class="kpi-icon violet"><i class="pi pi-chart-line"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Last 30 Days</div>
+          <div class="kpi-value">{{ growthStats.monthCount }}</div>
+          <div class="kpi-sub">new sign-ups</div>
+        </div>
+      </div>
+      <div class="growth-kpi-card">
+        <div class="kpi-icon teal"><i class="pi pi-users"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">All Time</div>
+          <div class="kpi-value">{{ growthStats.totalCount }}</div>
+          <div class="kpi-sub">total users</div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Sign-up Trend Chart -->
+  <div class="trend-chart-card">
+    <div class="trend-chart-header">
+      <h3><i class="pi pi-chart-bar"></i> Daily Sign-ups — Last 30 Days</h3>
+    </div>
+    @if (loadingGrowth) {
+      <div style="height:180px;background:#f8fafc;border-radius:8px;animation:pulse 1.5s infinite"></div>
+    } @else if (growthStats.trend.length === 0) {
+      <div class="no-trend-data">No sign-up data yet</div>
+    } @else {
+      <div class="trend-chart-wrap">
+        <p-chart type="bar" [data]="trendChartData" [options]="trendChartOptions"></p-chart>
+      </div>
+    }
   </div>
 
   <!-- Filters Section -->
@@ -59,11 +122,11 @@
           <tr>
             <th>Name</th>
             <th>Email</th>
-            <th>Mobile</th>
             <th>Role</th>
             <th>Plan</th>
             <th>API Keys</th>
             <th>Joined</th>
+            <th>Last Login</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -75,17 +138,19 @@
                   <div class="user-avatar">
                     {{ user.firstname.charAt(0).toUpperCase() }}{{ user.lastname.charAt(0).toUpperCase() }}
                   </div>
-                  <span>{{ user.firstname }} {{ user.lastname }}</span>
-                  @if (isOwner(user.email)) {
-                    <i class="pi pi-crown owner-icon" title="App Owner"></i>
-                  }
+                  <div class="user-name-info">
+                    <span>{{ user.firstname }} {{ user.lastname }}</span>
+                    @if (isOwner(user.email)) {
+                      <i class="pi pi-crown owner-icon" title="App Owner"></i>
+                    }
+                    @if (isNewUser(user.createdDate)) {
+                      <span class="new-badge">NEW</span>
+                    }
+                  </div>
                 </div>
               </td>
               <td>
                 <span class="email-text">{{ user.email }}</span>
-              </td>
-              <td>
-                <span class="mobile-text">{{ user.mobileno || '-' }}</span>
               </td>
               <td>
                 <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
@@ -104,6 +169,11 @@
                 <span class="date-text">{{ formatDate(user.createdDate) }}</span>
               </td>
               <td>
+                <span class="last-login-text" [class.never]="!user.lastLoginDate">
+                  {{ formatTimeAgo(user.lastLoginDate) }}
+                </span>
+              </td>
+              <td>
                 <div class="actions-group">
                   <div class="action-item">
                     <label>Role:</label>
@@ -111,9 +181,7 @@
                       [value]="user.role || 'viewer'" 
                       (change)="onRoleChange($event, user._id)"
                       class="role-selector"
-                      [disabled]="isOwner(user.email)"
-                      [title]="isOwner(user.email) ? 'Owner role cannot be changed' : 'Change user role'"
-                    >
+                      [disabled]="isOwner(user.email)">
                       <option value="owner">Owner</option>
                       <option value="admin">Admin</option>
                       <option value="developer">Developer</option>
@@ -127,9 +195,7 @@
                       [value]="user.plan || 'free'" 
                       (change)="onPlanChange($event, user._id)"
                       class="plan-selector"
-                      [disabled]="isOwner(user.email)"
-                      [title]="isOwner(user.email) ? 'Owner has Enterprise plan' : 'Change user plan'"
-                    >
+                      [disabled]="isOwner(user.email)">
                       <option value="free">Free</option>
                       <option value="pro">Pro</option>
                       <option value="enterprise">Enterprise</option>

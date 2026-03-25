@@ -87,7 +87,7 @@ PulzivoAnalytics.sendBatch();`;
     { value: '5KB',    label: 'Bundle size' },
     { value: '< 60s',  label: 'Setup time' },
     { value: '0',      label: 'Cookies used' },
-    { value: '100%',   label: 'Open source' },
+    { value: '100%',   label: 'Privacy-first' },
   ];
 
   ngOnInit() {
