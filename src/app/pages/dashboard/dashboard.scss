@@ -289,28 +289,40 @@ $sidebar-collapsed: 64px;
 
   .user-greeting {
     display: flex;
-    align-items: center;
-    gap: 0.375rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
     font-size: 0.875rem;
 
     .greeting-text {
       color: #94a3b8;
+      display: none; // hide "Welcome back," — name alone is enough in column layout
     }
 
     .greeting-name {
       color: #1e293b;
       font-weight: 600;
+      line-height: 1.2;
     }
 
+    // Row for the badges, sitting below the name
+    .role-badge,
+    .plan-badge {
+      // reset any inline margin
+      margin-left: 0;
+    }
+
+    // Wrap both badges in a row using adjacent sibling trick via a pseudo wrapper
+    // We'll render them inline on the same sub-row by making them inline-flex together
     .role-badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.18rem 0.45rem;
       border-radius: 4px;
-      font-size: 0.625rem;
+      font-size: 0.58rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-left: 0.25rem;
 
       &.role-badge-owner {
         background: #fff3e0;
@@ -339,19 +351,25 @@ $sidebar-collapsed: 64px;
     }
 
     .plan-badge {
-      display: inline-block;
-      padding: 0.2rem 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.18rem 0.45rem;
       border-radius: 20px;
-      font-size: 0.5625rem;
+      font-size: 0.58rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      margin-left: 0.125rem;
 
       &.plan-badge-free {
         background: #f1f5f9;
         color: #64748b;
         border: 1px solid #e2e8f0;
+      }
+
+      &.plan-badge-starter {
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        color: #ffffff;
+        border: none;
       }
 
       &.plan-badge-pro {
@@ -366,6 +384,15 @@ $sidebar-collapsed: 64px;
         border: none;
       }
     }
+
+    // The name + role badge sit on the first row
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    // plan badge sits on second row directly
   }
 
   .date-text {

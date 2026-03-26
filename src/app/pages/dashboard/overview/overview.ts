@@ -2,6 +2,9 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import * as echarts from 'echarts';
+import { NgxEchartsDirective } from 'ngx-echarts';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { SelectModule } from 'primeng/select';
@@ -41,6 +44,7 @@ import { AnalyticsAPIService } from '../../../services/analytics-api.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
+import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -80,7 +84,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -111,6 +115,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
   entryPages: PageData[] = [];
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
+  mapOptions: any = null;
+  mapReady = false;
+  private worldGeoJson: any = null;
   pageViewsTrend: PageViewsTrendData[] = [];
   realtimeEvents: RealtimeEvent[] = [];
   trafficSources: TrafficSource[] = [];
@@ -305,7 +312,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     private apiKeysService: ApiKeysService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef,
-    public demoService: DemoService
+    public demoService: DemoService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -326,6 +334,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadUserPlan();
     this.loadAnalyticsPreferences();
     this.loadAnalyticsDataWithLoading();
+    this.loadWorldGeoJson();
     // this.loadFeaturesDataWithDelay(); // no-op, removed
     // this.loadLiveEventsWithDelay();   // Live events disabled
     this.loadApiKeys();
@@ -361,6 +370,85 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
     if (this.updateInterval) clearInterval(this.updateInterval);
   }
+
+  loadWorldGeoJson(): void {
+    if (this.worldGeoJson) {
+      this.buildMapOptions();
+      return;
+    }
+    this.http.get('/world.geojson').subscribe({
+      next: (geoJson: any) => {
+        this.worldGeoJson = geoJson;
+        echarts.registerMap('world', geoJson);
+        // Now that GeoJSON is ready, build (geoData may already be loaded)
+        this.buildMapOptions();
+      },
+      error: (err) => console.warn('Failed to load world.geojson', err)
+    });
+  }
+
+  buildMapOptions(): void {
+    // Wait until BOTH are available
+    if (!this.worldGeoJson || !this.geoData.length) return;
+
+    // Map: GeoJSON name → original country name + visitors (for tooltip)
+    const geoJsonToDisplay: Record<string, { label: string; visitors: number }> = {};
+    const seriesData = this.geoData.map(g => {
+      const geoName = COUNTRY_NAME_TO_GEOJSON[g.country] ?? g.country;
+      // Multiple countries may map to the same GeoJSON polygon (e.g. territories → England)
+      // Keep highest visitor count for the polygon tooltip
+      if (!geoJsonToDisplay[geoName] || g.visitors > geoJsonToDisplay[geoName].visitors) {
+        geoJsonToDisplay[geoName] = { label: g.country, visitors: g.visitors };
+      }
+      return { name: geoName, value: g.visitors };
+    });
+
+    const max = this.geoData[0]?.visitors || 1;
+
+    // Always assign a NEW object so Angular/ECharts detects the change
+    this.mapOptions = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item',
+        formatter: (p: any) => {
+          const info = geoJsonToDisplay[p.name];
+          if (info) {
+            return `<b>${info.label}</b><br/>${info.visitors.toLocaleString()} visitors`;
+          }
+          return p.data
+            ? `<b>${p.name}</b><br/>${p.data.value.toLocaleString()} visitors`
+            : `<b>${p.name}</b>`;
+        }
+      },
+      visualMap: {
+        min: 0,
+        max,
+        show: false,
+        inRange: { color: ['#c7d2fe', '#4f46e5'] }
+      },
+      series: [{
+        type: 'map',
+        map: 'world',
+        roam: true,
+        scaleLimit: { min: 1, max: 8 },
+        emphasis: {
+          label: { show: false },
+          itemStyle: { areaColor: '#818cf8' }
+        },
+        itemStyle: {
+          areaColor: '#f1f5f9',
+          borderColor: '#cbd5e1',
+          borderWidth: 0.5
+        },
+        data: seriesData
+      }]
+    };
+
+    this.mapReady = true;
+    this.cdr.markForCheck();
+  }
+
+
 
   private loadDemoData(): void {
     const d = this.demoService;
@@ -435,6 +523,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // ── Clear all loading spinners ────────────────────────────────────────────
     Object.keys(this.loadingStates).forEach(k => (this.loadingStates as any)[k] = false);
+
+    // ── Load world GeoJSON so the map renders in demo mode ────────────────────
+    this.loadWorldGeoJson();
 
     this.cdr.markForCheck();
   }
@@ -649,6 +740,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.analyticsDataService.getGeographicData(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
         this.geoData = Array.isArray(data) ? data : [];
+        this.buildMapOptions();
         this.cdr.markForCheck();
       })
     );
@@ -1027,6 +1119,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getGeographicData(this.currentDateRange ?? undefined).subscribe({
           next: (data: GeographicData[]) => {
             this.geoData = data;
+            this.buildMapOptions();
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();

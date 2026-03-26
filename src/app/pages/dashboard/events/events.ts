@@ -14,13 +14,16 @@ import { MenuModule } from 'primeng/menu';
 import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { PopoverModule } from 'primeng/popover';
-import { Subscription } from 'rxjs';
+import { Subscription, Subject } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
 import { RouterLink } from '@angular/router';
 import { AnalyticsAPIService } from '../../../services/analytics-api.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
+
+interface UserColor { bg: string; text: string; border: string; }
 
 interface EventSummary {
   rageClicks: number;
@@ -46,9 +49,11 @@ interface HistoryEvent {
   id: string;
   event_name: string;
   user_id: string;
+  session_id: string | null;
   timestamp: string;
   page: string | null;
   country: string | null;
+  timezone: string | null;
   device: string | null;
   data: any;
 }
@@ -94,6 +99,8 @@ interface FilterOptions {
 })
 export class DashboardEvents implements OnInit, OnDestroy {
   private subscriptions = new Subscription();
+  private historyCancel$ = new Subject<void>();
+  private destroy$ = new Subject<void>();
 
   // Plan gating
   userPlan: 'free' | 'pro' | 'enterprise' = 'free';
@@ -137,12 +144,13 @@ export class DashboardEvents implements OnInit, OnDestroy {
   
   // Date Range Presets
   datePresets = [
-    { label: 'Today', days: 0 },
+    { label: 'All time',    days: -1 },
+    { label: 'Today',       days: 0 },
     { label: 'Last 7 days', days: 7 },
     { label: 'Last 30 days', days: 30 },
     { label: 'Last 90 days', days: 90 }
   ];
-  activePreset = 'Last 7 days';
+  activePreset = 'All time';
   
   // Helper for template
   get maxDate(): Date {
@@ -205,6 +213,12 @@ export class DashboardEvents implements OnInit, OnDestroy {
   // Event Detail Modal
   showEventDetail = false;
   selectedEvent: HistoryEvent | null = null;
+  modalTab: 'details' | 'timeline' = 'details';
+
+  // Session Timeline
+  sessionEvents: HistoryEvent[] = [];
+  loadingTimeline = false;
+  timelineActiveId: string | null = null;
 
   // Export Menu
   exportMenuItems: MenuItem[] = [
@@ -225,11 +239,14 @@ export class DashboardEvents implements OnInit, OnDestroy {
     }
   ];
 
-  // Timeline Chart
-  timelineChartData: any = {};
-  timelineChartOptions: any = {};
+  // Category counts from backend
+  categoryCounts: Record<string, number> = {};
 
-  // Chart
+  // Donut chart
+  donutChartData: any = {};
+  donutChartOptions: any = {};
+
+  // Frequency bar chart
   barChartData: any = {};
   barChartOptions: any = {};
 
@@ -287,7 +304,6 @@ export class DashboardEvents implements OnInit, OnDestroy {
       this.userPlan = user?.plan || 'free';
     }
     this.initChart();
-    this.initTimelineChart();
     this.initDateRange();
     this.loadApiKeys();
   }
@@ -299,6 +315,9 @@ export class DashboardEvents implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    this.historyCancel$.complete();
+    this.destroy$.next();
+    this.destroy$.complete();
     clearTimeout(this.searchTimer);
   }
 
@@ -306,49 +325,53 @@ export class DashboardEvents implements OnInit, OnDestroy {
     const d = this.demoService;
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
-    this.totalEvents = 8423;
+    this.totalEvents = 21859;
     this.events = d.eventsBreakdown as any;
     this.customEvents = d.customEvents as any;
     this.topClicks = d.eventsTopClicks as any;
     this.summary = d.eventsSummary;
+    // Use explicit category counts from demo service
+    this.categoryCounts = { ...d.eventsCategoryCounts };
     this.historyEvents = d.eventsHistory as any;
     this.historyTotal = d.eventsHistory.length;
-    this.historyPages = 1;
+    this.historyPages = Math.ceil(d.eventsHistory.length / this.historyLimit);
     this.eventTypes = [...new Set(d.eventsHistory.map(e => e.event_name))];
     this.filterOptions = {
       countries: ['US', 'GB', 'DE', 'IN', 'CA', 'FR', 'AU', 'NL'],
       devices: ['Desktop', 'Mobile', 'Tablet'],
-      pages: ['/', '/pricing', '/docs', '/features', '/contact', '/blog']
+      pages: ['/', '/pricing', '/docs', '/features', '/contact', '/blog', '/why-pulzivo', '/use-cases', '/blog']
     };
     this.initChart();
-    this.initTimelineChart();
     this.barChartData = d.eventsBarChart;
-    this.timelineChartData = d.eventsTimelineChart;
+    this.updateDonutChart();
     this.loading.breakdown = false;
     this.loading.history = false;
     this.cdr.markForCheck();
   }
 
   private initDateRange(): void {
-    // Default to last 7 days
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 7);
-    this.dateRange = { start, end };
+    // Default to "All time" — no date filter, show everything
+    this.dateRange = { start: null, end: null };
+    this.activePreset = 'All time';
   }
 
   applyDatePreset(preset: string): void {
     this.activePreset = preset;
     const presetConfig = this.datePresets.find(p => p.label === preset);
     if (presetConfig) {
-      const end = new Date();
-      const start = new Date();
-      if (presetConfig.days === 0) {
-        start.setHours(0, 0, 0, 0);
+      if (presetConfig.days === -1) {
+        // All time — clear the date filter
+        this.dateRange = { start: null, end: null };
       } else {
-        start.setDate(start.getDate() - presetConfig.days);
+        const end = new Date();
+        const start = new Date();
+        if (presetConfig.days === 0) {
+          start.setHours(0, 0, 0, 0);
+        } else {
+          start.setDate(start.getDate() - presetConfig.days);
+        }
+        this.dateRange = { start, end };
       }
-      this.dateRange = { start, end };
       this.onAdvancedFilterChange();
     }
   }
@@ -370,25 +393,12 @@ export class DashboardEvents implements OnInit, OnDestroy {
         x: { ticks: { maxRotation: 30 }, grid: { display: false } }
       }
     };
-  }
-
-  private initTimelineChart(): void {
-    this.timelineChartOptions = {
+    this.donutChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'bottom' },
-        tooltip: {
-          mode: 'index',
-          intersect: false
-        }
-      },
-      scales: {
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f1f5f9' } },
-        x: { grid: { display: false } }
-      }
+      cutout: '72%',
+      plugins: { legend: { display: false }, tooltip: { enabled: true } }
     };
-    this.updateTimelineChart();
   }
 
   private loadApiKeys(): void {
@@ -444,9 +454,10 @@ export class DashboardEvents implements OnInit, OnDestroy {
           this.customEvents = data.customEvents || [];
           this.topClicks = data.topClicks || [];
           this.totalEvents = data.totalEvents || 0;
+          this.categoryCounts = data.categoryCounts || {};
           this.summary = data.summary || this.summary;
           this.updateChart();
-          this.updateTimelineChart();
+          this.updateDonutChart();
           this.loading.breakdown = false;
           this.cdr.markForCheck();
         },
@@ -459,41 +470,48 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.loading.history = true;
     this.cdr.markForCheck();
 
-    // Build date range object
+    // Cancel previous in-flight request, then create a fresh cancel signal for this request
+    this.historyCancel$.next();
+    const cancelSignal$ = new Subject<void>();
+    this.historyCancel$ = cancelSignal$;
+
     const dateRange = this.dateRange.start && this.dateRange.end ? {
       startDate: this.dateRange.start,
       endDate: this.dateRange.end
     } : undefined;
 
-    this.subscriptions.add(
-      this.analyticsAPI.getEventHistory(
-        this.historyPage,
-        this.historyLimit,
-        this.filterEventType,
-        this.searchQuery,
-        this.selectedCountries,
-        this.selectedDevices,
-        this.selectedPages,
-        this.selectedCategories,
-        dateRange
-      ).subscribe({
-        next: (data: any) => {
-          this.historyEvents = data.events || [];
-          this.historyTotal = data.total || 0;
-          this.historyPages = data.pages || 1;
-          if (data.eventTypes?.length) {
-            this.eventTypes = data.eventTypes;
-          }
-          // Populate filter options
-          if (data.filterOptions) {
-            this.filterOptions = data.filterOptions;
-          }
-          this.loading.history = false;
-          this.cdr.markForCheck();
-        },
-        error: () => { this.loading.history = false; this.cdr.markForCheck(); }
-      })
-    );
+    this.analyticsAPI.getEventHistory(
+      this.historyPage,
+      this.historyLimit,
+      this.filterEventType,
+      this.searchQuery,
+      this.selectedCountries,
+      this.selectedDevices,
+      this.selectedPages,
+      this.selectedCategories,
+      dateRange
+    ).pipe(
+      takeUntil(cancelSignal$)
+    ).subscribe({
+      next: (data: any) => {
+        this.historyEvents = data.events || [];
+        this.historyTotal = data.total || 0;
+        this.historyPages = data.pages || 1;
+        if (data.eventTypes?.length) {
+          this.eventTypes = data.eventTypes;
+        }
+        if (data.filterOptions) {
+          this.filterOptions = data.filterOptions;
+        }
+        this.loading.history = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('[Events] loadHistory error:', err?.status, err?.message, err);
+        this.loading.history = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   private updateChart(): void {
@@ -512,21 +530,40 @@ export class DashboardEvents implements OnInit, OnDestroy {
     };
   }
 
-  private updateTimelineChart(): void {
-    // Generate mock timeline data for the last 7 days
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const categories = this.eventCategories.slice(0, 5);
-    
-    this.timelineChartData = {
-      labels: days,
-      datasets: categories.map(cat => ({
-        label: cat.label,
-        data: days.map(() => Math.floor(Math.random() * 500) + 100),
-        borderColor: cat.color,
-        backgroundColor: cat.color + '20',
-        tension: 0.4,
-        fill: true
-      }))
+  private updateDonutChart(): void {
+    const CATEGORY_COLORS: Record<string, string> = {
+      user_actions: '#2a6df6',
+      navigation:   '#6f41ff',
+      forms:        '#f59e0b',
+      errors:       '#ef4444',
+      performance:  '#22c55e',
+      custom:       '#8b5cf6',
+    };
+    const cats = this.eventCategories;
+    const labels = cats.map(c => c.label);
+    const data = cats.map(c => this.categoryCounts[c.name] || 0);
+    const colors = cats.map(c => CATEGORY_COLORS[c.name] || '#94a3b8');
+
+    this.donutChartData = {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#ffffff', hoverOffset: 6 }]
+    };
+    this.donutChartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx: any) => {
+              const val = ctx.raw ?? 0;
+              const pct = this.totalEvents > 0 ? ((val / this.totalEvents) * 100).toFixed(1) : '0';
+              return ` ${val.toLocaleString()} events (${pct}%)`;
+            }
+          }
+        }
+      }
     };
   }
 
@@ -570,9 +607,9 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.jumpToPage = '';
   }
 
-  private scrollToHistory(): void {
+  scrollToHistory(): void {
     setTimeout(() => {
-      document.querySelector('.history-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('event-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
   }
 
@@ -658,12 +695,229 @@ export class DashboardEvents implements OnInit, OnDestroy {
   // Event Detail Modal Methods
   openEventDetail(event: HistoryEvent): void {
     this.selectedEvent = event;
+    this.modalTab = 'details';
+    this.sessionEvents = [];
+    this.timelineActiveId = event.id;
     this.showEventDetail = true;
   }
 
   closeEventDetail(): void {
     this.showEventDetail = false;
     this.selectedEvent = null;
+    this.copiedEventData = false;
+    this.sessionEvents = [];
+    this.modalTab = 'details';
+  }
+
+  switchModalTab(tab: 'details' | 'timeline'): void {
+    this.modalTab = tab;
+    if (tab === 'timeline' && this.selectedEvent && !this.sessionEvents.length) {
+      this.loadSessionTimeline();
+    }
+  }
+
+  private loadSessionTimeline(): void {
+    if (!this.selectedEvent?.session_id) return;
+    this.loadingTimeline = true;
+    this.cdr.markForCheck();
+
+    if (this.demoService.isDemoMode()) {
+      const events = this.demoService.getSessionEvents(this.selectedEvent.session_id);
+      this.sessionEvents = events as any;
+      this.loadingTimeline = false;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.analyticsAPI.getSessionEvents(this.selectedEvent.session_id).subscribe({
+      next: (events: any[]) => {
+        this.sessionEvents = events;
+        this.loadingTimeline = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingTimeline = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  jumpToTimelineEvent(event: HistoryEvent): void {
+    this.timelineActiveId = event.id;
+    this.cdr.markForCheck();
+
+    // Scroll the list item into view
+    setTimeout(() => {
+      const el = document.querySelector('.tl-item.tl-active');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+  }
+
+  setTimelineActive(id: string): void {
+    this.timelineActiveId = id;
+    this.cdr.markForCheck();
+  }
+
+  copiedEventData = false;
+  private copiedTimer: any;
+
+  copyEventData(): void {
+    if (!this.selectedEvent) return;
+    const text = this.formatEventData(this.selectedEvent.data);
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedEventData = true;
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => {
+        this.copiedEventData = false;
+      }, 2000);
+    });
+  }
+
+  // Event label mapping
+  private readonly EVENT_LABELS: Record<string, string> = {
+    page_view:                    'Page View',
+    click:                        'Click',
+    scroll:                       'Scroll',
+    hover:                        'Hover',
+    input:                        'Input',
+    interaction:                  'Interaction',
+    route_change:                 'Route Change',
+    navigation:                   'Navigation',
+    page_exit:                    'Page Exit',
+    page_hidden:                  'Page Hidden',
+    form_submit:                  'Form Submit',
+    form_abandon:                 'Form Abandon',
+    form_focus:                   'Form Focus',
+    form_blur:                    'Form Blur',
+    form_error:                   'Form Error',
+    form_field_interaction:       'Form Field',
+    error:                        'JS Error',
+    javascript_error:             'JS Error',
+    rage_click:                   'Rage Click',
+    dead_click:                   'Dead Click',
+    web_vital_lcp:                'Page Speed (LCP)',
+    web_vital_fid:                'Input Delay (FID)',
+    web_vital_cls:                'Layout Shift (CLS)',
+    web_vital_fcp:                'First Paint (FCP)',
+    web_vital_ttfb:               'Server Response (TTFB)',
+    resource_timing:              'Resource Load',
+    performance:                  'Performance',
+    page_load_complete:           'Page Load',
+    session_start:                'Session Start',
+    unique_visitor_daily:         'New Visitor',
+    unique_visitor_session:       'Session',
+    return_visit:                 'Return Visit',
+    impression:                   'Impression',
+    promo_impression:             'Promo Impression',
+    promo_click:                  'Promo Click',
+    visibility:                   'Visibility',
+    scroll_depth:                 'Scroll Depth',
+  };
+
+  private readonly EVENT_ICONS: Record<string, string> = {
+    page_view:             'pi pi-file',
+    click:                 'pi pi-hand-point-right',
+    scroll:                'pi pi-arrows-v',
+    hover:                 'pi pi-eye',
+    input:                 'pi pi-pencil',
+    interaction:           'pi pi-hand-point-right',
+    route_change:          'pi pi-compass',
+    navigation:            'pi pi-compass',
+    page_exit:             'pi pi-sign-out',
+    page_hidden:           'pi pi-eye-slash',
+    form_submit:           'pi pi-check-circle',
+    form_abandon:          'pi pi-times-circle',
+    form_focus:            'pi pi-align-left',
+    form_blur:             'pi pi-align-left',
+    form_error:            'pi pi-exclamation-circle',
+    form_field_interaction:'pi pi-align-left',
+    error:                 'pi pi-exclamation-triangle',
+    javascript_error:      'pi pi-exclamation-triangle',
+    rage_click:            'pi pi-bolt',
+    dead_click:            'pi pi-ban',
+    web_vital_lcp:         'pi pi-gauge',
+    web_vital_fid:         'pi pi-gauge',
+    web_vital_cls:         'pi pi-gauge',
+    web_vital_fcp:         'pi pi-gauge',
+    web_vital_ttfb:        'pi pi-gauge',
+    resource_timing:       'pi pi-download',
+    performance:           'pi pi-gauge',
+    page_load_complete:    'pi pi-flag',
+    session_start:         'pi pi-user',
+    unique_visitor_daily:  'pi pi-user-plus',
+    unique_visitor_session:'pi pi-user',
+    return_visit:          'pi pi-refresh',
+    impression:            'pi pi-eye',
+    promo_impression:      'pi pi-tag',
+    promo_click:           'pi pi-tag',
+    visibility:            'pi pi-eye',
+    scroll_depth:          'pi pi-arrows-v',
+  };
+
+  eventFriendlyLabel(name: string): string {
+    return this.EVENT_LABELS[name] ?? this.formatEventName(name);
+  }
+
+  eventIcon(name: string): string {
+    return this.EVENT_ICONS[name] ?? 'pi pi-sparkles';
+  }
+
+  sessionDuration(events: HistoryEvent[]): string {
+    if (events.length < 2) return '< 1s';
+    const ms = new Date(events[events.length - 1].timestamp).getTime() - new Date(events[0].timestamp).getTime();
+    const secs = Math.floor(ms / 1000);
+    if (secs < 60) return `${secs}s`;
+    return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+  }
+
+  timelineOffset(event: HistoryEvent, events: HistoryEvent[]): number {
+    if (events.length < 2) return 0;
+    const start = new Date(events[0].timestamp).getTime();
+    const end   = new Date(events[events.length - 1].timestamp).getTime();
+    const curr  = new Date(event.timestamp).getTime();
+    return end === start ? 0 : ((curr - start) / (end - start)) * 100;
+  }
+
+  getCategoryCount(categoryName: string): number {
+    return this.categoryCounts[categoryName] || 0;
+  }
+
+  getCategoryPercent(categoryName: string): number {
+    if (!this.totalEvents) return 0;
+    return Math.round((this.getCategoryCount(categoryName) / this.totalEvents) * 100);
+  }
+
+  private readonly USER_COLORS = [
+    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' }, // blue
+    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' }, // green
+    { bg: '#fdf4ff', text: '#9333ea', border: '#e9d5ff' }, // purple
+    { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa' }, // orange
+    { bg: '#fdf2f8', text: '#db2777', border: '#fbcfe8' }, // pink
+    { bg: '#f0fdfa', text: '#0d9488', border: '#99f6e4' }, // teal
+    { bg: '#fefce8', text: '#ca8a04', border: '#fef08a' }, // yellow
+    { bg: '#fff1f2', text: '#e11d48', border: '#fecdd3' }, // rose
+  ];
+
+  private userColorCache = new Map<string, UserColor>();
+
+  userColor(userId: string | null | undefined): UserColor {
+    if (!userId) return { bg: '#f8fafc', text: '#94a3b8', border: '#e2e8f0' };
+    if (this.userColorCache.has(userId)) return this.userColorCache.get(userId)!;
+    // Deterministic hash so the same user always gets the same colour
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+    }
+    const color = this.USER_COLORS[hash % this.USER_COLORS.length];
+    this.userColorCache.set(userId, color);
+    return color;
+  }
+
+  userInitials(userId: string | null | undefined): string {
+    if (!userId) return '?';
+    // Take up to 2 meaningful chars — skip common prefix "anon_"
+    const clean = userId.replace(/^anon_/i, '').toUpperCase();
+    return clean.slice(0, 2);
   }
 
   getEventCategoryInfo(eventName: string): EventCategory | undefined {

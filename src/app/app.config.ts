@@ -9,6 +9,7 @@ import Lara from '@primeuix/themes/lara';
 import { MessageService } from 'primeng/api';
 import { authInterceptor } from './interceptors/auth.interceptor';
 import { AppTitleStrategy } from './services/title.strategy';
+import { provideEchartsCore } from 'ngx-echarts';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -37,6 +38,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
     MessageService,
-    { provide: TitleStrategy, useClass: AppTitleStrategy }
+    { provide: TitleStrategy, useClass: AppTitleStrategy },
+    provideEchartsCore({ echarts: () => import('echarts') }),
   ]
 };

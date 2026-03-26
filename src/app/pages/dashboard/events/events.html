@@ -1,653 +1,658 @@
-﻿<div class="page-gate-wrapper" [class.page-gated]="!isPlanAtLeast('pro')">
-<!-- Toolbar -->
-<div class="events-toolbar">
-  @if (availableApiKeys.length > 0) {
-    <div class="key-selector">
-      <label>API Key</label>
-      <p-select
-        [options]="availableApiKeys"
-        [(ngModel)]="selectedApiKey"
-        (ngModelChange)="onApiKeyChange()"
-        optionLabel="name"
-        optionValue="apiKey"
-        placeholder="Select API Key"
-        [style]="{ width: '300px' }">
-        <ng-template #selectedItem let-item>
-          <span>{{ item.name }} <span style="color: #94a3b8; font-size: 0.8rem;">({{ item.apiKey }})</span></span>
-        </ng-template>
-        <ng-template #item let-item>
-          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+<div class="page-gate-wrapper" [class.page-gated]="!isPlanAtLeast('pro')">
+
+  <!-- ══════════════════ TOOLBAR ══════════════════ -->
+  <div class="events-toolbar">
+    @if (availableApiKeys.length > 0) {
+      <div class="key-selector">
+        <label>Site</label>
+        <p-select
+          [options]="availableApiKeys"
+          [(ngModel)]="selectedApiKey"
+          (ngModelChange)="onApiKeyChange()"
+          optionLabel="name"
+          optionValue="apiKey"
+          placeholder="Select site"
+          [style]="{ width: '280px' }">
+          <ng-template #selectedItem let-item>
             <span>{{ item.name }}</span>
-            <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
-          </div>
-        </ng-template>
-      </p-select>
+          </ng-template>
+          <ng-template #item let-item>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <span>{{ item.name }}</span>
+              <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
+            </div>
+          </ng-template>
+        </p-select>
+      </div>
+    }
+    <div class="toolbar-title">
+      <h2>Events</h2>
     </div>
-  }
-  <div class="toolbar-title">
-    <h2>Events &amp; Interactions</h2>
-    <span class="total-badge">{{ totalEvents | number }} total events</span>
+    <div class="toolbar-actions">
+      <button pButton icon="pi pi-calendar" [label]="activePreset" class="p-button-outlined date-btn" (click)="datePopover.toggle($event)"></button>
+      <p-popover #datePopover [style]="{ width: '320px' }">
+        <div class="date-popover-content">
+          <div class="date-presets">
+            @for (preset of datePresets; track preset.label) {
+              <button class="preset-item" [class.active]="activePreset === preset.label"
+                (click)="applyDatePreset(preset.label); datePopover.hide()">
+                {{ preset.label }}
+              </button>
+            }
+          </div>
+          <div class="date-divider">or pick a custom range</div>
+          <div class="date-range-picker">
+            <p-datepicker [(ngModel)]="dateRange.start" (ngModelChange)="onDateRangeChange()"
+              placeholder="Start" [maxDate]="dateRange.end || undefined" dateFormat="M dd, yy" [showIcon]="true">
+            </p-datepicker>
+            <span class="date-separator">→</span>
+            <p-datepicker [(ngModel)]="dateRange.end" (ngModelChange)="onDateRangeChange()"
+              placeholder="End" [minDate]="dateRange.start || undefined" [maxDate]="maxDate" dateFormat="M dd, yy" [showIcon]="true">
+            </p-datepicker>
+          </div>
+        </div>
+      </p-popover>
+
+      @if (isPlanAtLeast('enterprise')) {
+        <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary" (click)="exportData('csv')"></button>
+      }
+    </div>
   </div>
-  <div class="toolbar-actions">
-    <!-- Date Range Selector -->
-    <button pButton icon="pi pi-calendar" [label]="activePreset" class="p-button-outlined" (click)="datePopover.toggle($event)" #dateRangeBtn></button>
-    <p-popover #datePopover [style]="{ width: '320px' }">
-      <div class="date-popover-content">
-        <div class="date-presets">
-          @for (preset of datePresets; track preset.label) {
-            <button 
-              class="preset-item"
-              [class.active]="activePreset === preset.label"
-              (click)="applyDatePreset(preset.label); datePopover.hide()">
-              {{ preset.label }}
-            </button>
+
+  <!-- ══════════════════ ZONE 1 — OVERVIEW STRIP ══════════════════ -->
+  <div class="overview-strip">
+
+    <!-- Total events hero -->
+    <div class="overview-hero">
+      @if (loading.breakdown) {
+        <p-skeleton width="90px" height="2.8rem" styleClass="mb-2"></p-skeleton>
+        <p-skeleton width="120px" height="1rem"></p-skeleton>
+      } @else {
+        <div class="hero-count">{{ totalEvents | number }}</div>
+        <div class="hero-label">Total Events</div>
+        <div class="hero-period">{{ activePreset }}</div>
+      }
+    </div>
+
+    <!-- Category pills -->
+    <div class="category-pills">
+      @for (cat of eventCategories; track cat.name) {
+        <button
+          class="cat-pill"
+          [class.active]="selectedCategories.includes(cat.name)"
+          [style.--cat-color]="cat.color"
+          (click)="toggleCategory(cat.name)">
+          <span class="cat-dot" [style.background]="cat.color"></span>
+          <span class="cat-pill-label">{{ cat.label }}</span>
+          @if (loading.breakdown) {
+            <span class="cat-pill-count skeleton-inline"></span>
+          } @else {
+            <span class="cat-pill-count">{{ getCategoryCount(cat.name) | number }}</span>
+          }
+        </button>
+      }
+    </div>
+
+    <!-- Donut chart -->
+    <div class="overview-donut">
+      @if (loading.breakdown) {
+        <p-skeleton shape="circle" size="120px"></p-skeleton>
+      } @else {
+        <p-chart type="doughnut" [data]="donutChartData" [options]="donutChartOptions" width="130px" height="130px"></p-chart>
+      }
+    </div>
+
+  </div>
+
+  <!-- ══════════════════ ZONE 2 — TOP ACTIVITY ══════════════════ -->
+  <div class="activity-row">
+
+    <!-- Top Event Types (ranked) -->
+    <div class="activity-card ranked-card">
+      <div class="card-header">
+        <h3>Top Event Types</h3>
+        <span class="card-sub">Ranked by frequency</span>
+        @if (loading.breakdown) {
+          <p-progressSpinner [style]="{ width: '16px', height: '16px' }" strokeWidth="4"></p-progressSpinner>
+        }
+      </div>
+      @if (loading.breakdown) {
+        <div class="list-skeleton">
+          @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            <div class="skeleton-row">
+              <p-skeleton width="55%" height="1rem"></p-skeleton>
+              <p-skeleton width="30%" height="1rem"></p-skeleton>
+            </div>
           }
         </div>
-        <div class="date-divider">or select custom range</div>
-        <div class="date-range-picker">
-          <p-datepicker 
-            [(ngModel)]="dateRange.start" 
-            (ngModelChange)="onDateRangeChange()"
-            placeholder="Start Date"
-            [maxDate]="dateRange.end || undefined"
-            dateFormat="M dd, yy"
-            [showIcon]="true">
-          </p-datepicker>
-          <span class="date-separator">to</span>
-          <p-datepicker 
-            [(ngModel)]="dateRange.end" 
-            (ngModelChange)="onDateRangeChange()"
-            placeholder="End Date"
-            [minDate]="dateRange.start || undefined"
-            [maxDate]="maxDate"
-            dateFormat="M dd, yy"
-            [showIcon]="true">
-          </p-datepicker>
-        </div>
-      </div>
-    </p-popover>
-    
-    @if (isPlanAtLeast('enterprise')) {
-      <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary" (click)="exportData('csv')"></button>
-    } @else {
-      <button pButton icon="pi pi-download" label="Export " class="p-button-outlined p-button-secondary" [disabled]="true" pTooltip="Enterprise feature: data export" tooltipPosition="left" style="opacity:0.55;cursor:not-allowed"><i class="pi pi-crown" style="color:#f59e0b;margin-left:4px;font-size:0.75rem"></i></button>
-    }
-  </div>
-</div>
-
-<!-- Event Categories -->
-<div class="categories-row">
-  @for (category of eventCategories; track category.name) {
-    <div class="category-card" [class.active]="selectedCategories.includes(category.name)" (click)="toggleCategory(category.name)">
-      <div class="category-icon" [style.background]="category.color + '20'" [style.color]="category.color">
-        <i [class]="'pi ' + category.icon"></i>
-      </div>
-      <div class="category-info">
-        <div class="category-label">{{ category.label }}</div>
-        <div class="category-count">{{ category.events.length }} types</div>
-      </div>
-    </div>
-  }
-</div>
-
-<!-- Summary Cards -->
-<div class="summary-row">
-  @if (loading.breakdown) {
-    @for (i of [1,2,3,4,5]; track i) {
-      <div class="summary-card skeleton-card">
-        <p-skeleton width="40px" height="40px" borderRadius="10px"></p-skeleton>
-        <div>
-          <p-skeleton width="60px" height="1.5rem" styleClass="mb-1"></p-skeleton>
-          <p-skeleton width="80px" height="0.9rem"></p-skeleton>
-        </div>
-      </div>
-    }
-  } @else {
-    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
-      @if (!isPlanAtLeast('enterprise')) {
-        <div class="enterprise-overlay">
-          <div class="enterprise-content">
-            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
-            <p>Rage click detection</p>
-            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
-          </div>
-        </div>
       } @else {
-        <div class="summary-icon red"><i class="pi pi-bolt"></i></div>
-        <div>
-          <div class="summary-value">{{ summary.rageClicks | number }}</div>
-          <div class="summary-label">Rage Clicks</div>
-        </div>
-      }
-    </div>
-    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
-      @if (!isPlanAtLeast('enterprise')) {
-        <div class="enterprise-overlay">
-          <div class="enterprise-content">
-            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
-            <p>Dead click analysis</p>
-            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
-          </div>
-        </div>
-      } @else {
-        <div class="summary-icon orange"><i class="pi pi-times-circle"></i></div>
-        <div>
-          <div class="summary-value">{{ summary.deadClicks | number }}</div>
-          <div class="summary-label">Dead Clicks</div>
-        </div>
-      }
-    </div>
-    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
-      @if (!isPlanAtLeast('enterprise')) {
-        <div class="enterprise-overlay">
-          <div class="enterprise-content">
-            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
-            <p>Form event tracking</p>
-            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
-          </div>
-        </div>
-      } @else {
-        <div class="summary-icon green"><i class="pi pi-check-circle"></i></div>
-        <div>
-          <div class="summary-value">{{ summary.formSubmits | number }}</div>
-          <div class="summary-label">Form Submits</div>
-        </div>
-      }
-    </div>
-    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
-      @if (!isPlanAtLeast('enterprise')) {
-        <div class="enterprise-overlay">
-          <div class="enterprise-content">
-            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
-            <p>Form abandonment tracking</p>
-            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
-          </div>
-        </div>
-      } @else {
-        <div class="summary-icon yellow"><i class="pi pi-times"></i></div>
-        <div>
-          <div class="summary-value">{{ summary.formAbandons | number }}</div>
-          <div class="summary-label">Form Abandons</div>
-        </div>
-      }
-    </div>
-    <div class="summary-card" [class.enterprise-gate]="!isPlanAtLeast('enterprise')">
-      @if (!isPlanAtLeast('enterprise')) {
-        <div class="enterprise-overlay">
-          <div class="enterprise-content">
-            <span class="ent-badge"><i class="pi pi-crown"></i> Enterprise</span>
-            <p>Form field focus tracking</p>
-            <a routerLink="/dashboard/plans" class="ent-upgrade-btn">Upgrade <i class="pi pi-arrow-right"></i></a>
-          </div>
-        </div>
-      } @else {
-        <div class="summary-icon blue"><i class="pi pi-pencil"></i></div>
-        <div>
-          <div class="summary-value">{{ summary.formFocuses | number }}</div>
-          <div class="summary-label">Form Focuses</div>
-        </div>
-      }
-    </div>
-  }
-</div>
-
-<!-- Charts Row -->
-<div class="charts-row">
-  <!-- Timeline Visualization -->
-  <div class="chart-card timeline-card">
-    <div class="card-header">
-      <h3>Event Timeline</h3>
-      <span class="card-sub">Last 7 days by category</span>
-      @if (loading.breakdown) {
-        <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
-      }
-    </div>
-    @if (loading.breakdown) {
-      <p-skeleton width="100%" height="200px"></p-skeleton>
-    } @else {
-      <div class="chart-wrap">
-        <p-chart type="line" [data]="timelineChartData" [options]="timelineChartOptions"></p-chart>
-      </div>
-    }
-  </div>
-
-  <!-- Event Frequency Chart -->
-  <div class="chart-card wide">
-    <div class="card-header">
-      <h3>Event Frequency</h3>
-      <span class="card-sub">Top 15 event types by count</span>
-      @if (loading.breakdown) {
-        <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
-      }
-    </div>
-    @if (loading.breakdown) {
-      <p-skeleton width="100%" height="240px"></p-skeleton>
-    } @else {
-      <div class="chart-wrap">
-        <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
-      </div>
-    }
-  </div>
-
-  <!-- Custom Events -->
-  <div class="chart-card">
-    <div class="card-header">
-      <h3>Custom Events</h3>
-      <span class="card-sub">Your app's tracked events</span>
-    </div>
-    @if (loading.breakdown) {
-      <div class="list-skeleton">
-        @for (i of [1,2,3,4,5]; track i) {
-          <div class="skeleton-row">
-            <p-skeleton width="60%" height="1.1rem"></p-skeleton>
-            <p-skeleton width="20%" height="1rem"></p-skeleton>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="data-list">
-        @for (evt of customEvents; track evt.name) {
-          <div class="data-row">
-            <div class="data-main">
-              <i class="pi pi-star-fill event-dot custom"></i>
-              <span class="event-name">{{ formatEventName(evt.name) }}</span>
-            </div>
-            <div class="data-metric">
-              <div class="bar-wrap">
-                <div class="bar-fill" [style.width.%]="evt.percentage"></div>
+        <div class="ranked-list">
+          @for (evt of events; track evt.name; let idx = $index) {
+            <div class="ranked-row" (click)="filterEventType = evt.name; onFilterChange(); scrollToHistory()">
+              <span class="rank-num">{{ idx + 1 }}</span>
+              <i [class]="eventIcon(evt.name) + ' event-type-icon'" [style.color]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></i>
+              <div class="ranked-info">
+                <span class="ranked-name">{{ eventFriendlyLabel(evt.name) }}</span>
+                <span class="ranked-raw-name">{{ evt.name }}</span>
               </div>
-              <span class="count-badge">{{ evt.count | number }}</span>
+              <div class="ranked-bar-wrap">
+                <div class="ranked-bar" [style.width.%]="evt.percentage" [style.background]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></div>
+              </div>
+              <span class="ranked-count">{{ evt.count | number }}</span>
             </div>
-          </div>
-        }
-        @if (customEvents.length === 0) {
-          <div class="no-data">No custom events tracked yet.<br>
-            <small>Use <code>PulzivoAnalytics.trackEvent('your_event', data)</code></small>
-          </div>
-        }
-      </div>
-    }
-  </div>
-</div>
-
-<!-- Top Clicks & All Events Tables Row -->
-<div class="tables-row">
-  <!-- Top Clicked Elements -->
-  <div class="data-card">
-    <div class="card-header">
-      <h3>Top Clicked Elements</h3>
+          }
+          @if (events.length === 0) {
+            <div class="no-data">No events recorded yet</div>
+          }
+        </div>
+      }
     </div>
-    @if (loading.breakdown) {
-      <div class="list-skeleton">
-        @for (i of [1,2,3,4,5]; track i) {
-          <div class="skeleton-row">
-            <p-skeleton width="55%" height="1.1rem"></p-skeleton>
-            <p-skeleton width="25%" height="1rem"></p-skeleton>
+
+    <!-- Top Clicked Elements -->
+    <div class="activity-card">
+      <div class="card-header">
+        <h3><i class="pi pi-hand-point-right" style="color:#2a6df6"></i> Top Clicks</h3>
+        <span class="card-sub">Most clicked elements</span>
+      </div>
+        @if (loading.breakdown) {
+          <div class="list-skeleton">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="skeleton-row">
+                <p-skeleton width="60%" height="1rem"></p-skeleton>
+                <p-skeleton width="20%" height="1rem"></p-skeleton>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="data-list">
+            @for (click of topClicks; track click.element; let idx = $index) {
+              <div class="data-row">
+                <span class="rank-num sm">{{ idx + 1 }}</span>
+                <div class="click-info">
+                  <span class="element-name">{{ click.element || 'Unknown element' }}</span>
+                  <span class="page-hint">{{ click.page || '' }}</span>
+                </div>
+                <span class="count-badge">{{ click.count | number }}</span>
+              </div>
+            }
+            @if (topClicks.length === 0) {
+              <div class="no-data">No click data yet</div>
+            }
           </div>
         }
       </div>
-    } @else {
-      <div class="data-list">
-        @for (click of topClicks; track click.element) {
-          <div class="data-row">
-            <div class="data-main">
-              <i class="pi pi-hand-point-right event-dot"></i>
-              <div class="click-info">
-                <span class="element-name">{{ click.element }}</span>
-                <span class="page-hint">{{ click.page }}</span>
+
+      <!-- Form Signals (enterprise) OR Custom Events (pro) -->
+      @if (isPlanAtLeast('enterprise')) {
+        <div class="activity-card signals-card">
+          <div class="card-header">
+            <h3><i class="pi pi-file-edit" style="color:#f59e0b"></i> Form Signals</h3>
+          </div>
+          @if (loading.breakdown) {
+            <div class="signals-grid">
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton width="100%" height="56px" borderRadius="10px"></p-skeleton>
+              }
+            </div>
+          } @else {
+            <div class="signals-grid">
+              <div class="signal-item green">
+                <div class="signal-count">{{ summary.formSubmits | number }}</div>
+                <div class="signal-label">Submits</div>
+              </div>
+              <div class="signal-item red">
+                <div class="signal-count">{{ summary.formAbandons | number }}</div>
+                <div class="signal-label">Abandons</div>
+              </div>
+              <div class="signal-item blue">
+                <div class="signal-count">{{ summary.formFocuses | number }}</div>
+                <div class="signal-label">Focuses</div>
+              </div>
+              <div class="signal-item orange">
+                <div class="signal-count">{{ summary.rageClicks | number }}</div>
+                <div class="signal-label">Rage Clicks</div>
+              </div>
+              <div class="signal-item gray">
+                <div class="signal-count">{{ summary.deadClicks | number }}</div>
+                <div class="signal-label">Dead Clicks</div>
               </div>
             </div>
-            <div class="data-metric">
-              <span class="count-badge">{{ click.count | number }}</span>
-            </div>
+          }
+        </div>
+      } @else {
+        <div class="activity-card">
+          <div class="card-header">
+            <h3><i class="pi pi-sparkles" style="color:#8b5cf6"></i> Custom Events</h3>
           </div>
-        }
-        @if (topClicks.length === 0) {
-          <div class="no-data">No click data yet</div>
-        }
-      </div>
-    }
+          @if (loading.breakdown) {
+            <div class="list-skeleton">
+              @for (i of [1,2,3]; track i) {
+                <div class="skeleton-row">
+                  <p-skeleton width="55%" height="1rem"></p-skeleton>
+                  <p-skeleton width="25%" height="1rem"></p-skeleton>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="data-list">
+              @for (evt of customEvents; track evt.name) {
+                <div class="data-row">
+                  <i class="pi pi-star-fill" style="color:#8b5cf6;font-size:0.8rem"></i>
+                  <span class="ranked-name">{{ evt.name }}</span>
+                  <span class="count-badge">{{ evt.count | number }}</span>
+                </div>
+              }
+              @if (customEvents.length === 0) {
+                <div class="no-data">No custom events yet.<br>
+                  <small style="color:#94a3b8">Use <code>PulzivoAnalytics.trackEvent()</code></small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
   </div>
 
-  <!-- All Event Types -->
-  <div class="data-card">
+  <!-- ══════════════════ ZONE 3 — EVENT STREAM ══════════════════ -->
+  <div class="history-card" id="event-history">
     <div class="card-header">
-      <h3>All Event Types</h3>
+      <h3>Event Stream</h3>
+      @if (!loading.history) {
+        <span class="total-badge">{{ historyTotal | number }} records</span>
+      }
+      @if (loading.history) {
+        <p-progressSpinner [style]="{ width: '16px', height: '16px' }" strokeWidth="4"></p-progressSpinner>
+      }
+      <div class="history-header-right">
+        <p-select
+          [options]="pageSizeOptions"
+          [(ngModel)]="historyLimit"
+          optionLabel="label"
+          optionValue="value"
+          (ngModelChange)="onPageSizeChange()"
+          [style]="{ width: '120px' }">
+        </p-select>
+        @if (isPlanAtLeast('enterprise')) {
+          <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary p-button-sm" (click)="exportData('csv')"></button>
+        }
+      </div>
     </div>
-    @if (loading.breakdown) {
-      <div class="list-skeleton">
-        @for (i of [1,2,3,4,5,6,7]; track i) {
-          <div class="skeleton-row">
-            <p-skeleton width="50%" height="1.1rem"></p-skeleton>
-            <p-skeleton width="30%" height="1rem"></p-skeleton>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="data-list">
-        @for (evt of events; track evt.name) {
-          <div class="data-row">
-            <div class="data-main">
-              <p-tag [value]="formatEventName(evt.name)" [severity]="getEventTagStyle(evt.name)" styleClass="event-tag"></p-tag>
-            </div>
-            <div class="data-metric">
-              <div class="bar-wrap">
-                <div class="bar-fill" [style.width.%]="evt.percentage"></div>
-              </div>
-              <span class="count-badge">{{ evt.count | number }}</span>
-            </div>
-          </div>
-        }
-        @if (events.length === 0) {
-          <div class="no-data">No events recorded yet</div>
-        }
-      </div>
-    }
-  </div>
-</div>
 
-<!-- Event History Table -->
-<div class="history-card">
-  <div class="card-header">
-    <h3>Event History</h3>
-    <span class="total-badge">{{ historyTotal | number }} records</span>
-    @if (loading.history) {
-      <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
-    }
-    <div class="history-header-right">
+    <!-- Filters -->
+    <div class="history-filters">
+      <div class="search-wrap">
+        <i class="pi pi-search search-icon"></i>
+        <input
+          type="text"
+          pInputText
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearch()"
+          placeholder="Search by page, user, event name…"
+          class="search-input" />
+        @if (searchQuery) {
+          <button class="clear-btn" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+        }
+      </div>
       <p-select
-        [options]="pageSizeOptions"
-        [(ngModel)]="historyLimit"
-        optionLabel="label"
-        optionValue="value"
-        (ngModelChange)="onPageSizeChange()"
-        [style]="{ width: '120px' }">
+        [options]="eventTypeOptions"
+        [(ngModel)]="filterEventType"
+        (ngModelChange)="onFilterChange()"
+        placeholder="All event types"
+        [style]="{ width: '200px' }">
       </p-select>
-    </div>
-  </div>
-
-  <!-- Filters -->
-  <div class="history-filters">
-    <div class="search-wrap">
-      <i class="pi pi-search search-icon"></i>
-      <input
-        type="text"
-        pInputText
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearch()"
-        placeholder="Search by page, user ID, or event..."
-        class="search-input" />
-      @if (searchQuery) {
-        <button class="clear-btn" (click)="clearSearch()"><i class="pi pi-times"></i></button>
+      @if (isPlanAtLeast('enterprise')) {
+        <button pButton
+          [icon]="showAdvancedFilters ? 'pi pi-filter-slash' : 'pi pi-filter'"
+          [label]="'Filters' + (activeFiltersCount ? ' (' + activeFiltersCount + ')' : '')"
+          class="p-button-outlined p-button-secondary"
+          [class.p-button-info]="activeFiltersCount > 0"
+          (click)="toggleAdvancedFilters()">
+        </button>
+      }
+      @if (activeFiltersCount > 0 || filterEventType || searchQuery) {
+        <button pButton icon="pi pi-times" label="Clear" class="p-button-outlined p-button-danger p-button-sm" (click)="clearAllFilters()"></button>
       }
     </div>
-    <p-select
-      [options]="eventTypeOptions"
-      [(ngModel)]="filterEventType"
-      (ngModelChange)="onFilterChange()"
-      placeholder="Filter by type"
-      [style]="{ width: '200px' }">
-    </p-select>
-    @if (isPlanAtLeast('enterprise')) {
-      <button pButton 
-        [icon]="showAdvancedFilters ? 'pi pi-filter-slash' : 'pi pi-filter'" 
-        [label]="'Advanced ' + (activeFiltersCount ? '(' + activeFiltersCount + ')' : '')" 
-        class="p-button-outlined p-button-secondary"
-        [class.p-button-info]="activeFiltersCount > 0"
-        (click)="toggleAdvancedFilters()">
-      </button>
-    } @else {
-      <button pButton 
-        icon="pi pi-filter" 
-        label="Advanced" 
-        class="p-button-outlined p-button-secondary"
-        [disabled]="true"
-        pTooltip="Enterprise feature: advanced filters" tooltipPosition="left"
-        style="opacity:0.55;cursor:not-allowed">
-        <i class="pi pi-crown" style="color:#f59e0b;margin-left:4px;font-size:0.75rem"></i>
-      </button>
-    }
-    @if (activeFiltersCount > 0) {
-      <button pButton icon="pi pi-times" label="Clear All" class="p-button-outlined p-button-danger p-button-sm" (click)="clearAllFilters()"></button>
-    }
-  </div>
 
-  <!-- Advanced Filters Panel -->
-  @if (showAdvancedFilters) {
-    <div class="advanced-filters-panel">
-      <div class="filter-grid">
-        <div class="filter-field">
-          <label>Countries</label>
-          <p-multiselect
-            [options]="countryOptions"
-            [(ngModel)]="selectedCountries"
-            (ngModelChange)="onAdvancedFilterChange()"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select countries"
-            [maxSelectedLabels]="2"
-            [style]="{ width: '100%' }">
-          </p-multiselect>
-        </div>
-        <div class="filter-field">
-          <label>Devices</label>
-          <p-multiselect
-            [options]="deviceOptions"
-            [(ngModel)]="selectedDevices"
-            (ngModelChange)="onAdvancedFilterChange()"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select devices"
-            [maxSelectedLabels]="2"
-            [style]="{ width: '100%' }">
-          </p-multiselect>
-        </div>
-        <div class="filter-field">
-          <label>Pages</label>
-          <p-multiselect
-            [options]="pageOptions"
-            [(ngModel)]="selectedPages"
-            (ngModelChange)="onAdvancedFilterChange()"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select pages"
-            [maxSelectedLabels]="2"
-            [style]="{ width: '100%' }">
-          </p-multiselect>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- Table -->
-  @if (loading.history) {
-    <div class="table-skeleton">
-      @for (i of [1,2,3,4,5,6,7,8]; track i) {
-        <div class="table-skeleton-row">
-          <p-skeleton width="130px" height="1rem"></p-skeleton>
-          <p-skeleton width="100px" height="1.4rem" borderRadius="20px"></p-skeleton>
-          <p-skeleton width="180px" height="1rem"></p-skeleton>
-          <p-skeleton width="100px" height="1rem"></p-skeleton>
-          <p-skeleton width="80px" height="1rem"></p-skeleton>
-          <p-skeleton width="60px" height="1rem"></p-skeleton>
-        </div>
-      }
-    </div>
-  } @else {
-    <div class="history-table-wrap">
-      <table class="history-table">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Event</th>
-            <th>Page</th>
-            <th>User ID</th>
-            <th>Country</th>
-            <th>Device</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (evt of historyEvents; track evt.id) {
-            <tr class="clickable-row" (click)="openEventDetail(evt)">
-              <td class="time-cell">{{ formatTime(evt.timestamp) }}</td>
-              <td>
-                <p-tag [value]="formatEventName(evt.event_name)" [severity]="getEventTagStyle(evt.event_name)" styleClass="event-tag"></p-tag>
-              </td>
-              <td class="page-cell" [title]="evt.page || ''">{{ evt.page || '—' }}</td>
-              <td class="user-cell">{{ evt.user_id || '—' }}</td>
-              <td>{{ evt.country || '—' }}</td>
-              <td>
-                @if (evt.device) {
-                  <span class="device-cell"><i [class]="getDeviceIcon(evt.device)"></i> {{ evt.device }}</span>
-                } @else {
-                  <span>—</span>
-                }
-              </td>
-            </tr>
-          }
-          @if (historyEvents.length === 0) {
-            <tr>
-              <td colspan="6" class="empty-row">No events found</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Pagination -->
-    @if (historyPages > 1 || historyTotal > 0) {
-      <div class="pagination-bar">
-        <span class="pagination-info">
-          Showing {{ showingFrom | number }}–{{ showingTo | number }} of {{ historyTotal | number }}
-        </span>
-        <div class="pagination">
-          <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(1)" pTooltip="First page" tooltipPosition="top">
-            <i class="pi pi-angle-double-left"></i>
-          </button>
-          <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(historyPage - 1)">
-            <i class="pi pi-chevron-left"></i>
-          </button>
-          @for (p of pagesArray; track p) {
-            @if (p === -1) {
-              <span class="page-ellipsis">…</span>
-            } @else {
-              <button class="page-btn" [class.active]="historyPage === p" (click)="goToPage(p)">{{ p }}</button>
-            }
-          }
-          <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPage + 1)">
-            <i class="pi pi-chevron-right"></i>
-          </button>
-          <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPages)" pTooltip="Last page" tooltipPosition="top">
-            <i class="pi pi-angle-double-right"></i>
-          </button>
-        </div>
-        <div class="pagination-jump">
-          <span>Go to</span>
-          <input
-            type="number"
-            class="jump-input"
-            [(ngModel)]="jumpToPage"
-            (keydown)="onJumpToPage($event)"
-            [min]="1"
-            [max]="historyPages"
-            placeholder="page" />
-        </div>
-      </div>
-    }
-  }
-</div>
-
-<!-- Event Detail Modal -->
-<p-dialog 
-  [(visible)]="showEventDetail" 
-  [modal]="true" 
-  [draggable]="false" 
-  [resizable]="false"
-  [style]="{ width: '700px', maxWidth: '90vw' }"
-  header="Event Details"
-  (onHide)="closeEventDetail()">
-  
-  @if (selectedEvent) {
-    <div class="event-detail-content">
-      <!-- Header -->
-      <div class="event-detail-header">
-        <div class="event-name-section">
-          <p-tag [value]="formatEventName(selectedEvent.event_name)" [severity]="getEventTagStyle(selectedEvent.event_name)" styleClass="event-tag"></p-tag>
-          @if (getCategoryForEvent(selectedEvent.event_name); as category) {
-            <span class="category-badge" [style.background]="category.color + '20'" [style.color]="category.color">
-              <i [class]="'pi ' + category.icon"></i>
-              {{ category.label }}
-            </span>
-          }
-        </div>
-        <div class="event-time">{{ formatTime(selectedEvent.timestamp) }}</div>
-      </div>
-
-      <!-- Details Grid -->
-      <div class="event-detail-grid">
-        <div class="detail-item">
-          <div class="detail-label">Event ID</div>
-          <div class="detail-value">{{ selectedEvent.id }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">User ID</div>
-          <div class="detail-value">{{ selectedEvent.user_id || 'Anonymous' }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Page</div>
-          <div class="detail-value">{{ selectedEvent.page || '—' }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Country</div>
-          <div class="detail-value">{{ selectedEvent.country || '—' }}</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Device</div>
-          <div class="detail-value">
-            @if (selectedEvent.device) {
-              <span class="device-cell"><i [class]="getDeviceIcon(selectedEvent.device)"></i> {{ selectedEvent.device }}</span>
-            } @else {
-              <span>—</span>
-            }
+    <!-- Advanced Filters Panel -->
+    @if (showAdvancedFilters && isPlanAtLeast('enterprise')) {
+      <div class="advanced-filters-panel">
+        <div class="filter-grid">
+          <div class="filter-field">
+            <label>Countries</label>
+            <p-multiselect [options]="countryOptions" [(ngModel)]="selectedCountries"
+              (ngModelChange)="onAdvancedFilterChange()" optionLabel="label" optionValue="value"
+              placeholder="Any country" [maxSelectedLabels]="2" [style]="{ width: '100%' }">
+            </p-multiselect>
+          </div>
+          <div class="filter-field">
+            <label>Devices</label>
+            <p-multiselect [options]="deviceOptions" [(ngModel)]="selectedDevices"
+              (ngModelChange)="onAdvancedFilterChange()" optionLabel="label" optionValue="value"
+              placeholder="Any device" [maxSelectedLabels]="2" [style]="{ width: '100%' }">
+            </p-multiselect>
+          </div>
+          <div class="filter-field">
+            <label>Pages</label>
+            <p-multiselect [options]="pageOptions" [(ngModel)]="selectedPages"
+              (ngModelChange)="onAdvancedFilterChange()" optionLabel="label" optionValue="value"
+              placeholder="Any page" [maxSelectedLabels]="2" [style]="{ width: '100%' }">
+            </p-multiselect>
           </div>
         </div>
-        <div class="detail-item">
-          <div class="detail-label">Timestamp</div>
-          <div class="detail-value">{{ selectedEvent.timestamp }}</div>
-        </div>
+      </div>
+    }
+
+    <!-- Table -->
+    @if (loading.history) {
+      <div class="table-skeleton">
+        @for (i of [1,2,3,4,5,6,7,8]; track i) {
+          <div class="table-skeleton-row">
+            <p-skeleton width="110px" height="1rem"></p-skeleton>
+            <p-skeleton width="120px" height="1.4rem" borderRadius="20px"></p-skeleton>
+            <p-skeleton width="180px" height="1rem"></p-skeleton>
+            <p-skeleton width="90px" height="1rem"></p-skeleton>
+            <p-skeleton width="60px" height="1rem"></p-skeleton>
+            <p-skeleton width="70px" height="1rem"></p-skeleton>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="history-table-wrap">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Event</th>
+              <th>Page</th>
+              <th>User</th>
+              <th>Country</th>
+              <th>Timezone</th>
+              <th>Device</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (evt of historyEvents; track evt.id) {
+              <tr class="clickable-row" (click)="openEventDetail(evt)">
+                <td class="time-cell">{{ formatTime(evt.timestamp) }}</td>
+                <td>
+                  <div class="event-name-cell">
+                    <i [class]="eventIcon(evt.event_name) + ' event-row-icon'" [style.color]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'"></i>
+                    <div class="event-name-text">
+                      <span class="event-friendly">{{ eventFriendlyLabel(evt.event_name) }}</span>
+                      <span class="event-raw">{{ evt.event_name }}</span>
+                    </div>
+                    <span class="open-hint"><i class="pi pi-arrow-right"></i> View</span>
+                  </div>
+                </td>
+                <td class="page-cell" [title]="evt.page || ''">{{ evt.page || '—' }}</td>
+                <td class="user-cell">
+                  @if (evt.user_id) {
+                    <span class="user-chip"
+                      [style.background]="userColor(evt.user_id).bg"
+                      [style.color]="userColor(evt.user_id).text"
+                      [style.border-color]="userColor(evt.user_id).border"
+                      [title]="evt.user_id">
+                      <span class="user-avatar" [style.background]="userColor(evt.user_id).text" [style.color]="'#fff'">{{ userInitials(evt.user_id) }}</span>
+                      {{ evt.user_id }}
+                    </span>
+                  } @else {
+                    <span class="user-chip empty">—</span>
+                  }
+                </td>
+                <td class="country-cell">{{ evt.country || evt.data?.country || '—' }}</td>
+                <td class="timezone-cell" [title]="evt.timezone || evt.data?.timezone || ''">{{ evt.timezone || evt.data?.timezone || '—' }}</td>
+                <td>
+                  @if (evt.device) {
+                    <span class="device-cell"><i [class]="getDeviceIcon(evt.device)"></i></span>
+                  } @else {
+                    <span>—</span>
+                  }
+                </td>
+              </tr>
+            }
+            @if (historyEvents.length === 0) {
+              <tr>
+                <td colspan="6" class="empty-row">
+                  <i class="pi pi-inbox" style="font-size:1.8rem;color:#94a3b8;display:block;margin-bottom:0.5rem"></i>
+                  No events match your filters
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
 
-      <!-- Event Data -->
-      <div class="event-data-section">
-        <div class="detail-label">Event Data</div>
-        <pre class="event-data-code">{{ formatEventData(selectedEvent.data) }}</pre>
+      <!-- Pagination -->
+      @if (historyTotal > 0) {
+        <div class="pagination-bar">
+          <span class="pagination-info">{{ showingFrom | number }}–{{ showingTo | number }} of {{ historyTotal | number }}</span>
+          <div class="pagination">
+            <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(1)" pTooltip="First" tooltipPosition="top">
+              <i class="pi pi-angle-double-left"></i>
+            </button>
+            <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(historyPage - 1)">
+              <i class="pi pi-chevron-left"></i>
+            </button>
+            @for (p of pagesArray; track p) {
+              @if (p === -1) {
+                <span class="page-ellipsis">…</span>
+              } @else {
+                <button class="page-btn" [class.active]="historyPage === p" (click)="goToPage(p)">{{ p }}</button>
+              }
+            }
+            <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPage + 1)">
+              <i class="pi pi-chevron-right"></i>
+            </button>
+            <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPages)" pTooltip="Last" tooltipPosition="top">
+              <i class="pi pi-angle-double-right"></i>
+            </button>
+          </div>
+          <div class="pagination-jump">
+            <span>Go to</span>
+            <input type="number" class="jump-input" [(ngModel)]="jumpToPage"
+              (keydown)="onJumpToPage($event)" [min]="1" [max]="historyPages" placeholder="#" />
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- ══════════════════ EVENT DETAIL MODAL ══════════════════ -->
+  <p-dialog
+    [(visible)]="showEventDetail"
+    [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '900px', maxWidth: '95vw' }"
+    header="Event Details"
+    (onHide)="closeEventDetail()">
+
+    @if (selectedEvent) {
+      <!-- Modal Tab Switcher -->
+      <div class="modal-tabs">
+        <button class="modal-tab" [class.active]="modalTab === 'details'" (click)="switchModalTab('details')">
+          <i class="pi pi-info-circle"></i> Details
+        </button>
+        <button class="modal-tab" [class.active]="modalTab === 'timeline'"
+          (click)="switchModalTab('timeline')"
+          [disabled]="!selectedEvent.session_id"
+          [title]="!selectedEvent.session_id ? 'No session ID available for this event' : 'View full session timeline'">
+          <i class="pi pi-timeline"></i> Session Timeline
+          @if (selectedEvent.session_id) {
+            <span class="tab-badge">{{ selectedEvent.session_id.slice(0, 8) }}</span>
+          }
+        </button>
+      </div>
+
+      <!-- ── DETAILS TAB ── -->
+      @if (modalTab === 'details') {
+      <div class="event-detail-content">
+        <div class="event-detail-header">
+          <div class="event-name-section">
+            <div class="event-name-cell" style="gap:0.75rem">
+              <i [class]="eventIcon(selectedEvent.event_name) + ' event-row-icon lg'" [style.color]="getCategoryForEvent(selectedEvent.event_name)?.color || '#94a3b8'"></i>
+              <div class="event-name-text">
+                <span class="event-friendly lg">{{ eventFriendlyLabel(selectedEvent.event_name) }}</span>
+                <span class="event-raw">{{ selectedEvent.event_name }}</span>
+              </div>
+            </div>
+            @if (getCategoryForEvent(selectedEvent.event_name); as category) {
+              <span class="cat-badge-pill" [style.background]="category.color + '18'" [style.color]="category.color" [style.border-color]="category.color + '30'">
+                <i [class]="'pi ' + category.icon"></i> {{ category.label }}
+              </span>
+            }
+          </div>
+          <div class="event-time">{{ formatTime(selectedEvent.timestamp) }}</div>
+        </div>
+
+        <div class="event-detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Event ID</div>
+            <div class="detail-value mono">{{ selectedEvent.id }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">User ID</div>
+            <div class="detail-value mono">{{ selectedEvent.user_id || 'Anonymous' }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Page</div>
+            <div class="detail-value">{{ selectedEvent.page || '—' }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Country</div>
+            <div class="detail-value">{{ selectedEvent.country || '—' }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Device</div>
+            <div class="detail-value">
+              @if (selectedEvent.device) {
+                <span class="device-cell"><i [class]="getDeviceIcon(selectedEvent.device)"></i> {{ selectedEvent.device }}</span>
+              } @else { — }
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Timestamp</div>
+            <div class="detail-value">{{ selectedEvent.timestamp }}</div>
+          </div>
+        </div>
+
+        <div class="event-data-section">
+          <div class="event-data-header">
+            <div class="detail-label">Event Data</div>
+            <button class="copy-btn" (click)="copyEventData()" [class.copied]="copiedEventData">
+              <i [class]="copiedEventData ? 'pi pi-check' : 'pi pi-copy'"></i>
+              {{ copiedEventData ? 'Copied!' : 'Copy' }}
+            </button>
+          </div>
+          <pre class="event-data-code">{{ formatEventData(selectedEvent.data) }}</pre>
+        </div>
+      </div>
+      }
+
+      <!-- ── SESSION TIMELINE TAB ── -->
+      @if (modalTab === 'timeline') {
+      <div class="session-timeline-content">
+        @if (loadingTimeline) {
+          <div class="timeline-loading">
+            <p-progressSpinner [style]="{ width: '32px', height: '32px' }" strokeWidth="4"></p-progressSpinner>
+            <span>Loading session events…</span>
+          </div>
+        } @else if (!sessionEvents.length) {
+          <div class="timeline-empty">
+            <i class="pi pi-inbox"></i>
+            <p>No events found for this session.</p>
+          </div>
+        } @else {
+          <!-- Session summary bar -->
+          <div class="session-summary">
+            <div class="session-summary-item">
+              <span class="ss-label">Session ID</span>
+              <span class="ss-value mono">{{ selectedEvent.session_id }}</span>
+            </div>
+            <div class="session-summary-item">
+              <span class="ss-label">Events</span>
+              <span class="ss-value">{{ sessionEvents.length }}</span>
+            </div>
+            <div class="session-summary-item">
+              <span class="ss-label">Duration</span>
+              <span class="ss-value">{{ sessionDuration(sessionEvents) }}</span>
+            </div>
+            <div class="session-summary-item">
+              <span class="ss-label">Device</span>
+              <span class="ss-value">{{ sessionEvents[0]?.device || '—' }}</span>
+            </div>
+          </div>
+
+          <!-- Visual scrubber bar -->
+          <div class="timeline-scrubber">
+            @for (evt of sessionEvents; track evt.id) {
+              <button class="scrubber-dot"
+                [class.active]="evt.id === timelineActiveId"
+                [style.left.%]="timelineOffset(evt, sessionEvents)"
+                [style.background]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'"
+                (click)="jumpToTimelineEvent(evt)"
+                [title]="eventFriendlyLabel(evt.event_name) + ' — ' + (evt.page || '')">
+              </button>
+            }
+            <div class="scrubber-track"></div>
+          </div>
+
+          <!-- Event list -->
+          <div class="timeline-list">
+            @for (evt of sessionEvents; track evt.id; let i = $index) {
+              <div class="tl-item" [class.tl-active]="evt.id === timelineActiveId" (click)="setTimelineActive(evt.id)">
+                <div class="tl-connector">
+                  <div class="tl-dot" [style.background]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'">
+                    <i [class]="eventIcon(evt.event_name)" style="font-size:0.55rem;color:#fff"></i>
+                  </div>
+                  @if (i < sessionEvents.length - 1) { <div class="tl-line"></div> }
+                </div>
+                <div class="tl-body">
+                  <div class="tl-header">
+                    <span class="tl-name">{{ eventFriendlyLabel(evt.event_name) }}</span>
+                    <span class="tl-page">{{ evt.page || '—' }}</span>
+                    <span class="tl-time">{{ formatTime(evt.timestamp) }}</span>
+                  </div>
+                  @if (evt.id === timelineActiveId && evt.data) {
+                    <div class="tl-data">
+                      @for (kv of (evt.data | keyvalue); track kv.key) {
+                        @if (kv.key !== 'session_id' && kv.key !== 'userAgent') {
+                          <span class="tl-kv"><span class="tl-key">{{ kv.key }}</span><span class="tl-val">{{ kv.value }}</span></span>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      }
+    }
+
+    <ng-template #footer>
+      <button pButton label="Close" icon="pi pi-times" class="p-button-outlined" (click)="closeEventDetail()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- ══════════════════ PLAN GATE OVERLAY ══════════════════ -->
+  @if (!isPlanAtLeast('pro')) {
+    <div class="page-gate-overlay">
+      <div class="gate-content">
+        <div class="gate-icon"><i class="pi pi-chart-line"></i></div>
+        <h2>Events &amp; Interactions</h2>
+        <p>See every user action on your site — page views, clicks, custom events, form signals, and more.</p>
+        <div class="gate-features">
+          <div class="feature-item"><i class="pi pi-check"></i> Page views &amp; navigation</div>
+          <div class="feature-item"><i class="pi pi-check"></i> Click tracking &amp; top elements</div>
+          <div class="feature-item"><i class="pi pi-check"></i> Custom event tracking</div>
+          <div class="feature-item"><i class="pi pi-check"></i> Full event history &amp; search</div>
+        </div>
+        <a routerLink="/dashboard/plans" class="gate-upgrade-btn">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+        <a routerLink="/demo/events" class="gate-demo-link">explore demo →</a>
       </div>
     </div>
   }
 
-  <ng-template #footer>
-    <div class="modal-footer">
-      <button pButton label="Export Event" icon="pi pi-download" class="p-button-outlined p-button-secondary" (click)="exportData('json')"></button>
-      <button pButton label="Close" icon="pi pi-times" (click)="closeEventDetail()"></button>
-    </div>
-  </ng-template>
-</p-dialog>
-
-@if (!isPlanAtLeast('pro')) {
-  <div class="page-gate-overlay">
-    <div class="gate-content">
-      <div class="gate-icon"><i class="pi pi-chart-line"></i></div>
-      <h2>Events &amp; Interactions</h2>
-      <p>See every user action on your site. Track page views, clicks, custom events, and more with Pro.</p>
-      <div class="gate-features">
-        <div class="feature-item"><i class="pi pi-check"></i> Page views &amp; navigation tracking</div>
-        <div class="feature-item"><i class="pi pi-check"></i> Click tracking &amp; top elements</div>
-        <div class="feature-item"><i class="pi pi-check"></i> Custom event tracking</div>
-        <div class="feature-item"><i class="pi pi-check"></i> Event history &amp; search</div>
-      </div>
-      <a routerLink="/dashboard/plans" class="gate-upgrade-btn">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
-      <a routerLink="/demo/events" class="gate-demo-link">or explore with demo data →</a>
-    </div>
-  </div>
-}
 </div>

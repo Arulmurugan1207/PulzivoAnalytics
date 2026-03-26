@@ -153,9 +153,10 @@
         <div class="user-menu" (click)="toggleUserDropdown($event)">
           <div class="user-avatar">{{ (user?.firstname || 'U')[0].toUpperCase() }}</div>
           <div class="user-greeting">
-            <span class="greeting-text">Welcome back,</span>
-            <span class="greeting-name">{{ user?.firstname }}</span>
-            <span class="role-badge" [class]="'role-badge-' + userRole">{{ userRole | uppercase }}</span>
+            <div class="name-row">
+              <span class="greeting-name">{{ user?.firstname }}</span>
+              <span class="role-badge" [class]="'role-badge-' + userRole">{{ userRole | uppercase }}</span>
+            </div>
             <span class="plan-badge" [class]="'plan-badge-' + userPlan">{{ userPlan | uppercase }}</span>
           </div>
           <i class="pi pi-chevron-down chevron-icon" [class.rotated]="userDropdownOpen"></i>

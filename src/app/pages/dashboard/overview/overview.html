@@ -78,13 +78,6 @@
         pTooltip="Refresh all data (auto-refreshes every 30s)"
         tooltipPosition="bottom"></button>
     }
-
-    @if (isOwner) {
-      <div class="owner-badge">
-        <i class="pi pi-shield"></i>
-        <span>Owner View — All Keys</span>
-      </div>
-    }
   } @else {
     <div class="no-keys-toolbar-msg">
       <i class="pi pi-key"></i>
@@ -375,12 +368,13 @@
                 }
               </div>
             } @else {
+              <div class="table-scroll-wrap">
               <p-table [value]="topPages" [paginator]="true" [rows]="topPagesRows" [totalRecords]="topPagesTotal"
                 [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(topPagesPage-1)*topPagesRows"
                 (onPage)="onTopPageChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.topPages">
                 <ng-template #header>
                   <tr>
-                    <th>Page</th>
+                    <th class="col-page">Page</th>
                     <th class="col-num">Views</th>
                     <th class="col-num">%</th>
                     <th class="col-num" pTooltip="Average time spent on this page (seconds)" tooltipPosition="top">Avg Time</th>
@@ -389,7 +383,7 @@
                 </ng-template>
                 <ng-template #body let-page>
                   <tr>
-                    <td class="page-cell">
+                    <td class="page-cell col-page">
                       @if (page.title) {<div class="page-title">{{ page.title }}</div>}
                       <div class="page-path">{{ page.path }}</div>
                     </td>
@@ -415,6 +409,7 @@
                   <tr><td colspan="5" class="no-data-row">No page data yet</td></tr>
                 </ng-template>
               </p-table>
+              </div>
             }
           </div>
 
@@ -449,6 +444,7 @@
                 }
               </div>
             } @else {
+              <div class="table-scroll-wrap">
               <p-table [value]="geoData" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
                 <ng-template #header>
                   <tr><th>Country</th><th class="col-num">Visitors</th><th class="col-num">%</th></tr>
@@ -464,8 +460,77 @@
                   <tr><td colspan="3" class="no-data-row">No geographic data yet</td></tr>
                 </ng-template>
               </p-table>
+              </div>
             }
           </div>
+        </div>
+
+        <!-- World Map Card -->
+        <div class="geo-map-card" [class.locked-section]="!hasFeature('sessions')">
+          <div class="card-header">
+            <h3><i class="pi pi-map"></i> Visitor Geography
+              <button class="pi pi-info-circle section-info-icon"
+                 pTooltip="Interactive world map showing where your visitors come from."
+                 tooltipPosition="top"></button>
+            </h3>
+            <div class="map-hint">
+              <i class="pi pi-search-plus"></i> Scroll to zoom &nbsp;·&nbsp;
+              <i class="pi pi-arrows-alt"></i> Drag to pan
+            </div>
+            @if (loadingStates.geography) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!hasFeature('sessions')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter+ Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Visitor Geography Map</h4>
+                <p>Geographic data is available on Starter plan and above.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">Upgrade to Starter <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else {
+            <div class="geo-map-body">
+              <div class="map-container">
+                @if (mapReady && mapOptions) {
+                  <div echarts [options]="mapOptions" class="world-map-chart"></div>
+                  <div class="map-zoom-hint">
+                    <span><i class="pi pi-search-plus"></i> Scroll to zoom</span>
+                    <span><i class="pi pi-arrows-alt"></i> Drag to pan</span>
+                    <span><i class="pi pi-refresh"></i> Double-click to reset</span>
+                  </div>
+                } @else {
+                  <p-skeleton width="100%" height="360px"></p-skeleton>
+                }
+              </div>
+              <div class="geo-ranked-list">
+                @if (loadingStates.geography) {
+                  @for (item of [1,2,3,4,5,6,7,8]; track item) {
+                    <div class="skeleton-row">
+                      <p-skeleton width="100%" height="1.1rem" styleClass="mb-2"></p-skeleton>
+                    </div>
+                  }
+                } @else if (geoData.length === 0) {
+                  <div class="no-data-row">No geographic data yet</div>
+                } @else {
+                  @for (geo of geoData; track geo.country; let i = $index) {
+                    <div class="geo-row">
+                      <span class="geo-rank">{{ i + 1 }}</span>
+                      <span class="geo-flag">{{ geo.flag }}</span>
+                      <span class="geo-name">{{ geo.country }}</span>
+                      <span class="geo-bar-wrap">
+                        <span class="geo-bar" [style.width.%]="geo.percentage"></span>
+                      </span>
+                      <span class="geo-count">{{ geo.visitors | number }}</span>
+                      <span class="geo-pct">{{ geo.percentage | number:'1.0-1' }}%</span>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <!-- Session Insights -->

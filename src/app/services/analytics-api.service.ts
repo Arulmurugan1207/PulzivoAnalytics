@@ -219,16 +219,10 @@ export class AnalyticsAPIService {
     }
     
     return this.http.get(`${this.apiUrl}/analytics/event-history?${params}`).pipe(
-      catchError(() => of({ 
-        events: [], 
-        total: 0, 
-        eventTypes: [],
-        filterOptions: { 
-          countries: ['United States', 'United Kingdom', 'Canada', 'Germany', 'France'], 
-          devices: ['Desktop', 'Mobile', 'Tablet'], 
-          pages: ['/home', '/dashboard', '/products', '/about', '/contact'] 
-        } 
-      }))
+      catchError((err) => {
+        console.error('[AnalyticsAPI] getEventHistory failed:', err?.status, err?.message);
+        return throwError(() => err);
+      })
     );
   }
 
@@ -247,6 +241,15 @@ export class AnalyticsAPIService {
     return this.http.get<any>(`${this.apiUrl}/analytics/events-breakdown?apiKey=${selectedApiKey}&customEventsPage=${page}&customEventsLimit=${limit}${this.buildDateParams(dateRange)}`).pipe(
       map(res => ({ customEvents: res?.customEvents ?? [], total: res?.customEventsTotal ?? 0 })),
       catchError(() => of({ customEvents: [], total: 0 }))
+    );
+  }
+
+  getSessionEvents(sessionId: string): Observable<any[]> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey || !sessionId) return of([]);
+    return this.http.get<any>(`${this.apiUrl}/analytics/session-events?apiKey=${selectedApiKey}&sessionId=${encodeURIComponent(sessionId)}`).pipe(
+      map(res => res?.events ?? []),
+      catchError(() => of([]))
     );
   }
 
@@ -441,6 +444,18 @@ export class AnalyticsAPIService {
 
     return this.http.get(`${this.apiUrl}/analytics/page-vitals?apiKey=${selectedApiKey}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
       catchError(() => of({ pages: [], total: 0 }))
+    );
+  }
+
+  /**
+   * Get Geographic data — country-level visitor counts for world map
+   */
+  getGeographic(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of({ geographic: [] });
+
+    return this.http.get(`${this.apiUrl}/analytics/geographic?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of({ geographic: [] }))
     );
   }
 }

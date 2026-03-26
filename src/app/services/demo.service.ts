@@ -157,22 +157,23 @@ export class DemoService {
     formFocuses: 312
   };
 
+  // Total events = 21,859 — percentages are share of total event volume
   readonly eventsBreakdown = [
-    { name: 'page_view', count: 8423, percentage: 100 },
-    { name: 'click', count: 3241, percentage: 38.5 },
-    { name: 'scroll', count: 2187, percentage: 26.0 },
-    { name: 'script_copied', count: 312, percentage: 3.7 },
-    { name: 'form_focus', count: 312, percentage: 3.7 },
-    { name: 'rage_click', count: 23, percentage: 0.3 },
-    { name: 'dead_click', count: 87, percentage: 1.0 },
-    { name: 'form_submit', count: 143, percentage: 1.7 },
-    { name: 'form_abandon', count: 58, percentage: 0.7 },
-    { name: 'signup_started', count: 187, percentage: 2.2 },
-    { name: 'signup_completed', count: 143, percentage: 1.7 },
-    { name: 'pricing_viewed', count: 98, percentage: 1.2 },
-    { name: 'page_exit', count: 1891, percentage: 22.5 },
-    { name: 'session_start', count: 2341, percentage: 27.8 },
-    { name: 'web_vital_lcp', count: 412, percentage: 4.9 },
+    { name: 'page_view',        count: 8423, percentage: 38.5 },
+    { name: 'session_start',    count: 2341, percentage: 10.7 },
+    { name: 'click',            count: 3241, percentage: 14.8 },
+    { name: 'page_exit',        count: 1891, percentage: 8.6  },
+    { name: 'scroll',           count: 2187, percentage: 10.0 },
+    { name: 'web_vital_lcp',    count: 412,  percentage: 1.9  },
+    { name: 'script_copied',    count: 312,  percentage: 1.4  },
+    { name: 'form_focus',       count: 312,  percentage: 1.4  },
+    { name: 'signup_started',   count: 187,  percentage: 0.9  },
+    { name: 'form_submit',      count: 143,  percentage: 0.7  },
+    { name: 'signup_completed', count: 143,  percentage: 0.7  },
+    { name: 'pricing_viewed',   count: 98,   percentage: 0.4  },
+    { name: 'form_abandon',     count: 58,   percentage: 0.3  },
+    { name: 'dead_click',       count: 87,   percentage: 0.4  },
+    { name: 'rage_click',       count: 23,   percentage: 0.1  },
   ];
 
   readonly eventsTopClicks = [
@@ -184,21 +185,36 @@ export class DemoService {
   ];
 
   readonly eventsHistory = [
-    { id: '1', event_name: 'page_view', user_id: 'anon_7f3a', timestamp: new Date(Date.now() - 60000).toISOString(), page: '/pricing', country: 'US', device: 'Desktop', data: { referrer: 'google.com' } },
-    { id: '2', event_name: 'script_copied', user_id: 'anon_2b9c', timestamp: new Date(Date.now() - 3 * 60000).toISOString(), page: '/', country: 'DE', device: 'Desktop', data: { section: 'script-tag', copy_number: 1 } },
-    { id: '3', event_name: 'signup_started', user_id: 'anon_4d1e', timestamp: new Date(Date.now() - 7 * 60000).toISOString(), page: '/', country: 'GB', device: 'Mobile', data: {} },
-    { id: '4', event_name: 'click', user_id: 'anon_8a2f', timestamp: new Date(Date.now() - 12 * 60000).toISOString(), page: '/features', country: 'IN', device: 'Desktop', data: { element: 'button#start-free', label: 'Start Free Now' } },
-    { id: '5', event_name: 'page_view', user_id: 'anon_1c5b', timestamp: new Date(Date.now() - 18 * 60000).toISOString(), page: '/docs', country: 'CA', device: 'Tablet', data: {} },
-    { id: '6', event_name: 'form_submit', user_id: 'anon_3d7e', timestamp: new Date(Date.now() - 22 * 60000).toISOString(), page: '/contact', country: 'FR', device: 'Desktop', data: { formId: 'contact-form' } },
-    { id: '7', event_name: 'rage_click', user_id: 'anon_9b4f', timestamp: new Date(Date.now() - 31 * 60000).toISOString(), page: '/pricing', country: 'AU', device: 'Mobile', data: { element: 'div.plan-card', clicks: 5 } },
-    { id: '8', event_name: 'scroll', user_id: 'anon_5c2a', timestamp: new Date(Date.now() - 38 * 60000).toISOString(), page: '/', country: 'US', device: 'Desktop', data: { depth: 75 } },
-    { id: '9', event_name: 'page_view', user_id: 'anon_6e9d', timestamp: new Date(Date.now() - 45 * 60000).toISOString(), page: '/why-pulzivo', country: 'NL', device: 'Desktop', data: {} },
-    { id: '10', event_name: 'signup_completed', user_id: 'anon_4d1e', timestamp: new Date(Date.now() - 52 * 60000).toISOString(), page: '/', country: 'GB', device: 'Mobile', data: { plan: 'free' } },
-    { id: '11', event_name: 'dead_click', user_id: 'anon_1a8b', timestamp: new Date(Date.now() - 61 * 60000).toISOString(), page: '/features', country: 'US', device: 'Desktop', data: { element: 'div.feature-card' } },
-    { id: '12', event_name: 'page_view', user_id: 'anon_7c3d', timestamp: new Date(Date.now() - 74 * 60000).toISOString(), page: '/blog', country: 'GB', device: 'Mobile', data: {} },
-    { id: '13', event_name: 'pricing_viewed', user_id: 'anon_2b9c', timestamp: new Date(Date.now() - 88 * 60000).toISOString(), page: '/pricing', country: 'DE', device: 'Desktop', data: { plan: 'pro' } },
-    { id: '14', event_name: 'form_abandon', user_id: 'anon_8f4e', timestamp: new Date(Date.now() - 97 * 60000).toISOString(), page: '/contact', country: 'IN', device: 'Mobile', data: { formId: 'contact-form', lastField: 'email' } },
-    { id: '15', event_name: 'web_vital_lcp', user_id: 'anon_3a9c', timestamp: new Date(Date.now() - 112 * 60000).toISOString(), page: '/', country: 'US', device: 'Desktop', data: { value: 1.82, rating: 'good' } },
+    { id: '1',  event_name: 'page_view',        user_id: 'anon_7f3a', session_id: 'sess_alpha',   timestamp: new Date(Date.now() - 1   * 60000).toISOString(), page: '/pricing',       country: 'United States',   timezone: 'America/New_York',    device: 'Desktop', data: { referrer: 'google.com',           session_id: 'sess_alpha' } },
+    { id: '2',  event_name: 'script_copied',     user_id: 'anon_2b9c', session_id: 'sess_beta',    timestamp: new Date(Date.now() - 3   * 60000).toISOString(), page: '/',              country: 'Germany',         timezone: 'Europe/Berlin',       device: 'Desktop', data: { section: 'script-tag',            session_id: 'sess_beta'  } },
+    { id: '3',  event_name: 'signup_started',    user_id: 'anon_4d1e', session_id: 'sess_gamma',   timestamp: new Date(Date.now() - 7   * 60000).toISOString(), page: '/',              country: 'United Kingdom',  timezone: 'Europe/London',       device: 'Mobile',  data: {                                   session_id: 'sess_gamma' } },
+    { id: '4',  event_name: 'click',             user_id: 'anon_8a2f', session_id: 'sess_delta',   timestamp: new Date(Date.now() - 12  * 60000).toISOString(), page: '/features',      country: 'India',           timezone: 'Asia/Kolkata',        device: 'Desktop', data: { element: 'button#start-free',     session_id: 'sess_delta' } },
+    { id: '5',  event_name: 'page_view',         user_id: 'anon_1c5b', session_id: 'sess_epsilon', timestamp: new Date(Date.now() - 18  * 60000).toISOString(), page: '/docs',          country: 'Canada',          timezone: 'America/Toronto',     device: 'Tablet',  data: {                                   session_id: 'sess_epsilon' } },
+    { id: '6',  event_name: 'form_submit',       user_id: 'anon_3d7e', session_id: 'sess_alpha',   timestamp: new Date(Date.now() - 22  * 60000).toISOString(), page: '/contact',       country: 'France',          timezone: 'Europe/Paris',        device: 'Desktop', data: { formId: 'contact-form',           session_id: 'sess_alpha' } },
+    { id: '7',  event_name: 'rage_click',        user_id: 'anon_9b4f', session_id: 'sess_zeta',    timestamp: new Date(Date.now() - 31  * 60000).toISOString(), page: '/pricing',       country: 'Australia',       timezone: 'Australia/Sydney',    device: 'Mobile',  data: { element: 'div.plan-card',         session_id: 'sess_zeta'  } },
+    { id: '8',  event_name: 'scroll',            user_id: 'anon_5c2a', session_id: 'sess_beta',    timestamp: new Date(Date.now() - 38  * 60000).toISOString(), page: '/',              country: 'United States',   timezone: 'America/Los_Angeles', device: 'Desktop', data: { depth: 75,                        session_id: 'sess_beta'  } },
+    { id: '9',  event_name: 'page_view',         user_id: 'anon_6e9d', session_id: 'sess_eta',     timestamp: new Date(Date.now() - 45  * 60000).toISOString(), page: '/why-pulzivo',   country: 'Netherlands',     timezone: 'Europe/Amsterdam',    device: 'Desktop', data: {                                   session_id: 'sess_eta'   } },
+    { id: '10', event_name: 'signup_completed',  user_id: 'anon_4d1e', session_id: 'sess_gamma',   timestamp: new Date(Date.now() - 52  * 60000).toISOString(), page: '/',              country: 'United Kingdom',  timezone: 'Europe/London',       device: 'Mobile',  data: { plan: 'free',                     session_id: 'sess_gamma' } },
+    { id: '11', event_name: 'dead_click',        user_id: 'anon_1a8b', session_id: 'sess_theta',   timestamp: new Date(Date.now() - 61  * 60000).toISOString(), page: '/features',      country: 'United States',   timezone: 'America/Chicago',     device: 'Desktop', data: { element: 'div.feature-card',      session_id: 'sess_theta' } },
+    { id: '12', event_name: 'page_view',         user_id: 'anon_7c3d', session_id: 'sess_iota',    timestamp: new Date(Date.now() - 74  * 60000).toISOString(), page: '/blog',          country: 'United Kingdom',  timezone: 'Europe/London',       device: 'Mobile',  data: {                                   session_id: 'sess_iota'  } },
+    { id: '13', event_name: 'pricing_viewed',    user_id: 'anon_2b9c', session_id: 'sess_beta',    timestamp: new Date(Date.now() - 88  * 60000).toISOString(), page: '/pricing',       country: 'Germany',         timezone: 'Europe/Berlin',       device: 'Desktop', data: { plan: 'pro',                      session_id: 'sess_beta'  } },
+    { id: '14', event_name: 'form_abandon',      user_id: 'anon_8f4e', session_id: 'sess_kappa',   timestamp: new Date(Date.now() - 97  * 60000).toISOString(), page: '/contact',       country: 'India',           timezone: 'Asia/Kolkata',        device: 'Mobile',  data: { formId: 'contact-form',           session_id: 'sess_kappa' } },
+    { id: '15', event_name: 'web_vital_lcp',     user_id: 'anon_3a9c', session_id: 'sess_lambda',  timestamp: new Date(Date.now() - 112 * 60000).toISOString(), page: '/',              country: 'United States',   timezone: 'America/New_York',    device: 'Desktop', data: { value: 1.82, rating: 'good',      session_id: 'sess_lambda' } },
+    { id: '16', event_name: 'page_view',         user_id: 'anon_5e1f', session_id: 'sess_mu',      timestamp: new Date(Date.now() - 128 * 60000).toISOString(), page: '/use-cases',     country: 'France',          timezone: 'Europe/Paris',        device: 'Desktop', data: {                                   session_id: 'sess_mu'    } },
+    { id: '17', event_name: 'click',             user_id: 'anon_7c3d', session_id: 'sess_iota',    timestamp: new Date(Date.now() - 141 * 60000).toISOString(), page: '/pricing',       country: 'United Kingdom',  timezone: 'Europe/London',       device: 'Mobile',  data: { element: 'button#get-started',    session_id: 'sess_iota'  } },
+    { id: '18', event_name: 'scroll',            user_id: 'anon_6e9d', session_id: 'sess_eta',     timestamp: new Date(Date.now() - 156 * 60000).toISOString(), page: '/features',      country: 'Netherlands',     timezone: 'Europe/Amsterdam',    device: 'Desktop', data: { depth: 90,                        session_id: 'sess_eta'   } },
+    { id: '19', event_name: 'form_focus',        user_id: 'anon_9b4f', session_id: 'sess_zeta',    timestamp: new Date(Date.now() - 163 * 60000).toISOString(), page: '/contact',       country: 'Australia',       timezone: 'Australia/Sydney',    device: 'Mobile',  data: { field: 'name',                    session_id: 'sess_zeta'  } },
+    { id: '20', event_name: 'page_exit',         user_id: 'anon_2b9c', session_id: 'sess_beta',    timestamp: new Date(Date.now() - 179 * 60000).toISOString(), page: '/pricing',       country: 'Germany',         timezone: 'Europe/Berlin',       device: 'Desktop', data: { timeOnPage: 42,                   session_id: 'sess_beta'  } },
+    { id: '21', event_name: 'click',             user_id: 'anon_4d1e', session_id: 'sess_gamma',   timestamp: new Date(Date.now() - 192 * 60000).toISOString(), page: '/',              country: 'United Kingdom',  timezone: 'Europe/London',       device: 'Mobile',  data: { element: 'a[href="/pricing"]',    session_id: 'sess_gamma' } },
+    { id: '22', event_name: 'page_view',         user_id: 'anon_0a7b', session_id: 'sess_nu',      timestamp: new Date(Date.now() - 207 * 60000).toISOString(), page: '/contact',       country: 'Canada',          timezone: 'America/Vancouver',   device: 'Tablet',  data: {                                   session_id: 'sess_nu'    } },
+    { id: '23', event_name: 'web_vital_lcp',     user_id: 'anon_8a2f', session_id: 'sess_delta',   timestamp: new Date(Date.now() - 219 * 60000).toISOString(), page: '/docs',          country: 'India',           timezone: 'Asia/Kolkata',        device: 'Desktop', data: { value: 2.14, rating: 'needs-improvement', session_id: 'sess_delta' } },
+    { id: '24', event_name: 'scroll',            user_id: 'anon_1c5b', session_id: 'sess_epsilon', timestamp: new Date(Date.now() - 234 * 60000).toISOString(), page: '/why-pulzivo',   country: 'Canada',          timezone: 'America/Toronto',     device: 'Tablet',  data: { depth: 55,                        session_id: 'sess_epsilon' } },
+    { id: '25', event_name: 'page_view',         user_id: 'anon_3d7e', session_id: 'sess_xi',      timestamp: new Date(Date.now() - 248 * 60000).toISOString(), page: '/blog',          country: 'France',          timezone: 'Europe/Paris',        device: 'Desktop', data: {                                   session_id: 'sess_xi'    } },
+    { id: '26', event_name: 'form_submit',       user_id: 'anon_5c2a', session_id: 'sess_omicron', timestamp: new Date(Date.now() - 261 * 60000).toISOString(), page: '/',              country: 'United States',   timezone: 'America/Los_Angeles', device: 'Desktop', data: { formId: 'signup-form',            session_id: 'sess_omicron' } },
+    { id: '27', event_name: 'dead_click',        user_id: 'anon_7f3a', session_id: 'sess_alpha',   timestamp: new Date(Date.now() - 278 * 60000).toISOString(), page: '/docs',          country: 'United States',   timezone: 'America/New_York',    device: 'Desktop', data: { element: 'div.code-block',        session_id: 'sess_alpha' } },
+    { id: '28', event_name: 'pricing_viewed',    user_id: 'anon_0a7b', session_id: 'sess_nu',      timestamp: new Date(Date.now() - 291 * 60000).toISOString(), page: '/pricing',       country: 'Canada',          timezone: 'America/Vancouver',   device: 'Tablet',  data: { plan: 'enterprise',               session_id: 'sess_nu'    } },
+    { id: '29', event_name: 'page_exit',         user_id: 'anon_5e1f', session_id: 'sess_mu',      timestamp: new Date(Date.now() - 305 * 60000).toISOString(), page: '/features',      country: 'France',          timezone: 'Europe/Paris',        device: 'Desktop', data: { timeOnPage: 117,                  session_id: 'sess_mu'    } },
+    { id: '30', event_name: 'signup_started',    user_id: 'anon_1a8b', session_id: 'sess_pi',      timestamp: new Date(Date.now() - 318 * 60000).toISOString(), page: '/',              country: 'United States',   timezone: 'America/Chicago',     device: 'Mobile',  data: {                                   session_id: 'sess_pi'    } },
   ];
 
   readonly eventsTimelineChart = {
@@ -222,7 +238,29 @@ export class DemoService {
     }]
   };
 
-  // ─── Overview tab mock data (missing from 3 lazy tabs) ───────────────────────
+  /**
+   * Category counts for the Events donut chart & category pills.
+   * Derived from eventsBreakdown (total = 21,859 events):
+   *   user_actions : click(3241) + scroll(2187)               = 5,428
+   *   navigation   : page_view(8423) + page_exit(1891)         = 10,314
+   *   forms        : form_focus(312) + form_submit(143)
+   *                  + form_abandon(58)                         = 513
+   *   errors       : rage_click(23) + dead_click(87)           = 110
+   *   performance  : web_vital_lcp(412)                        = 412
+   *   custom       : script_copied(312) + signup_started(187)
+   *                  + signup_completed(143) + pricing_viewed(98) = 740
+   *   (session_start is a system event, excluded from category totals)
+   */
+  readonly eventsCategoryCounts: Record<string, number> = {
+    user_actions: 5428,
+    navigation:   10314,
+    forms:        513,
+    errors:       110,
+    performance:  412,
+    custom:       740,
+  };
+
+  // ─── Overview tab mock data ──────────────────────────────────────────────────
 
   /** Trend % vs previous period (used by KPI cards) */
   readonly overviewTrends = {
@@ -418,4 +456,11 @@ export class DemoService {
     { page: '/why-pulzivo', count: 198, avgLCP: 4350, avgFID: 312, avgCLS: 0.28, lcpRating: 'poor',             fidRating: 'poor',             clsRating: 'poor'             },
     { page: '/use-cases', count: 156,  avgLCP: 2890, avgFID: 88,  avgCLS: 0.09, lcpRating: 'needs-improvement', fidRating: 'good',             clsRating: 'good'             },
   ];
+
+  /** Returns all demo events belonging to a given session_id, sorted by timestamp asc */
+  getSessionEvents(sessionId: string): any[] {
+    return [...this.eventsHistory]
+      .filter(e => e.session_id === sessionId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
 }
