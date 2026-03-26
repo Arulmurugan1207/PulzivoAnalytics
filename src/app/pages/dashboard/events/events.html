@@ -583,6 +583,137 @@
             </div>
           </div>
 
+          <!-- Session Insight Summary (collapsible) -->
+          @if (sessionSummary) {
+            <div class="tl-insight-toggle" (click)="toggleTimelineSummary()">
+              <i [class]="showTimelineSummary ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
+              <i class="pi pi-sparkles" style="color:#6366f1"></i>
+              <span>Session Insights</span>
+              @if (sessionSummary.errors.length || sessionSummary.frustrations.length) {
+                <span class="insight-badge warn">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  {{ sessionSummary.errors.length + sessionSummary.frustrations.length }} issues
+                </span>
+              }
+            </div>
+
+            @if (showTimelineSummary) {
+              <div class="tl-insight-panel">
+
+                <!-- Journey -->
+                <div class="insight-row">
+                  <span class="insight-icon"><i class="pi pi-map" style="color:#2a6df6"></i></span>
+                  <div class="insight-body">
+                    <span class="insight-title">Journey</span>
+                    <span class="insight-text">
+                      Entered on <strong>{{ sessionSummary.entryPage }}</strong>,
+                      exited on <strong>{{ sessionSummary.exitPage }}</strong>
+                      — visited {{ sessionSummary.uniquePages.length }} unique {{ sessionSummary.uniquePages.length === 1 ? 'page' : 'pages' }}
+                      over {{ sessionSummary.duration }}.
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Pages visited -->
+                @if (sessionSummary.uniquePages.length > 1) {
+                  <div class="insight-row">
+                    <span class="insight-icon"><i class="pi pi-file" style="color:#8b5cf6"></i></span>
+                    <div class="insight-body">
+                      <span class="insight-title">Pages Visited</span>
+                      <div class="insight-chips">
+                        @for (pg of sessionSummary.uniquePages; track pg) {
+                          <span class="insight-chip page">{{ pg }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Top event types -->
+                <div class="insight-row">
+                  <span class="insight-icon"><i class="pi pi-chart-bar" style="color:#06b6d4"></i></span>
+                  <div class="insight-body">
+                    <span class="insight-title">Top Events</span>
+                    <div class="insight-chips">
+                      @for (t of sessionSummary.topEventTypes; track t.name) {
+                        <span class="insight-chip event">
+                          {{ eventFriendlyLabel(t.name) }}
+                          <small class="chip-count">{{ t.count }}</small>
+                        </span>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Signal flags -->
+                @if (sessionSummary.signalFlags.signup || sessionSummary.signalFlags.signin || sessionSummary.signalFlags.formSubmit || sessionSummary.signalFlags.purchase) {
+                  <div class="insight-row">
+                    <span class="insight-icon"><i class="pi pi-flag-fill" style="color:#22c55e"></i></span>
+                    <div class="insight-body">
+                      <span class="insight-title">Key Actions</span>
+                      <div class="insight-chips">
+                        @if (sessionSummary.signalFlags.signup) { <span class="insight-chip success">Sign Up</span> }
+                        @if (sessionSummary.signalFlags.signin) { <span class="insight-chip success">Sign In</span> }
+                        @if (sessionSummary.signalFlags.formSubmit) { <span class="insight-chip success">Form Submitted</span> }
+                        @if (sessionSummary.signalFlags.purchase) { <span class="insight-chip success">Purchase</span> }
+                        @if (sessionSummary.signalFlags.signinFailed) { <span class="insight-chip danger">Sign In Failed</span> }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Form events -->
+                @if (sessionSummary.formEvents.length) {
+                  <div class="insight-row">
+                    <span class="insight-icon"><i class="pi pi-file-edit" style="color:#f59e0b"></i></span>
+                    <div class="insight-body">
+                      <span class="insight-title">Form Activity</span>
+                      <div class="insight-chips">
+                        @for (f of sessionSummary.formEvents; track $index) {
+                          <span class="insight-chip form">
+                            {{ f.name }}
+                            @if (f.formId) { <small class="chip-sub">{{ f.formId }}</small> }
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Errors -->
+                @if (sessionSummary.errors.length) {
+                  <div class="insight-row">
+                    <span class="insight-icon"><i class="pi pi-times-circle" style="color:#ef4444"></i></span>
+                    <div class="insight-body">
+                      <span class="insight-title">Errors</span>
+                      <div class="insight-chips">
+                        @for (e of sessionSummary.errors; track e) {
+                          <span class="insight-chip danger">{{ e }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- Frustrations -->
+                @if (sessionSummary.frustrations.length) {
+                  <div class="insight-row">
+                    <span class="insight-icon"><i class="pi pi-exclamation-triangle" style="color:#f97316"></i></span>
+                    <div class="insight-body">
+                      <span class="insight-title">Frustration Signals</span>
+                      <div class="insight-chips">
+                        @for (f of sessionSummary.frustrations; track f) {
+                          <span class="insight-chip warn">{{ f }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+
+              </div>
+            }
+          }
+
           <!-- Visual scrubber bar -->
           <div class="timeline-scrubber">
             @for (evt of sessionEvents; track evt.id) {

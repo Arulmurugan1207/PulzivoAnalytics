@@ -219,6 +219,20 @@ export class DashboardEvents implements OnInit, OnDestroy {
   sessionEvents: HistoryEvent[] = [];
   loadingTimeline = false;
   timelineActiveId: string | null = null;
+  showTimelineSummary = false;
+  sessionSummary: {
+    duration: string;
+    eventCount: number;
+    uniquePages: string[];
+    topEventTypes: { name: string; count: number }[];
+    entryPage: string;
+    exitPage: string;
+    device: string;
+    errors: string[];
+    frustrations: string[];
+    formEvents: { name: string; formId: string }[];
+    signalFlags: { signup: boolean; signin: boolean; signinFailed: boolean; formSubmit: boolean; purchase: boolean };
+  } | null = null;
 
   // Export Menu
   exportMenuItems: MenuItem[] = [
@@ -698,6 +712,8 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.modalTab = 'details';
     this.sessionEvents = [];
     this.timelineActiveId = event.id;
+    this.sessionSummary = null;
+    this.showTimelineSummary = false;
     this.showEventDetail = true;
   }
 
@@ -706,6 +722,8 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.selectedEvent = null;
     this.copiedEventData = false;
     this.sessionEvents = [];
+    this.sessionSummary = null;
+    this.showTimelineSummary = false;
     this.modalTab = 'details';
   }
 
@@ -724,6 +742,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     if (this.demoService.isDemoMode()) {
       const events = this.demoService.getSessionEvents(this.selectedEvent.session_id);
       this.sessionEvents = events as any;
+      this.buildSessionSummary();
       this.loadingTimeline = false;
       this.cdr.markForCheck();
       return;
@@ -732,6 +751,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.analyticsAPI.getSessionEvents(this.selectedEvent.session_id).subscribe({
       next: (events: any[]) => {
         this.sessionEvents = events;
+        this.buildSessionSummary();
         this.loadingTimeline = false;
         this.cdr.markForCheck();
       },
@@ -756,6 +776,84 @@ export class DashboardEvents implements OnInit, OnDestroy {
   setTimelineActive(id: string): void {
     this.timelineActiveId = id;
     this.cdr.markForCheck();
+  }
+
+  toggleTimelineSummary(): void {
+    this.showTimelineSummary = !this.showTimelineSummary;
+    this.cdr.markForCheck();
+  }
+
+  private buildSessionSummary(): void {
+    const evts = this.sessionEvents;
+    if (!evts.length) { this.sessionSummary = null; return; }
+
+    // Duration
+    const duration = this.sessionDuration(evts);
+
+    // Unique pages
+    const uniquePages = [...new Set(evts.map(e => e.page).filter(Boolean))] as string[];
+
+    // Top event types (sorted by count desc)
+    const typeCounts: Record<string, number> = {};
+    evts.forEach(e => { typeCounts[e.event_name] = (typeCounts[e.event_name] || 0) + 1; });
+    const topEventTypes = Object.entries(typeCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    // Entry / exit page
+    const entryPage = evts[0]?.page || '—';
+    const exitPage = evts[evts.length - 1]?.page || '—';
+
+    // Device
+    const device = evts[0]?.device || '—';
+
+    // Errors
+    const errorKeywords = ['error', 'fail', 'crash', 'exception'];
+    const errors = evts
+      .filter(e => errorKeywords.some(k => e.event_name.toLowerCase().includes(k)))
+      .map(e => this.eventFriendlyLabel(e.event_name));
+
+    // Frustrations
+    const frustrationNames = ['rage_click', 'dead_click', 'exit_intent', 'form_abandon'];
+    const frustrations = evts
+      .filter(e => frustrationNames.includes(e.event_name))
+      .map(e => this.eventFriendlyLabel(e.event_name));
+
+    // Form events
+    const formEventNames = ['form_start', 'form_submit', 'form_abandon', 'form_field_interaction'];
+    const formEvents = evts
+      .filter(e => formEventNames.includes(e.event_name))
+      .map(e => ({ name: this.eventFriendlyLabel(e.event_name), formId: e.data?.formId || '' }));
+
+    // Signal flags
+    const nameSet = new Set(evts.map(e => e.event_name));
+    const signalFlags = {
+      signup: nameSet.has('signup_started') || nameSet.has('signup_completed') || nameSet.has('user_sign_up'),
+      signin: nameSet.has('signin_started') || nameSet.has('user_sign_in'),
+      signinFailed: nameSet.has('user_sign_in_failed'),
+      formSubmit: nameSet.has('form_submit'),
+      purchase: nameSet.has('purchase') || nameSet.has('checkout_completed')
+    };
+
+    this.sessionSummary = {
+      duration,
+      eventCount: evts.length,
+      uniquePages,
+      topEventTypes,
+      entryPage,
+      exitPage,
+      device,
+      errors: [...new Set(errors)],
+      frustrations: [...new Set(frustrations)],
+      formEvents,
+      signalFlags
+    };
+
+    // Auto-show summary if timeline is big
+    if (evts.length >= 15) {
+      this.showTimelineSummary = true;
+    }
   }
 
   copiedEventData = false;

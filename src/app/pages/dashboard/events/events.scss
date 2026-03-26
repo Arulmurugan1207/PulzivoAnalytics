@@ -1135,6 +1135,164 @@
   }
 }
 
+/* ─── Session Insight Summary ─── */
+.tl-insight-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+
+  &:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+  }
+
+  .pi-sparkles { font-size: 0.9rem; }
+  .pi-chevron-right, .pi-chevron-down { font-size: 0.65rem; color: #94a3b8; }
+}
+
+.insight-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.12rem 0.5rem;
+  border-radius: 10px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  &.warn {
+    background: #fef3c7;
+    color: #92400e;
+    i { font-size: 0.6rem; }
+  }
+}
+
+.tl-insight-panel {
+  background: linear-gradient(135deg, #faf5ff 0%, #eef2ff 50%, #f0fdf4 100%);
+  border: 1px solid #e0e7ff;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.insight-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.insight-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 0.85rem;
+}
+
+.insight-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-title {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.insight-text {
+  font-size: 0.8rem;
+  color: #334155;
+  line-height: 1.45;
+
+  strong { color: #1e293b; font-weight: 600; }
+}
+
+.insight-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.insight-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+
+  &.page {
+    background: #f1f5f9;
+    color: #475569;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.7rem;
+  }
+
+  &.event {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  &.success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  &.danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  &.warn {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.form {
+    background: #fef9c3;
+    color: #854d0e;
+  }
+
+  .chip-count {
+    background: rgba(0,0,0,0.08);
+    padding: 0 0.3rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  .chip-sub {
+    font-size: 0.62rem;
+    color: inherit;
+    opacity: 0.7;
+    font-family: 'SF Mono', monospace;
+  }
+}
+
 /* Scrubber */
 .timeline-scrubber {
   position: relative;
