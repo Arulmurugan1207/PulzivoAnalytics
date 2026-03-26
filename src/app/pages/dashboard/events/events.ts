@@ -116,6 +116,12 @@ export class DashboardEvents implements OnInit, OnDestroy {
   historyPage = 1;
   historyLimit = 50;
   historyPages = 1;
+  jumpToPage = '';
+  pageSizeOptions = [
+    { label: '25 / page',  value: 25 },
+    { label: '50 / page',  value: 50 },
+    { label: '100 / page', value: 100 },
+  ];
   eventTypes: string[] = [];
   filterEventType = '';
   searchQuery = '';
@@ -548,6 +554,35 @@ export class DashboardEvents implements OnInit, OnDestroy {
     if (page < 1 || page > this.historyPages) return;
     this.historyPage = page;
     this.loadHistory();
+    this.scrollToHistory();
+  }
+
+  onPageSizeChange(): void {
+    this.historyPage = 1;
+    this.jumpToPage = '';
+    this.loadHistory();
+  }
+
+  onJumpToPage(event: Event): void {
+    if ((event as KeyboardEvent).key !== 'Enter') return;
+    const p = parseInt(this.jumpToPage);
+    if (!isNaN(p)) this.goToPage(p);
+    this.jumpToPage = '';
+  }
+
+  private scrollToHistory(): void {
+    setTimeout(() => {
+      document.querySelector('.history-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+
+  get showingFrom(): number {
+    if (this.historyTotal === 0) return 0;
+    return (this.historyPage - 1) * this.historyLimit + 1;
+  }
+
+  get showingTo(): number {
+    return Math.min(this.historyPage * this.historyLimit, this.historyTotal);
   }
 
   getEventTagStyle(name: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | null | undefined {

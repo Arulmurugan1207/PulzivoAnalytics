@@ -498,14 +498,72 @@
 }
 
 /* ─── Pagination ──────────────────────────────────────────────────────── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  min-width: 140px;
+}
+
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  margin-top: 1.25rem;
   flex-wrap: wrap;
 }
+
+.pagination-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 100px;
+  justify-content: flex-end;
+
+  span {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+
+  .jump-input {
+    width: 58px;
+    height: 34px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 0.5rem;
+    font-size: 0.82rem;
+    color: #374151;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: textfield;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    &:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    }
+  }
+}
+
+/* ─── History header right (page size selector) ───────────────────────── */
+.history-header-right {
+  margin-left: auto;
+}
+
 
 .page-btn {
   width: 34px;
@@ -938,6 +996,7 @@
     i {
       font-size: 2rem;
       background: linear-gradient(135deg, #2a6df6, #6f41ff);
+      background-clip: text;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }

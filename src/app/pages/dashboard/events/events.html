@@ -354,6 +354,16 @@
     @if (loading.history) {
       <p-progressSpinner [style]="{ width: '18px', height: '18px' }" strokeWidth="4"></p-progressSpinner>
     }
+    <div class="history-header-right">
+      <p-select
+        [options]="pageSizeOptions"
+        [(ngModel)]="historyLimit"
+        optionLabel="label"
+        optionValue="value"
+        (ngModelChange)="onPageSizeChange()"
+        [style]="{ width: '120px' }">
+      </p-select>
+    </div>
   </div>
 
   <!-- Filters -->
@@ -505,21 +515,43 @@
     </div>
 
     <!-- Pagination -->
-    @if (historyPages > 1) {
-      <div class="pagination">
-        <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(historyPage - 1)">
-          <i class="pi pi-chevron-left"></i>
-        </button>
-        @for (p of pagesArray; track p) {
-          @if (p === -1) {
-            <span class="page-ellipsis">…</span>
-          } @else {
-            <button class="page-btn" [class.active]="historyPage === p" (click)="goToPage(p)">{{ p }}</button>
+    @if (historyPages > 1 || historyTotal > 0) {
+      <div class="pagination-bar">
+        <span class="pagination-info">
+          Showing {{ showingFrom | number }}–{{ showingTo | number }} of {{ historyTotal | number }}
+        </span>
+        <div class="pagination">
+          <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(1)" pTooltip="First page" tooltipPosition="top">
+            <i class="pi pi-angle-double-left"></i>
+          </button>
+          <button class="page-btn nav" [disabled]="historyPage === 1" (click)="goToPage(historyPage - 1)">
+            <i class="pi pi-chevron-left"></i>
+          </button>
+          @for (p of pagesArray; track p) {
+            @if (p === -1) {
+              <span class="page-ellipsis">…</span>
+            } @else {
+              <button class="page-btn" [class.active]="historyPage === p" (click)="goToPage(p)">{{ p }}</button>
+            }
           }
-        }
-        <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPage + 1)">
-          <i class="pi pi-chevron-right"></i>
-        </button>
+          <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPage + 1)">
+            <i class="pi pi-chevron-right"></i>
+          </button>
+          <button class="page-btn nav" [disabled]="historyPage === historyPages" (click)="goToPage(historyPages)" pTooltip="Last page" tooltipPosition="top">
+            <i class="pi pi-angle-double-right"></i>
+          </button>
+        </div>
+        <div class="pagination-jump">
+          <span>Go to</span>
+          <input
+            type="number"
+            class="jump-input"
+            [(ngModel)]="jumpToPage"
+            (keydown)="onJumpToPage($event)"
+            [min]="1"
+            [max]="historyPages"
+            placeholder="page" />
+        </div>
       </div>
     }
   }
