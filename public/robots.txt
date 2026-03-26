@@ -6,19 +6,19 @@ Allow: /
 Allow: /pricing
 Allow: /docs
 Allow: /features
+Allow: /why-pulzivo
 Allow: /use-cases
 Allow: /blog
 Allow: /contact
+Allow: /demo/
+Allow: /demo/overview
+Allow: /demo/events
 
 # Block authenticated / private routes
 Disallow: /dashboard/
 Disallow: /reset-password/
 Disallow: /api/
 
-# Block common crawl traps
-Disallow: /*?*
-Allow: /$
-
-Crawl-delay: 10
+Crawl-delay: 2
 
 Sitemap: https://pulzivo.com/sitemap.xml
