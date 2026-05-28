@@ -38,6 +38,7 @@ type UserRole = 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
 export class Dashboard implements OnInit {
   user: any = null;
   userRole: UserRole = 'viewer';
+  showWelcomeBanner = false;
   userPlan: 'free' | 'pro' | 'enterprise' = 'free';
   sidebarCollapsed = false;
   currentRoute = '';
@@ -93,6 +94,12 @@ export class Dashboard implements OnInit {
       this.userPlan = 'enterprise';
     } else {
       this.userPlan = (this.user?.plan as any) || 'free';
+    }
+
+    // Show one-time welcome banner for new signups
+    if (localStorage.getItem('pulz_new_user') === '1') {
+      this.showWelcomeBanner = true;
+      localStorage.removeItem('pulz_new_user');
     }
 
     // Track current route
@@ -270,5 +277,9 @@ export class Dashboard implements OnInit {
   signUpFromDemo() {
     this.authService.requestOpenSignUp();
     this.router.navigate(['/']);
+  }
+
+  dismissWelcomeBanner() {
+    this.showWelcomeBanner = false;
   }
 }

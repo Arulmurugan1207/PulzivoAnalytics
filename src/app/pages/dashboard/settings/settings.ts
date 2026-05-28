@@ -18,6 +18,7 @@ import { DialogModule } from 'primeng/dialog';
 import { DividerModule } from 'primeng/divider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
+import { SkeletonModule } from 'primeng/skeleton';
 
 import { AuthService } from '../../../services/auth.service';
 import { environment } from '../../../../environments/environment';
@@ -89,7 +90,8 @@ interface User {
     DialogModule,
     DividerModule,
     CheckboxModule,
-    MessageModule
+    MessageModule,
+    SkeletonModule
   ],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
@@ -120,6 +122,10 @@ export class DashboardSettings implements OnInit {
   availableFeatures: string[] = [];
   enabledFeatures = signal<string[]>([]);
   featureDescriptions = FEATURE_DESCRIPTIONS;
+
+  // Sessions
+  activeSessions = signal<any[]>([]);
+  loadingSessions = signal(false);
 
   constructor(
     private fb: FormBuilder,
@@ -449,5 +455,40 @@ export class DashboardSettings implements OnInit {
 
   setActiveTab(tab: string): void {
     this.activeTab.set(tab);
+    if (tab === 'sessions') {
+      this.loadSessions();
+    }
+  }
+
+  loadSessions(): void {
+    const userId = this.authService.getUserData()?._id;
+    if (!userId) return;
+    this.loadingSessions.set(true);
+    this.http.get<{ sessions: any[] }>(`${environment.apiUrl}/users/${userId}/sessions`).subscribe({
+      next: (res) => {
+        this.activeSessions.set(res.sessions || []);
+        this.loadingSessions.set(false);
+      },
+      error: () => this.loadingSessions.set(false)
+    });
+  }
+
+  revokeSession(sessionId: string): void {
+    const userId = this.authService.getUserData()?._id;
+    if (!userId) return;
+    this.http.delete(`${environment.apiUrl}/users/${userId}/sessions/${sessionId}`).subscribe({
+      next: () => {
+        this.activeSessions.update(sessions => sessions.filter(s => s.id !== sessionId));
+        this.messageService.add({ severity: 'success', summary: 'Session Revoked', detail: 'The session has been signed out.' });
+      },
+      error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to revoke session.' })
+    });
+  }
+
+  getSessionIcon(device: string): string {
+    const d = (device || '').toLowerCase();
+    if (d.includes('mobile') || d.includes('phone')) return 'pi-mobile';
+    if (d.includes('tablet')) return 'pi-tablet';
+    return 'pi-desktop';
   }
 }

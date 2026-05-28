@@ -7,6 +7,26 @@
       <button class="demo-signup-btn" (click)="signUpFromDemo()">Get Started Free <i class="pi pi-arrow-right"></i></button>
     </div>
   }
+  <!-- Welcome Banner (new users) -->
+  @if (showWelcomeBanner) {
+    <div class="welcome-banner">
+      <div class="welcome-banner-content">
+        <i class="pi pi-star-fill"></i>
+        <div>
+          <strong>Welcome to Pulzivo Analytics!</strong>
+          <span>Start by creating an API key and adding the tracking script to your website.</span>
+        </div>
+      </div>
+      <div class="welcome-banner-actions">
+        <a routerLink="/dashboard/api-keys" class="welcome-banner-cta" (click)="dismissWelcomeBanner()">
+          <i class="pi pi-key"></i> Set Up Tracking
+        </a>
+        <button class="welcome-banner-dismiss" (click)="dismissWelcomeBanner()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+  }
   <!-- Sidebar -->
   <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
     <div class="sidebar-header">

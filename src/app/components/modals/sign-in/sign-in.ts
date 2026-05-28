@@ -28,7 +28,7 @@ import { AuthService } from '../../../services/auth.service';
 export class SignIn implements OnInit {
   @Output() close = new EventEmitter<void>();
   @Output() switchToSignUp = new EventEmitter<void>();
-  @Output() switchToForgotPassword = new EventEmitter<void>();
+  @Output() switchToForgotPassword = new EventEmitter<string>();
   @Output() signInSuccess = new EventEmitter<any>();
   
   visible = false;
@@ -148,8 +148,9 @@ export class SignIn implements OnInit {
   }
 
   onSwitchToForgotPassword() {
+    const email = this.loginForm.get('email')?.value || '';
     this.hide();
-    this.switchToForgotPassword.emit();
+    this.switchToForgotPassword.emit(email);
   }
 
   private loadSavedCredentials() {

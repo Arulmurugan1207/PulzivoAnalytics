@@ -193,6 +193,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   // Tab management
   activeTab = 'overview';
+  showAdvancedInsights = false;
   overviewTabs = [
     { id: 'overview',     label: 'Overview',     icon: 'pi pi-chart-bar' },
     { id: 'acquisition',  label: 'Acquisition',  icon: 'pi pi-arrow-down-right' },

@@ -111,6 +111,44 @@
          KPIs · Page Views Trend · Devices · Top Pages · Countries · Sessions
     ══════════════════════════════════════════ -->
     @if (activeTab === 'overview') {
+
+      <!-- No-data empty state: API key exists but no events tracked yet -->
+      @if (!loadingStates.metrics && !demoService.isDemoMode() && metrics.totalPageViews === 0 && metrics.liveVisitors === 0) {
+        <div class="no-data-setup-card">
+          <div class="no-data-setup-icon"><i class="pi pi-code"></i></div>
+          <h2>No data yet — let's set up tracking</h2>
+          <p>Add the Pulzivo Analytics script to your website to start seeing real-time visitors, page views, and more.</p>
+          <div class="no-data-setup-steps">
+            <div class="setup-step">
+              <span class="step-num">1</span>
+              <div>
+                <strong>Get your API key</strong>
+                <p>Go to <a routerLink="/dashboard/api-keys">API Keys</a> and copy your key.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span class="step-num">2</span>
+              <div>
+                <strong>Add the tracking script</strong>
+                <p>Paste this snippet into the <code>&lt;head&gt;</code> of every page:</p>
+                <pre class="setup-code"><code>&lt;script src="https://pulzivo.com/pulzivo-analytics.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;PulzivoAnalytics('init', 'YOUR_API_KEY');&lt;/script&gt;</code></pre>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span class="step-num">3</span>
+              <div>
+                <strong>Visit your site</strong>
+                <p>Open your site in a browser — data will appear here within seconds.</p>
+              </div>
+            </div>
+          </div>
+          <a routerLink="/dashboard/api-keys" class="setup-cta-btn">
+            <i class="pi pi-key"></i> Go to API Keys
+          </a>
+        </div>
+      }
+
       <div class="metrics-grid">
 
         <!-- KPI Cards -->
@@ -887,6 +925,16 @@
          Top Clicks · Custom Events · Form Interactions · Tooltip Insights
     ══════════════════════════════════════════ -->
     @if (activeTab === 'behaviour') {
+      <div class="advanced-insights-toggle" (click)="showAdvancedInsights = !showAdvancedInsights">
+        <span class="advanced-insights-label">
+          <i class="pi pi-chart-line"></i>
+          Advanced Insights
+          <span class="advanced-insights-sub">Cohort Retention · User Paths · Error Tracking · Rage/Dead Clicks</span>
+        </span>
+        <i class="pi" [class.pi-chevron-down]="!showAdvancedInsights" [class.pi-chevron-up]="showAdvancedInsights"></i>
+      </div>
+
+      @if (showAdvancedInsights) {
       <div class="metrics-grid">
 
         <!-- ── Cohort Retention ─────────────────────────────────────────── -->
@@ -1360,6 +1408,7 @@
         </div>
 
       </div>
+      } <!-- /showAdvancedInsights -->
     }
 
     <!-- ══════════════════════════════════════════

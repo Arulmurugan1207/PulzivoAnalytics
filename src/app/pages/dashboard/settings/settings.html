@@ -31,6 +31,14 @@
       [class]="'tab-btn ' + (activeTab() === 'analytics' ? 'active' : '')"
       (click)="setActiveTab('analytics')">
     </button>
+
+    <button pButton 
+      type="button"
+      [label]="'Sessions'" 
+      icon="pi pi-desktop"
+      [class]="'tab-btn ' + (activeTab() === 'sessions' ? 'active' : '')"
+      (click)="setActiveTab('sessions')">
+    </button>
   </div>
 
   <!-- Tab Content -->
@@ -377,6 +385,62 @@
           </ng-template>
         </p-card>
 
+      </div>
+    }
+
+    <!-- Sessions Tab -->
+    @if (activeTab() === 'sessions') {
+      <div class="sessions-section">
+        <p-card>
+          <ng-template pTemplate="header">
+            <div class="section-header">
+              <h3><i class="pi pi-desktop"></i> Active Sessions</h3>
+              <p>Devices and browsers currently signed in to your account.</p>
+            </div>
+          </ng-template>
+          <ng-template pTemplate="content">
+            @if (loadingSessions()) {
+              <div class="sessions-loading">
+                @for (i of [1,2]; track i) {
+                  <p-skeleton height="4rem" styleClass="mb-3"></p-skeleton>
+                }
+              </div>
+            } @else if (activeSessions().length === 0) {
+              <div class="sessions-empty">
+                <i class="pi pi-desktop"></i>
+                <p>No active sessions found.</p>
+              </div>
+            } @else {
+              <div class="sessions-list">
+                @for (session of activeSessions(); track session.id) {
+                  <div class="session-item" [class.current-session]="session.isCurrent">
+                    <div class="session-icon">
+                      <i [class]="'pi ' + getSessionIcon(session.device)"></i>
+                    </div>
+                    <div class="session-info">
+                      <div class="session-name">
+                        {{ session.browser }} on {{ session.os }}
+                        @if (session.isCurrent) {
+                          <span class="current-badge">Current</span>
+                        }
+                      </div>
+                      <div class="session-meta">
+                        <span><i class="pi pi-map-marker"></i> {{ session.location }}</span>
+                        <span><i class="pi pi-clock"></i> {{ session.lastActive | date:'medium' }}</span>
+                      </div>
+                    </div>
+                    @if (!session.isCurrent) {
+                      <button pButton type="button" label="Revoke" icon="pi pi-times"
+                        severity="danger" outlined size="small"
+                        (click)="revokeSession(session.id)">
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </ng-template>
+        </p-card>
       </div>
     }
   </div>

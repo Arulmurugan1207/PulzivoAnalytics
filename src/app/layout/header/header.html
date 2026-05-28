@@ -61,7 +61,7 @@
 <!-- Modals -->
 <app-sign-in
   (switchToSignUp)="onSwitchToSignUp()"
-  (switchToForgotPassword)="onSwitchToForgotPassword()"
+  (switchToForgotPassword)="onSwitchToForgotPassword($event)"
   (signInSuccess)="onSignInSuccess($event)">
 </app-sign-in>
 

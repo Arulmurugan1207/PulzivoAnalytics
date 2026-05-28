@@ -107,7 +107,7 @@ export class Header implements OnInit, OnDestroy {
 
   onSwitchToSignUp() { this.signInModal.hide(); this.signUpModal.show(); }
   onSwitchToSignIn() { this.signUpModal.hide(); this.signInModal.show(); }
-  onSwitchToForgotPassword() { this.signInModal.hide(); this.forgotPasswordModal.show(); }
+  onSwitchToForgotPassword(email: string = '') { this.signInModal.hide(); this.forgotPasswordModal.show(email); }
   onBackToSignIn() { this.forgotPasswordModal.hide(); this.signInModal.show(); }
 
   onSignInSuccess(user: any) {
@@ -119,10 +119,11 @@ export class Header implements OnInit, OnDestroy {
   onSignUpSuccess(user: any) {
     this.signUpCompleted = true;
     localStorage.setItem('pulz_has_account', '1'); // never show exit-intent modal again
+    localStorage.setItem('pulz_new_user', '1');    // show welcome banner on dashboard
     this.signUpModal.hide();
     const name = user?.firstname ? `${user.firstname} ${user.lastname || ''}`.trim() : 'New User';
     this.setLoggedInUser(name);
-    this.successModal.show('Account Created!', 'Your account has been created successfully.');
+    this.successModal.show('Account Created!', 'Your account has been created successfully. Head to the dashboard to set up tracking.');
   }
 
   setLoggedInUser(name: string) {

@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ChartModule } from 'primeng/chart';
 import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
@@ -19,6 +20,7 @@ import { RouterLink } from '@angular/router';
 import { AnalyticsDataService, DateRange } from '../../../services/analytics-data.service';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 interface ReportTemplate {
   id: string;
@@ -192,11 +194,14 @@ export class DashboardReports implements OnInit {
   // Make Math available in template
   Math = Math;
 
+  private apiUrl = environment.apiUrl;
+
   constructor(
     private analyticsDataService: AnalyticsDataService,
     private apiKeysService: ApiKeysService,
     private authService: AuthService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private http: HttpClient
   ) {}
 
   ngOnInit() {
@@ -245,11 +250,34 @@ export class DashboardReports implements OnInit {
     this.tempDateRange = [...this.dateRangeValue];
   }
 
+  private getAuthHeaders(): HttpHeaders {
+    return new HttpHeaders({ Authorization: `Bearer ${this.authService.getToken() || ''}` });
+  }
+
   loadSavedReports() {
-    const saved = localStorage.getItem('savedReports');
-    if (saved) {
-      this.savedReports = JSON.parse(saved);
+    const user = this.authService.getUserData();
+    if (!user?._id) {
+      const saved = localStorage.getItem('savedReports');
+      if (saved) this.savedReports = JSON.parse(saved);
+      return;
     }
+    this.http.get<{ reports: any[] }>(`${this.apiUrl}/users/${user._id}/reports`,
+      { headers: this.getAuthHeaders() }
+    ).subscribe({
+      next: (res) => {
+        this.savedReports = res.reports.map(r => ({
+          id: r._id,
+          name: r.name,
+          template: r.template,
+          dateRange: r.dateRange,
+          createdAt: new Date(r.createdAt)
+        }));
+      },
+      error: () => {
+        const saved = localStorage.getItem('savedReports');
+        if (saved) this.savedReports = JSON.parse(saved);
+      }
+    });
   }
 
   selectTemplate(templateId: string) {
@@ -734,14 +762,35 @@ export class DashboardReports implements OnInit {
       createdAt: new Date()
     };
 
-    this.savedReports.push(report);
-    localStorage.setItem('savedReports', JSON.stringify(this.savedReports));
-    
-    this.messageService.add({
-      severity: 'success',
-      summary: 'Report Saved',
-      detail: `"${this.newReportName}" has been saved`
-    });
+    const user = this.authService.getUserData();
+    if (user?._id) {
+      this.http.post<{ report: any }>(`${this.apiUrl}/users/${user._id}/reports`,
+        { name: report.name, template: report.template, dateRange: report.dateRange },
+        { headers: this.getAuthHeaders() }
+      ).subscribe({
+        next: (res) => {
+          const saved: SavedReport = {
+            id: res.report._id,
+            name: res.report.name,
+            template: res.report.template,
+            dateRange: res.report.dateRange,
+            createdAt: new Date(res.report.createdAt)
+          };
+          this.savedReports.unshift(saved);
+          this.messageService.add({ severity: 'success', summary: 'Report Saved', detail: `"${report.name}" has been saved` });
+        },
+        error: () => {
+          // Fallback to localStorage
+          this.savedReports.push(report);
+          localStorage.setItem('savedReports', JSON.stringify(this.savedReports));
+          this.messageService.add({ severity: 'success', summary: 'Report Saved', detail: `"${report.name}" has been saved` });
+        }
+      });
+    } else {
+      this.savedReports.push(report);
+      localStorage.setItem('savedReports', JSON.stringify(this.savedReports));
+      this.messageService.add({ severity: 'success', summary: 'Report Saved', detail: `"${report.name}" has been saved` });
+    }
 
     this.newReportName = '';
     this.saveReportPopover?.hide();
@@ -768,9 +817,14 @@ export class DashboardReports implements OnInit {
   }
 
   deleteSavedReport(reportId: string) {
+    const user = this.authService.getUserData();
+    if (user?._id) {
+      this.http.delete(`${this.apiUrl}/users/${user._id}/reports/${reportId}`,
+        { headers: this.getAuthHeaders() }
+      ).subscribe();
+    }
     this.savedReports = this.savedReports.filter(r => r.id !== reportId);
     localStorage.setItem('savedReports', JSON.stringify(this.savedReports));
-    
     this.messageService.add({
       severity: 'success',
       summary: 'Report Deleted',

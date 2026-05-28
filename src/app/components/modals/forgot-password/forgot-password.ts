@@ -40,10 +40,13 @@ export class ForgotPassword implements OnInit {
     });
   }
 
-  show() {
+  show(prefillEmail: string = '') {
     this.visible = true;
     this.emailSent = false;
     this.forgotForm.reset();
+    if (prefillEmail) {
+      this.forgotForm.patchValue({ email: prefillEmail });
+    }
   }
 
   hide() {
