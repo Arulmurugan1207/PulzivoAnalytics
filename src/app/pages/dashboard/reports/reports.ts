@@ -1,10 +1,9 @@
-import { Component, OnInit, ViewChild, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ChartModule } from 'primeng/chart';
 import { CardModule } from 'primeng/card';
-import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -14,7 +13,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { forkJoin, of } from 'rxjs';
+import {forkJoin, of, Subscription} from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { RouterLink } from '@angular/router';
 import { AnalyticsDataService, DateRange } from '../../../services/analytics-data.service';
@@ -58,7 +57,6 @@ interface MetricData {
     RouterLink,
     ChartModule,
     CardModule,
-    SelectModule,
     ButtonModule,
     TableModule,
     TagModule,
@@ -73,7 +71,7 @@ interface MetricData {
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
 })
-export class DashboardReports implements OnInit {
+export class DashboardReports implements OnInit, OnDestroy {
   @ViewChild('datePopover') datePopover!: Popover;
   @ViewChild('saveReportPopover') saveReportPopover!: Popover;
 
@@ -149,9 +147,10 @@ export class DashboardReports implements OnInit {
     { label: 'Custom Range', value: 'custom' }
   ];
 
-  // API Keys
+  // API Keys (shared via dashboard topbar + localStorage)
   availableApiKeys: ApiKey[] = [];
   selectedApiKey = '';
+  private subscriptions = new Subscription();
 
   // Report data
   reportMetrics: MetricData[] = [];
@@ -206,9 +205,13 @@ export class DashboardReports implements OnInit {
 
   ngOnInit() {
     this.loadUserPlan();
-    this.loadApiKeys();
+    this.bindSharedApiKey();
     this.initializeDateRange();
     this.loadSavedReports();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
   }
 
   loadUserPlan() {
@@ -226,20 +229,30 @@ export class DashboardReports implements OnInit {
     return this.userPlan === 'pro' || this.userPlan === 'enterprise';
   }
 
-  loadApiKeys() {
-    this.apiKeysService.getApiKeys().subscribe({
-      next: (response) => {
-        if (response && response.apiKeys) {
-          this.availableApiKeys = response.apiKeys.filter((key: ApiKey) => key.isActive);
-          if (this.availableApiKeys.length > 0) {
-            this.selectedApiKey = this.availableApiKeys[0].apiKey;
-            this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-            this.generateReport();
-          }
+  private bindSharedApiKey(): void {
+    this.availableApiKeys = this.apiKeysService.getAvailableApiKeys();
+    this.selectedApiKey = this.apiKeysService.getSelectedApiKey() || '';
+    let initialLoadDone = false;
+
+    this.subscriptions.add(
+      this.apiKeysService.availableApiKeys$.subscribe(keys => {
+        this.availableApiKeys = keys;
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.selectedApiKey$.subscribe(key => {
+        const next = key || '';
+        const changed = next !== this.selectedApiKey;
+        this.selectedApiKey = next;
+        if (this.selectedApiKey && (changed || !initialLoadDone)) {
+          initialLoadDone = true;
+          this.generateReport();
         }
-      },
-      error: (error) => console.error('Error loading API keys:', error)
-    });
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.loadAvailableApiKeys().subscribe()
+    );
   }
 
   initializeDateRange() {
@@ -347,11 +360,6 @@ export class DashboardReports implements OnInit {
 
   formatDate(date: Date): string {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  onApiKeyChange() {
-    this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-    this.generateReport();
   }
 
   generateReport() {

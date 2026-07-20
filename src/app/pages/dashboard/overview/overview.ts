@@ -7,7 +7,6 @@ import * as echarts from 'echarts';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
-import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -84,7 +83,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, SelectModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -115,6 +114,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
   entryPages: PageData[] = [];
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
+  geoDataPage = 1;
+  geoDataRows = 10;
   mapOptions: any = null;
   mapReady = false;
   private worldGeoJson: any = null;
@@ -334,11 +335,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.initChartOptions();
     this.loadUserPlan();
     this.loadAnalyticsPreferences();
-    this.loadAnalyticsDataWithLoading();
+    // Data loads after shared API key is restored/selected
     this.loadWorldGeoJson();
     // this.loadFeaturesDataWithDelay(); // no-op, removed
     // this.loadLiveEventsWithDelay();   // Live events disabled
-    this.loadApiKeys();
     this.applyPreset('Last 7 Days');
     // availableTrendPeriods initialized by applyPreset → emitDateRange → computeAvailablePeriods
     if (!this.availableTrendPeriods.length) {
@@ -347,10 +347,39 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.availableTrendPeriods = this.computeAvailablePeriods(start, end);
     }
 
+    // Shared dashboard API key (persisted in localStorage)
+    this.availableApiKeys = this.apiKeysService.getAvailableApiKeys();
+    this.selectedApiKey = this.apiKeysService.getSelectedApiKey() || '';
+    this.subscriptions.add(
+      this.apiKeysService.availableApiKeys$.subscribe(keys => {
+        this.availableApiKeys = keys;
+        this.cdr.markForCheck();
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.selectedApiKey$.subscribe(key => {
+        const next = key || '';
+        if (next === this.selectedApiKey) {
+          // Still load once on init when key was restored from cache/localStorage
+          if (next && !this.tabLoaded['overview']) {
+            this.handleSharedApiKeyChange();
+          }
+          return;
+        }
+        this.selectedApiKey = next;
+        this.handleSharedApiKeyChange();
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.loadAvailableApiKeys().subscribe()
+    );
+
     this.subscriptions.add(
       this.dateRange$.subscribe(dateRange => {
         this.currentDateRange = dateRange;
-        if (this.selectedApiKey) {
+        // Skip the initial emit; key binding owns the first load.
+        // Subsequent date changes reload once overview data has been loaded.
+        if (this.selectedApiKey && this.tabLoaded['overview']) {
           this.loadAllData();
         }
       })
@@ -392,14 +421,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     // Wait until BOTH are available
     if (!this.worldGeoJson || !this.geoData.length) return;
 
-    // Map: GeoJSON name → original country name + visitors (for tooltip)
-    const geoJsonToDisplay: Record<string, { label: string; visitors: number }> = {};
+    // Map: GeoJSON name → original country name + page views (for tooltip)
+    const geoJsonToDisplay: Record<string, { label: string; views: number }> = {};
     const seriesData = this.geoData.map(g => {
       const geoName = COUNTRY_NAME_TO_GEOJSON[g.country] ?? g.country;
       // Multiple countries may map to the same GeoJSON polygon (e.g. territories → England)
-      // Keep highest visitor count for the polygon tooltip
-      if (!geoJsonToDisplay[geoName] || g.visitors > geoJsonToDisplay[geoName].visitors) {
-        geoJsonToDisplay[geoName] = { label: g.country, visitors: g.visitors };
+      // Keep highest page-view count for the polygon tooltip
+      if (!geoJsonToDisplay[geoName] || g.visitors > geoJsonToDisplay[geoName].views) {
+        geoJsonToDisplay[geoName] = { label: g.country, views: g.visitors };
       }
       return { name: geoName, value: g.visitors };
     });
@@ -414,10 +443,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
         formatter: (p: any) => {
           const info = geoJsonToDisplay[p.name];
           if (info) {
-            return `<b>${info.label}</b><br/>${info.visitors.toLocaleString()} visitors`;
+            return `<b>${info.label}</b><br/>${info.views.toLocaleString()} views`;
           }
           return p.data
-            ? `<b>${p.name}</b><br/>${p.data.value.toLocaleString()} visitors`
+            ? `<b>${p.name}</b><br/>${p.data.value.toLocaleString()} views`
             : `<b>${p.name}</b>`;
         }
       },
@@ -428,6 +457,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         inRange: { color: ['#c7d2fe', '#4f46e5'] }
       },
       series: [{
+        name: 'Page Views',
         type: 'map',
         map: 'world',
         roam: true,
@@ -457,6 +487,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.isOwner = false;
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
+    this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
     this.activePreset = 'Last 7 Days';
     this.availableTrendPeriods = [
       { label: 'Daily', value: 'daily' },
@@ -469,6 +500,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.topPages = d.topPages as any;
     this.topPagesTotal = d.topPages.length;
     this.geoData = d.geoData as any;
+    this.geoDataPage = 1;
     this.trends = { ...d.overviewTrends };
     this.prevBarChartDataset = d.prevBarChartDataset ?? null;
     this.sessionStats = { ...d.sessionStats } as any;
@@ -652,48 +684,24 @@ export class DashboardOverview implements OnInit, OnDestroy {
     };
   }
 
-  private loadApiKeys(): void {
-    this.subscriptions.add(
-      this.apiKeysService.getApiKeys().subscribe({
-        next: (response) => {
-          this.availableApiKeys = (response.apiKeys || []).filter(k => k.isActive !== false);
-          if (this.availableApiKeys.length > 0 && !this.selectedApiKey) {
-            this.selectedApiKey = this.availableApiKeys[0].apiKey;
-            this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-            this.loadAllData();
-          } else if (this.availableApiKeys.length === 0) {
-            // No API keys: user has no data to view
-            this.selectedApiKey = '';
-            this.apiKeysService.setSelectedApiKey(null);
-            this.clearAllData();
-          }
-          this.cdr.markForCheck();
-        },
-        error: () => { this.availableApiKeys = []; this.clearAllData(); this.cdr.markForCheck(); }
-      })
-    );
-  }
-
-  onApiKeyChange(): void {
-    // Stop any ongoing updates and subscriptions
+  /** React to shared topbar API key changes without tearing down date-range subscriptions. */
+  private handleSharedApiKeyChange(): void {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    this.subscriptions.unsubscribe();
-    this.subscriptions = new Subscription();
 
     // Reset tab-loaded state so each tab reloads fresh data for the new key
     this.tabLoaded = { overview: false, acquisition: false, behaviour: false, technical: false };
     this.activeTab = 'overview';
 
     if (this.selectedApiKey) {
-      this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
       this.clearAllData();
       this.loadAnalyticsDataWithLoading();
     } else {
       this.clearAllData();
     }
+    this.cdr.markForCheck();
   }
 
   private loadAllData(): void {
@@ -754,6 +762,35 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       })
     );
+
+    // Reload already-visited lazy tabs so date-range changes stay in sync
+    if (this.tabLoaded['behaviour']) {
+      this.loadingStates.sessionStats = true;
+      this.cdr.markForCheck();
+      this.loadSessionStatsWithDelay();
+      this.loadClicksWithDelay();
+      this.loadCohortRetentionWithDelay();
+      this.loadUserPathsWithDelay();
+      if (this.hasFeature('custom_events')) this.loadCustomEventsWithDelay();
+      if (this.hasFeature('form_tracking')) this.loadFormInteractionsWithDelay();
+      if (this.hasFeature('custom_dimensions')) this.loadTooltipInsightsWithDelay();
+      if (this.hasFeature('error_tracking')) this.loadErrorTrackingWithDelay();
+      if (this.hasFeature('rage_clicks') || this.hasFeature('dead_clicks')) this.loadRageDeadClicksWithDelay();
+    }
+    if (this.tabLoaded['acquisition']) {
+      if (this.hasFeature('utm_attribution')) {
+        this.loadTrafficSourcesWithDelay();
+        this.loadAttributionWithDelay();
+      }
+      if (this.hasFeature('page_exit')) this.loadEntryExitPagesWithDelay();
+    }
+    if (this.tabLoaded['technical']) {
+      if (this.hasFeature('web_vitals')) {
+        this.loadWebVitalsWithDelay();
+        this.loadPageVitalsWithDelay();
+      }
+      if (this.hasFeature('client_hints')) this.loadBrowsersWithDelay();
+    }
 
     // Start periodic refresh
     this.startRealtimeUpdates();
@@ -853,6 +890,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.deviceBreakdown = { desktop: 0, mobile: 0, tablet: 0, desktopPercentage: 0, mobilePercentage: 0, tabletPercentage: 0 };
     this.topPages = [];
     this.geoData = [];
+    this.geoDataPage = 1;
     this.funnelLabels = [];
     this.funnelSteps = [];
     this.realtimeEvents = [];
@@ -931,10 +969,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadingStates.clicks = true;
     this.loadingStates.cohortRetention = true;
     this.loadingStates.userPaths = true;
+    this.loadingStates.sessionStats = true;
     this.cdr.markForCheck();
     this.loadClicksWithDelay();
     this.loadCohortRetentionWithDelay();
     this.loadUserPathsWithDelay();
+    this.loadSessionStatsWithDelay();
 
     if (this.hasFeature('error_tracking')) {
       this.loadingStates.errorTracking = true;
@@ -986,7 +1026,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadingStates.pageViews = true;
     this.loadingStates.devices = true;
     this.loadingStates.topPages = true;
-    this.loadingStates.sessionStats = true;
     this.cdr.markForCheck();
 
     const promises: Promise<void>[] = [
@@ -995,7 +1034,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.loadPageViewsWithDelay(),
       this.loadDevicesWithDelay(),
       this.loadTopPagesWithDelay(),
-      this.loadSessionStatsWithDelay(),
     ];
 
     if (this.hasFeature('sessions')) {
@@ -1120,6 +1158,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getGeographicData(this.currentDateRange ?? undefined).subscribe({
           next: (data: GeographicData[]) => {
             this.geoData = data;
+            this.geoDataPage = 1;
             this.buildMapOptions();
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
@@ -1343,6 +1382,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.analyticsDataService.getTopPages(this.currentDateRange ?? undefined, page, rows).subscribe({
       next: (res) => {
         this.topPages = res.pages;
+        this.topPagesTotal = res.total ?? this.topPagesTotal;
         this.loadingStates.topPages = false;
         this.cdr.markForCheck();
       },
@@ -1351,6 +1391,21 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       }
     });
+  }
+
+  min(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
+  get pagedGeoData(): GeographicData[] {
+    const start = (this.geoDataPage - 1) * this.geoDataRows;
+    return this.geoData.slice(start, start + this.geoDataRows);
+  }
+
+  onGeoPageChange(page: number): void {
+    const maxPage = Math.max(1, Math.ceil(this.geoData.length / this.geoDataRows));
+    this.geoDataPage = Math.min(Math.max(1, page), maxPage);
+    this.cdr.markForCheck();
   }
 
   private async loadConversionWithDelay(): Promise<void> {

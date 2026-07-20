@@ -2,29 +2,6 @@
 
   <!-- ══════════════════ TOOLBAR ══════════════════ -->
   <div class="events-toolbar">
-    @if (availableApiKeys.length > 0) {
-      <div class="key-selector">
-        <label>Site</label>
-        <p-select
-          [options]="availableApiKeys"
-          [(ngModel)]="selectedApiKey"
-          (ngModelChange)="onApiKeyChange()"
-          optionLabel="name"
-          optionValue="apiKey"
-          placeholder="Select site"
-          [style]="{ width: '280px' }">
-          <ng-template #selectedItem let-item>
-            <span>{{ item.name }}</span>
-          </ng-template>
-          <ng-template #item let-item>
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-              <span>{{ item.name }}</span>
-              <span style="color: #94a3b8; font-size: 0.8rem;">{{ item.apiKey }}</span>
-            </div>
-          </ng-template>
-        </p-select>
-      </div>
-    }
     <div class="toolbar-title">
       <h2>Events</h2>
     </div>

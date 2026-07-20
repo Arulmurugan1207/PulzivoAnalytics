@@ -319,7 +319,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     }
     this.initChart();
     this.initDateRange();
-    this.loadApiKeys();
+    this.bindSharedApiKey();
   }
 
   isPlanAtLeast(plan: 'free' | 'starter' | 'pro' | 'enterprise'): boolean {
@@ -339,6 +339,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     const d = this.demoService;
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
+    this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
     this.totalEvents = 21859;
     this.events = d.eventsBreakdown as any;
     this.customEvents = d.customEvents as any;
@@ -415,28 +416,32 @@ export class DashboardEvents implements OnInit, OnDestroy {
     };
   }
 
-  private loadApiKeys(): void {
+  private bindSharedApiKey(): void {
+    this.availableApiKeys = this.apiKeysService.getAvailableApiKeys();
+    this.selectedApiKey = this.apiKeysService.getSelectedApiKey() || '';
+    let initialLoadDone = false;
+
     this.subscriptions.add(
-      this.apiKeysService.getApiKeys().subscribe({
-        next: (response) => {
-          this.availableApiKeys = (response.apiKeys || []).filter((k: ApiKey) => k.isActive !== false);
-          if (this.availableApiKeys.length > 0 && !this.selectedApiKey) {
-            this.selectedApiKey = this.availableApiKeys[0].apiKey;
-            this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-            this.loadAll();
-          }
-          this.cdr.markForCheck();
-        },
-        error: () => { this.availableApiKeys = []; this.cdr.markForCheck(); }
+      this.apiKeysService.availableApiKeys$.subscribe(keys => {
+        this.availableApiKeys = keys;
+        this.cdr.markForCheck();
       })
     );
-  }
-
-  onApiKeyChange(): void {
-    if (this.selectedApiKey) {
-      this.apiKeysService.setSelectedApiKey(this.selectedApiKey);
-      this.loadAll();
-    }
+    this.subscriptions.add(
+      this.apiKeysService.selectedApiKey$.subscribe(key => {
+        const next = key || '';
+        const changed = next !== this.selectedApiKey;
+        this.selectedApiKey = next;
+        if (this.selectedApiKey && (changed || !initialLoadDone)) {
+          initialLoadDone = true;
+          this.loadAll();
+        }
+        this.cdr.markForCheck();
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.loadAvailableApiKeys().subscribe()
+    );
   }
 
   private loadAll(): void {

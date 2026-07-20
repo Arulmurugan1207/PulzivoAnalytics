@@ -335,6 +335,23 @@
       ...Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'attribution'))  // Spread data but exclude attribution (already handled above)
     };
 
+    // Sanitize page path — strip whitespace/encoded newlines/trailing slash that create duplicate Top Pages rows
+    if (eventData.page && typeof eventData.page === 'string') {
+      let page = eventData.page;
+      for (let i = 0; i < 3; i++) {
+        page = page
+          .replace(/%0A/gi, '')
+          .replace(/%0D/gi, '')
+          .replace(/%09/gi, '')
+          .replace(/\r/g, '')
+          .replace(/\n/g, '')
+          .replace(/\t/g, '');
+      }
+      page = page.trim();
+      if (page.length > 1) page = page.replace(/\/+$/, '');
+      eventData.page = page || '/';
+    }
+
     // Store first visit
     if (isLocalStorageAvailable()) {
       if (!getStorageItem('analytics_first_visit')) {

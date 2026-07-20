@@ -116,7 +116,10 @@ export interface PageData {
 
 export interface GeographicData {
   country: string;
+  /** Page views for this country (field name kept for API compatibility). */
   visitors: number;
+  /** Optional alias from API; same as visitors. */
+  views?: number;
   percentage: number;
   flag: string;
 }
@@ -300,7 +303,15 @@ export class AnalyticsDataService {
   getTopPages(dateRange?: DateRange, page = 1, limit = 10): Observable<{ pages: PageData[]; total: number }> {
     return this.analyticsAPI.getTopPages(dateRange, page, limit).pipe(
       map((data: any) => ({
-        pages: Array.isArray(data?.pages) ? data.pages : [],
+        pages: Array.isArray(data?.pages) ? data.pages.map((p: any) => {
+          let path = p.path;
+          if (typeof path === 'string') {
+            try { path = decodeURIComponent(path); } catch { /* keep raw */ }
+            path = path.replace(/%0A/gi, '').replace(/%0D/gi, '').replace(/[\r\n\t]/g, '').trim();
+            if (path.length > 1) path = path.replace(/\/+$/, '');
+          }
+          return { ...p, path };
+        }) : [],
         total: data?.total ?? 0
       })),
       catchError(() => {

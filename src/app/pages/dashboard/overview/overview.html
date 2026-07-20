@@ -1,28 +1,6 @@
 ﻿<!-- Toolbar -->
 <div class="overview-toolbar">
-  @if (availableApiKeys.length > 0) {
-    <div class="key-selector">
-      <label>API Key</label>
-      <p-select
-        [options]="availableApiKeys"
-        [(ngModel)]="selectedApiKey"
-        (ngModelChange)="onApiKeyChange()"
-        optionLabel="name"
-        optionValue="apiKey"
-        placeholder="Select API Key"
-        [style]="{ width: '320px' }">
-        <ng-template #selectedItem let-item>
-          <span>{{ item.name }}</span>
-        </ng-template>
-        <ng-template #item let-item>
-          <div style="display: flex; flex-direction: column; gap: 0.1rem;">
-            <span>{{ item.name }}</span>
-            <span style="color: #94a3b8; font-size: 0.75rem; font-family: monospace;">{{ item.apiKey }}</span>
-          </div>
-        </ng-template>
-      </p-select>
-    </div>
-
+  @if (availableApiKeys.length > 0 || demoService.isDemoMode()) {
     <!-- Date Range Picker -->
     <div class="date-range-picker">
       <button class="date-trigger" (click)="datePopover.toggle($event)">
@@ -108,7 +86,7 @@
 
     <!-- ══════════════════════════════════════════
          TAB 1 — OVERVIEW
-         KPIs · Page Views Trend · Devices · Top Pages · Countries · Sessions
+         KPIs · Page Views Trend · Devices · Top Pages · Countries
     ══════════════════════════════════════════ -->
     @if (activeTab === 'overview') {
 
@@ -397,57 +375,85 @@
               }
             </div>
             @if (loadingStates.topPages) {
-              <div class="table-skeleton">
+              <div class="top-pages-list">
                 @for (item of [1,2,3,4,5]; track item) {
-                  <div class="skeleton-row">
-                    <p-skeleton width="60%" height="1.2rem" styleClass="mb-1"></p-skeleton>
-                    <p-skeleton width="20%" height="1rem"></p-skeleton>
+                  <div class="top-page-card skeleton-card">
+                    <p-skeleton width="70%" height="1rem" styleClass="mb-2"></p-skeleton>
+                    <p-skeleton width="90%" height="0.8rem" styleClass="mb-3"></p-skeleton>
+                    <div class="top-page-metrics">
+                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
+                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
+                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
+                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
+                    </div>
                   </div>
                 }
               </div>
+            } @else if (!topPages.length) {
+              <div class="no-data-row">No page data yet</div>
             } @else {
-              <div class="table-scroll-wrap">
-              <p-table [value]="topPages" [paginator]="true" [rows]="topPagesRows" [totalRecords]="topPagesTotal"
-                [rowsPerPageOptions]="[10,25,50]" [lazy]="true" [first]="(topPagesPage-1)*topPagesRows"
-                (onPage)="onTopPageChange($event)" styleClass="p-datatable-sm" [loading]="loadingStates.topPages">
-                <ng-template #header>
-                  <tr>
-                    <th class="col-page">Page</th>
-                    <th class="col-num">Views</th>
-                    <th class="col-num">%</th>
-                    <th class="col-num" pTooltip="Average time spent on this page (seconds)" tooltipPosition="top">Avg Time</th>
-                    <th class="col-num" pTooltip="Average scroll depth reached on this page" tooltipPosition="top">Scroll</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-page>
-                  <tr>
-                    <td class="page-cell col-page">
-                      @if (page.title) {<div class="page-title">{{ page.title }}</div>}
-                      <div class="page-path">{{ page.path }}</div>
-                    </td>
-                    <td class="col-num">{{ page.views | number }}</td>
-                    <td class="col-num">{{ page.percentage | number:'1.1-1' }}%</td>
-                    <td class="col-num">
-                      @if (page.avgTimeOnPage != null) {
-                        {{ formatDuration(page.avgTimeOnPage) }}
-                      } @else {
-                        <span class="no-data-dash">—</span>
-                      }
-                    </td>
-                    <td class="col-num">
-                      @if (page.avgScrollDepth != null) {
-                        {{ page.avgScrollDepth | number:'1.0-0' }}%
-                      } @else {
-                        <span class="no-data-dash">—</span>
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr><td colspan="5" class="no-data-row">No page data yet</td></tr>
-                </ng-template>
-              </p-table>
+              <div class="top-pages-list">
+                @for (page of topPages; track page.path; let i = $index) {
+                  <div class="top-page-card">
+                    <div class="top-page-main">
+                      <span class="top-page-rank">{{ ((topPagesPage - 1) * topPagesRows) + i + 1 }}</span>
+                      <div class="top-page-info">
+                        @if (page.title) {
+                          <div class="page-title" [pTooltip]="page.title" tooltipPosition="top">{{ page.title }}</div>
+                        }
+                        <div class="page-path" [pTooltip]="page.path" tooltipPosition="top">{{ page.path }}</div>
+                      </div>
+                    </div>
+                    <div class="top-page-metrics">
+                      <div class="top-page-metric">
+                        <span class="metric-label">Views</span>
+                        <span class="metric-value">{{ page.views | number }}</span>
+                      </div>
+                      <div class="top-page-metric">
+                        <span class="metric-label">Share</span>
+                        <span class="metric-value">{{ page.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                      <div class="top-page-metric" pTooltip="Average time spent on this page" tooltipPosition="top">
+                        <span class="metric-label">Avg Time</span>
+                        <span class="metric-value">
+                          @if (page.avgTimeOnPage != null) {
+                            {{ formatDuration(page.avgTimeOnPage) }}
+                          } @else {
+                            <span class="no-data-dash">—</span>
+                          }
+                        </span>
+                      </div>
+                      <div class="top-page-metric" pTooltip="Average scroll depth reached on this page" tooltipPosition="top">
+                        <span class="metric-label">Scroll</span>
+                        <span class="metric-value">
+                          @if (page.avgScrollDepth != null) {
+                            {{ page.avgScrollDepth | number:'1.0-0' }}%
+                          } @else {
+                            <span class="no-data-dash">—</span>
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
+
+              @if (topPagesTotal > topPagesRows) {
+                <div class="top-pages-pager">
+                  <button type="button" class="pager-btn" [disabled]="topPagesPage <= 1"
+                    (click)="onTopPageChange({ first: (topPagesPage - 2) * topPagesRows, rows: topPagesRows })">
+                    <i class="pi pi-chevron-left"></i>
+                  </button>
+                  <span class="pager-info">
+                    {{ ((topPagesPage - 1) * topPagesRows) + 1 }}–{{ min(topPagesPage * topPagesRows, topPagesTotal) }}
+                    of {{ topPagesTotal }}
+                  </span>
+                  <button type="button" class="pager-btn" [disabled]="topPagesPage * topPagesRows >= topPagesTotal"
+                    (click)="onTopPageChange({ first: topPagesPage * topPagesRows, rows: topPagesRows })">
+                    <i class="pi pi-chevron-right"></i>
+                  </button>
+                </div>
+              }
             }
           </div>
 
@@ -455,7 +461,7 @@
             <div class="card-header">
               <h3>Top Countries
                 <button class="pi pi-info-circle section-info-icon"
-                   pTooltip="Geographic distribution of your audience. Localize content for top regions."
+                   pTooltip="Page views by country. Localize content for top regions."
                    tooltipPosition="top"></button>
               </h3>
               @if (loadingStates.geography) {
@@ -473,32 +479,62 @@
                 </div>
               </div>
             } @else if (loadingStates.geography) {
-              <div class="table-skeleton">
+              <div class="top-pages-list">
                 @for (item of [1,2,3,4,5]; track item) {
-                  <div class="skeleton-row">
-                    <p-skeleton width="50%" height="1.2rem" styleClass="mb-1"></p-skeleton>
-                    <p-skeleton width="30%" height="1rem"></p-skeleton>
+                  <div class="top-page-card top-country-card skeleton-card">
+                    <p-skeleton width="55%" height="1rem" styleClass="mb-2"></p-skeleton>
+                    <div class="top-page-metrics top-country-metrics">
+                      <p-skeleton width="4rem" height="2rem"></p-skeleton>
+                      <p-skeleton width="4rem" height="2rem"></p-skeleton>
+                    </div>
                   </div>
                 }
               </div>
+            } @else if (!geoData.length) {
+              <div class="no-data-row">No geographic data yet</div>
             } @else {
-              <div class="table-scroll-wrap">
-              <p-table [value]="geoData" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,25,50]" styleClass="p-datatable-sm">
-                <ng-template #header>
-                  <tr><th>Country</th><th class="col-num">Visitors</th><th class="col-num">%</th></tr>
-                </ng-template>
-                <ng-template #body let-geo>
-                  <tr>
-                    <td><span class="country-flag">{{ geo.flag }}</span> {{ geo.country }}</td>
-                    <td class="col-num">{{ geo.visitors | number }}</td>
-                    <td class="col-num">{{ geo.percentage | number:'1.1-1' }}%</td>
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr><td colspan="3" class="no-data-row">No geographic data yet</td></tr>
-                </ng-template>
-              </p-table>
+              <div class="top-pages-list">
+                @for (geo of pagedGeoData; track geo.country; let i = $index) {
+                  <div class="top-page-card top-country-card">
+                    <div class="top-page-main">
+                      <span class="top-page-rank top-country-rank">{{ ((geoDataPage - 1) * geoDataRows) + i + 1 }}</span>
+                      <div class="top-page-info top-country-info">
+                        <div class="page-title country-title">
+                          <span class="country-flag">{{ geo.flag }}</span>
+                          <span>{{ geo.country }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="top-page-metrics top-country-metrics">
+                      <div class="top-page-metric">
+                        <span class="metric-label">Views</span>
+                        <span class="metric-value">{{ geo.visitors | number }}</span>
+                      </div>
+                      <div class="top-page-metric">
+                        <span class="metric-label">Share</span>
+                        <span class="metric-value">{{ geo.percentage | number:'1.1-1' }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                }
               </div>
+
+              @if (geoData.length > geoDataRows) {
+                <div class="top-pages-pager">
+                  <button type="button" class="pager-btn" [disabled]="geoDataPage <= 1"
+                    (click)="onGeoPageChange(geoDataPage - 1)">
+                    <i class="pi pi-chevron-left"></i>
+                  </button>
+                  <span class="pager-info">
+                    {{ ((geoDataPage - 1) * geoDataRows) + 1 }}–{{ min(geoDataPage * geoDataRows, geoData.length) }}
+                    of {{ geoData.length }}
+                  </span>
+                  <button type="button" class="pager-btn" [disabled]="geoDataPage * geoDataRows >= geoData.length"
+                    (click)="onGeoPageChange(geoDataPage + 1)">
+                    <i class="pi pi-chevron-right"></i>
+                  </button>
+                </div>
+              }
             }
           </div>
         </div>
@@ -508,7 +544,7 @@
           <div class="card-header">
             <h3><i class="pi pi-map"></i> Visitor Geography
               <button class="pi pi-info-circle section-info-icon"
-                 pTooltip="Interactive world map showing where your visitors come from."
+                 pTooltip="Interactive world map showing page views by country."
                  tooltipPosition="top"></button>
             </h3>
             <div class="map-hint">
@@ -569,69 +605,6 @@
               </div>
             </div>
           }
-        </div>
-
-        <!-- Session Insights -->
-        <div class="vitals-row">
-          <div class="chart-card session-card" [class.locked-section]="!hasFeature('sessions')">
-            <div class="card-header">
-              <h3>Session Insights
-                <button class="pi pi-info-circle section-info-icon"
-                   pTooltip="Avg session duration, new vs returning visitors, scroll depth, time on page."
-                   tooltipPosition="top"></button>
-              </h3>
-            </div>
-            @if (!hasFeature('sessions')) {
-              <div class="locked-overlay">
-                <div class="locked-content">
-                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
-                  <i class="pi pi-lock lock-icon"></i>
-                  <h4>Session Insights</h4>
-                  <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
-                </div>
-              </div>
-            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
-              <div class="session-skeleton">
-                @for (item of [1,2,3]; track item) {
-                  <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>
-                }
-              </div>
-            } @else {
-              <div class="session-stats">
-                <div class="session-stat">
-                  <div class="stat-icon blue"><i class="pi pi-clock"></i></div>
-                  <div class="stat-body">
-                    <span class="stat-label">Avg Session Duration</span>
-                    <span class="stat-value">{{ formatDuration(sessionStats.avgSessionDuration || metrics.avgSessionDuration) }}</span>
-                    @if (showComparison) {
-                      <span [class]="'stat-trend ' + formatTrend(trends.avgSessionDuration).cssClass">{{ formatTrend(trends.avgSessionDuration).label }}</span>
-                    }
-                  </div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon indigo"><i class="pi pi-copy"></i></div>
-                  <div class="stat-body"><span class="stat-label">Avg Pages / Session</span><span class="stat-value">{{ (sessionStats.avgPagesPerSession || metrics.avgPagesPerSession || 0) | number:'1.1-1' }}</span></div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon green"><i class="pi pi-user-plus"></i></div>
-                  <div class="stat-body"><span class="stat-label">New Visitors</span><span class="stat-value">{{ metrics.newVsReturning.new | number }}</span></div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon purple"><i class="pi pi-refresh"></i></div>
-                  <div class="stat-body"><span class="stat-label">Returning Visitors</span><span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span></div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon orange"><i class="pi pi-clock"></i></div>
-                  <div class="stat-body"><span class="stat-label">Avg Time on Page</span><span class="stat-value">{{ formatDuration(metrics.avgTimeOnPage ?? 0) }}</span></div>
-                </div>
-                <div class="session-stat">
-                  <div class="stat-icon teal"><i class="pi pi-arrow-down"></i></div>
-                  <div class="stat-body"><span class="stat-label">Avg Scroll Depth</span><span class="stat-value">{{ (metrics.avgScrollDepth ?? 0) | number:'1.0-0' }}%</span></div>
-                </div>
-              </div>
-            }
-          </div>
         </div>
 
       </div>
@@ -922,9 +895,76 @@
 
     <!-- ══════════════════════════════════════════
          TAB 3 — BEHAVIOUR
-         Top Clicks · Custom Events · Form Interactions · Tooltip Insights
+         Session Insights · Top Clicks · Custom Events · Form Interactions · Tooltip Insights
     ══════════════════════════════════════════ -->
     @if (activeTab === 'behaviour') {
+      <div class="metrics-grid">
+
+        <!-- Session Insights -->
+        <div class="vitals-row">
+          <div class="chart-card session-card" [class.locked-section]="!hasFeature('sessions')">
+            <div class="card-header">
+              <h3>Session Insights
+                <button class="pi pi-info-circle section-info-icon"
+                   pTooltip="Avg session duration, new vs returning visitors, scroll depth, time on page."
+                   tooltipPosition="top"></button>
+              </h3>
+            </div>
+            @if (!hasFeature('sessions')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Session Insights</h4>
+                  <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                </div>
+              </div>
+            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+              <div class="session-skeleton">
+                @for (item of [1,2,3]; track item) {
+                  <p-skeleton width="100%" height="3rem" styleClass="mb-3" borderRadius="8px"></p-skeleton>
+                }
+              </div>
+            } @else {
+              <div class="session-stats">
+                <div class="session-stat">
+                  <div class="stat-icon blue"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body">
+                    <span class="stat-label">Avg Session Duration</span>
+                    <span class="stat-value">{{ formatDuration(sessionStats.avgSessionDuration || metrics.avgSessionDuration) }}</span>
+                    @if (showComparison) {
+                      <span [class]="'stat-trend ' + formatTrend(trends.avgSessionDuration).cssClass">{{ formatTrend(trends.avgSessionDuration).label }}</span>
+                    }
+                  </div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon indigo"><i class="pi pi-copy"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Pages / Session</span><span class="stat-value">{{ (sessionStats.avgPagesPerSession || metrics.avgPagesPerSession || 0) | number:'1.1-1' }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon green"><i class="pi pi-user-plus"></i></div>
+                  <div class="stat-body"><span class="stat-label">New Visitors</span><span class="stat-value">{{ metrics.newVsReturning.new | number }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon purple"><i class="pi pi-refresh"></i></div>
+                  <div class="stat-body"><span class="stat-label">Returning Visitors</span><span class="stat-value">{{ metrics.newVsReturning.returning | number }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon orange"><i class="pi pi-clock"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Time on Page</span><span class="stat-value">{{ formatDuration(metrics.avgTimeOnPage ?? 0) }}</span></div>
+                </div>
+                <div class="session-stat">
+                  <div class="stat-icon teal"><i class="pi pi-arrow-down"></i></div>
+                  <div class="stat-body"><span class="stat-label">Avg Scroll Depth</span><span class="stat-value">{{ (metrics.avgScrollDepth ?? 0) | number:'1.0-0' }}%</span></div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+      </div>
+
       <div class="advanced-insights-toggle" (click)="showAdvancedInsights = !showAdvancedInsights">
         <span class="advanced-insights-label">
           <i class="pi pi-chart-line"></i>

@@ -53,19 +53,6 @@
         </div>
       </p-popover>
 
-      <!-- API Key Selector -->
-      @if (availableApiKeys.length > 0) {
-        <p-select
-          [(ngModel)]="selectedApiKey"
-          [options]="availableApiKeys"
-          optionLabel="name"
-          optionValue="apiKey"
-          placeholder="Select API Key"
-          (onChange)="onApiKeyChange()"
-          styleClass="api-key-select">
-        </p-select>
-      }
-
       <!-- Export Buttons -->
       <button 
         pButton 
@@ -309,7 +296,7 @@
               </div>
               @if (geographicData.length > 0) {
                 <div class="table-card">
-                  <h3>Visitors by Country</h3>
+                  <h3>Views by Country</h3>
                   <div class="source-table">
                     @for (country of geographicData; track country.country) {
                       <div class="source-row">
@@ -317,7 +304,7 @@
                         <div class="source-bar-wrap">
                           <div class="source-bar" [style.width.%]="country.percentage"></div>
                         </div>
-                        <span class="source-visits">{{ country.visitors }}</span>
+                        <span class="source-visits">{{ country.visitors | number }}</span>
                         <span class="source-pct">{{ country.percentage | number:'1.1-1' }}%</span>
                       </div>
                     }

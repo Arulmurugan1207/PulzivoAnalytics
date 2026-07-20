@@ -45,15 +45,16 @@ export class DemoService {
     { path: '/contact', views: 211, percentage: 2.5, avgTimeOnPage: 63, avgScrollDepth: 42.8 },
   ];
 
+  // visitors field = page views (API field name kept for compatibility)
   readonly geoData = [
-    { country: 'United States', visitors: 3241, percentage: 38.4 },
-    { country: 'United Kingdom', visitors: 891, percentage: 10.6 },
-    { country: 'Germany', visitors: 672, percentage: 8.0 },
-    { country: 'India', visitors: 541, percentage: 6.4 },
-    { country: 'France', visitors: 387, percentage: 4.6 },
-    { country: 'Canada', visitors: 312, percentage: 3.7 },
-    { country: 'Australia', visitors: 289, percentage: 3.4 },
-    { country: 'Netherlands', visitors: 201, percentage: 2.4 },
+    { country: 'United States', visitors: 3241, percentage: 38.4, flag: '🇺🇸' },
+    { country: 'United Kingdom', visitors: 891, percentage: 10.6, flag: '🇬🇧' },
+    { country: 'Germany', visitors: 672, percentage: 8.0, flag: '🇩🇪' },
+    { country: 'India', visitors: 541, percentage: 6.4, flag: '🇮🇳' },
+    { country: 'France', visitors: 387, percentage: 4.6, flag: '🇫🇷' },
+    { country: 'Canada', visitors: 312, percentage: 3.7, flag: '🇨🇦' },
+    { country: 'Australia', visitors: 289, percentage: 3.4, flag: '🇦🇺' },
+    { country: 'Netherlands', visitors: 201, percentage: 2.4, flag: '🇳🇱' },
   ];
 
   readonly trafficSources = [

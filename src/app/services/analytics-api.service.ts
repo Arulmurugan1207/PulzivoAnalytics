@@ -113,7 +113,8 @@ export class AnalyticsAPIService {
       return of([]);
     }
     const periodParam = period ? `&period=${period}` : '';
-    return this.http.get(`${this.apiUrl}/analytics/page-views-trend?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}${periodParam}`).pipe(
+    // Backend route is /analytics/page-views (not page-views-trend)
+    return this.http.get(`${this.apiUrl}/analytics/page-views?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}${periodParam}`).pipe(
       catchError(() => {
         console.warn('API endpoint not available or no API key selected');
         return of([]);

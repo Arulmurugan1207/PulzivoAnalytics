@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,10 +7,12 @@ import { MenuModule } from 'primeng/menu';
 import { ButtonModule } from 'primeng/button';
 import { AvatarModule } from 'primeng/avatar';
 import { RippleModule } from 'primeng/ripple';
-import { BehaviorSubject } from 'rxjs';
+import { SelectModule } from 'primeng/select';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { DemoService } from '../../services/demo.service';
+import { ApiKeysService, ApiKey } from '../../services/api-keys.service';
 import { DateRange } from '../../services/analytics-data.service';
 
 // App owner email
@@ -28,6 +30,7 @@ type UserRole = 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
     ButtonModule,
     AvatarModule,
     RippleModule,
+    SelectModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive
@@ -35,7 +38,7 @@ type UserRole = 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class Dashboard implements OnInit {
+export class Dashboard implements OnInit, OnDestroy {
   user: any = null;
   userRole: UserRole = 'viewer';
   showWelcomeBanner = false;
@@ -43,6 +46,11 @@ export class Dashboard implements OnInit {
   sidebarCollapsed = false;
   currentRoute = '';
   userDropdownOpen = false;
+
+  /** Shared across all dashboard pages; last selection is restored from localStorage. */
+  availableApiKeys: ApiKey[] = [];
+  selectedApiKey = '';
+  private subscriptions = new Subscription();
 
   readonly lockedNavItems = [
     { label: 'API Keys',  icon: 'pi-key' },
@@ -61,7 +69,8 @@ export class Dashboard implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    public demoService: DemoService
+    public demoService: DemoService,
+    private apiKeysService: ApiKeysService
   ) {}
 
   ngOnInit() {
@@ -69,6 +78,9 @@ export class Dashboard implements OnInit {
       this.user = { firstname: 'Demo', lastname: 'User' };
       this.userRole = 'admin';
       this.userPlan = 'pro';
+      this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as ApiKey];
+      this.selectedApiKey = 'DEMO-KEY';
+      this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
       this.buildSidebarItems();
       return;
     }
@@ -103,17 +115,36 @@ export class Dashboard implements OnInit {
     }
 
     // Track current route
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe(() => {
-      this.currentRoute = this.router.url;
-    });
+    this.subscriptions.add(
+      this.router.events.pipe(
+        filter(event => event instanceof NavigationEnd)
+      ).subscribe(() => {
+        this.currentRoute = this.router.url;
+      })
+    );
 
     // Refresh plan when billing updates it (e.g. after Stripe upgrade)
-    this.authService.userUpdated$.subscribe(updatedUser => {
-      this.user = updatedUser;
-      this.userPlan = (updatedUser?.plan as any) || 'free';
-    });
+    this.subscriptions.add(
+      this.authService.userUpdated$.subscribe(updatedUser => {
+        this.user = updatedUser;
+        this.userPlan = (updatedUser?.plan as any) || 'free';
+      })
+    );
+
+    // Shared API key state (restores last selected key from localStorage)
+    this.subscriptions.add(
+      this.apiKeysService.availableApiKeys$.subscribe(keys => {
+        this.availableApiKeys = keys;
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.selectedApiKey$.subscribe(key => {
+        this.selectedApiKey = key || '';
+      })
+    );
+    this.subscriptions.add(
+      this.apiKeysService.loadAvailableApiKeys().subscribe()
+    );
 
     // Default date range: last 7 days
     this.dateRangeSubject.next({
@@ -122,6 +153,14 @@ export class Dashboard implements OnInit {
     });
 
     this.buildSidebarItems();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  onApiKeyChange(apiKey: string | null): void {
+    this.apiKeysService.setSelectedApiKey(apiKey || null);
   }
 
   private buildSidebarItems() {
