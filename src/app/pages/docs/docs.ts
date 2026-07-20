@@ -47,7 +47,7 @@ interface SearchResult {
   styleUrl: './docs.scss',
 })
 export class Docs implements OnInit, OnDestroy, AfterViewChecked {
-  script = `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
+  script = `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
   copied = signal(false);
   activeSection = signal('getting-started');
   anchorCopied = signal<string | null>(null);
@@ -178,7 +178,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Can I self-host the SDK?',
-      answer: 'Yes — download pulzivo-analytics.js from pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
+      answer: 'Yes — download pulzivo-analytics.js from cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
     },
     {
       question: 'What are rage clicks and does Pulzivo detect them?',
@@ -465,7 +465,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
 
 
   codeBlocks: { [key: string]: string } = {
-    'script-tag': `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
+    'script-tag': `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
     'dynamic-key-setup': `<script>
   // Auto-selects dev or production key based on hostname
   (function () {
@@ -474,7 +474,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
              || location.hostname.includes('staging');
 
     var s = document.createElement('script');
-    s.src = 'https://pulzivo.com/pulzivo-analytics.min.js';
+    s.src = 'https://cdn.pulzivo.com/pulzivo-analytics.min.js';
 
     s.setAttribute('data-api-key', isDev
       ? 'PULZ-DEV-YOUR_DEV_KEY'        // ← paste your dev key here
@@ -489,14 +489,14 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   })();
 </script>`,
     'debug-mode': `<!-- Enable debug mode — events visible in console, NOT sent to server -->
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="PULZ-DEV-YOUR_DEV_KEY"
         data-debug="true"></script>`,
     'complete-html': `<!DOCTYPE html>
 <html>
 <head>
   <title>My Website</title>
-  <script src="https://pulzivo.com/pulzivo-analytics.min.js" 
+  <script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" 
           data-api-key="my-website"></script>
 </head>
 <body>
@@ -516,7 +516,7 @@ document.querySelector('#myButton').addEventListener('click', () => {
     button: 'signup'
   });
 });`,
-    'config-options-example': `<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+    'config-options-example': `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
         data-api-url="https://your-api-endpoint.com/analytics/log"
         data-batch-interval="15000"
@@ -656,7 +656,7 @@ PulzivoAnalytics('event', 'impression_click', {
 <!-- SDK automatically tracks when 50% visible -->`,
     'email-utm-tracking': `// URL: https://yoursite.com?utm_source=email&utm_campaign=summer-sale
 // Attribution is automatically captured on page load`,
-    'debug-configuration': `<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+    'debug-configuration': `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="my-website"
         data-debug="true"></script>`,
     'framework-react': `// src/analytics.ts — add once at the top level of your app
@@ -686,7 +686,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html>
       <head>
         <Script
-          src="https://pulzivo.com/pulzivo-analytics.min.js"
+          src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
           data-api-key={process.env.NEXT_PUBLIC_PULZIVO_KEY}
           strategy="afterInteractive"
         />
@@ -735,7 +735,7 @@ onButtonClick() {
     // ── Error Tracking ────────────────────────────────────────
     'error-auto': `<!-- Automatic JS error capture is ON by default -->
 <!-- window.onerror + unhandledrejection → recorded as 'js_error' events -->
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"></script>`,
     'error-manual': `// Track a handled error manually
 try {
@@ -757,7 +757,7 @@ class ErrorBoundary extends React.Component {
   }
 }`,
     'error-disable': `<!-- Opt-out of automatic JS error capture -->
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
         data-disable-errors></script>`,
     // ── Rage Clicks & Web Vitals ──────────────────────────────
@@ -772,7 +772,7 @@ class ErrorBoundary extends React.Component {
   interval:  320                  // ms between first and last click
 }`,
     'rage-click-disable': `<!-- Opt-out of rage click detection -->
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
         data-disable-rage-clicks></script>`,
     'web-vitals-auto': `<!-- Web Vitals are captured automatically via PerformanceObserver -->
@@ -790,7 +790,7 @@ class ErrorBoundary extends React.Component {
 // CLS  — Cumulative Layout Shift    (< 0.1  = good)
 // INP  — Interaction to Next Paint  (< 200ms = good)`,
     'web-vitals-disable': `<!-- Opt-out of Web Vitals collection -->
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
         data-disable-web-vitals></script>`,
 
@@ -801,7 +801,7 @@ class ErrorBoundary extends React.Component {
 2. Go to Settings → Insert Headers and Footers
 3. Paste your Pulzivo script tag into the "Scripts in Header" box:
 
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"></script>
 
 4. Click Save. Done — tracking starts on every page.
@@ -818,7 +818,7 @@ class ErrorBoundary extends React.Component {
 4. Find the closing </head> tag
 5. Paste your script tag just before it:
 
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"></script>
 
 6. Click Save. Your entire store is now tracked.`,
@@ -828,7 +828,7 @@ class ErrorBoundary extends React.Component {
 2. Go to Project Settings → Custom Code tab
 3. Paste your script tag into the "Head Code" box:
 
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"></script>
 
 4. Click Save Changes, then Publish your site.
@@ -839,7 +839,7 @@ class ErrorBoundary extends React.Component {
 2. Tags → New → Tag Configuration → Custom HTML
 3. Paste:
 
-<script src="https://pulzivo.com/pulzivo-analytics.min.js"
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"></script>
 
 4. Triggering → All Pages
@@ -957,7 +957,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html>
       <head>
         <Script
-          src="https://pulzivo.com/pulzivo-analytics.min.js"
+          src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
           data-api-key={process.env.NEXT_PUBLIC_PULZIVO_KEY}
           strategy="afterInteractive"   // ← never blocks SSR render
           id="pulzivo-analytics"

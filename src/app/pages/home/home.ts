@@ -24,7 +24,7 @@ declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefi
   styleUrl: './home.scss',
 })
 export class Home implements AfterViewChecked, OnInit, OnDestroy {
-  script = `<script src="https://pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
+  script = `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
 
   jsSnippet = `// Track a custom event
 PulzivoAnalytics('event', 'button_click', { label: 'signup-cta' });

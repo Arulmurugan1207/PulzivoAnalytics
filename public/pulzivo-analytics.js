@@ -4,7 +4,7 @@
  *
  * Usage:
  * <script
- *   src="https://pulzivo.com/pulzivo-analytics.min.js"
+ *   src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
  *   data-api-key="YOUR_API_KEY"
  *   data-api-url="https://your-api-endpoint.com/analytics/log"
  *   data-batch-interval="5000"
