@@ -4,12 +4,16 @@
  *
  * Usage:
  * <script
- *   src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
+ *   src="https://pulzivo.com/pulzivo-analytics.min.js"
  *   data-api-key="YOUR_API_KEY"
  *   data-api-url="https://your-api-endpoint.com/analytics/log"
  *   data-batch-interval="5000"
  *   data-debug="false">
  * </script>
+ *
+ * Owner exclusion (no tracking for site owner):
+ *   Desktop: PulzivoAnalytics.setOwner(true, true) or localStorage pulz_is_owner=true
+ *   Mobile:  open any page with ?pulz_owner=1  (persists). Clear with ?pulz_owner=0
  */
 
 (function(window) {
@@ -57,8 +61,12 @@
   let rateLimitBackoff = 0;
   let lastRateLimitTime = 0;
 
-  // Owner exclusion flag — set via init({ excludeOwner: true }), PulzivoAnalytics.setOwner(true),
-  // or by setting localStorage key 'pulz_is_owner' = 'true' in the browser.
+  // Owner exclusion flag — set via:
+  // - init({ excludeOwner: true })
+  // - PulzivoAnalytics.setOwner(true)
+  // - localStorage key 'pulz_is_owner' = 'true'
+  // - URL query param (mobile-friendly): ?pulz_owner=1  (aliases: exclude_owner, pulz_exclude_owner)
+  //   Use ?pulz_owner=0 to clear owner mode. Value is persisted to localStorage.
   let isOwner = (function() {
     try { return localStorage.getItem('pulz_is_owner') === 'true'; } catch(e) { return false; }
   })();
@@ -70,6 +78,64 @@
     } catch (e) {
       return false;
     }
+  }
+
+  function persistOwnerFlag(flag) {
+    try {
+      if (flag) localStorage.setItem('pulz_is_owner', 'true');
+      else localStorage.removeItem('pulz_is_owner');
+    } catch (e) {}
+  }
+
+  /**
+   * Read owner exclusion from the page URL (works on mobile where console/localStorage
+   * setup is awkward). Supported params (first match wins):
+   *   pulz_owner, exclude_owner, pulz_exclude_owner
+   * Truthy: 1, true, yes, on
+   * Falsy:  0, false, no, off
+   * Returns null when param is absent.
+   */
+  function readOwnerFlagFromUrl() {
+    try {
+      if (typeof window === 'undefined' || !window.location) return null;
+      const params = new URLSearchParams(window.location.search || '');
+      const keys = ['pulz_owner', 'exclude_owner', 'pulz_exclude_owner'];
+      let raw = null;
+      for (const key of keys) {
+        if (params.has(key)) {
+          raw = params.get(key);
+          break;
+        }
+      }
+      if (raw === null) return null;
+      const normalized = String(raw).trim().toLowerCase();
+      if (normalized === '' || normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on') {
+        return true;
+      }
+      if (normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off') {
+        return false;
+      }
+      // Any other non-empty value still enables owner mode (e.g. ?pulz_owner=me)
+      return true;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Apply URL owner flag early and persist so later visits stay excluded. */
+  function applyOwnerFlagFromUrl() {
+    const fromUrl = readOwnerFlagFromUrl();
+    if (fromUrl === null) return false;
+    ownerOverride = fromUrl;
+    isOwner = fromUrl;
+    persistOwnerFlag(fromUrl);
+    if (fromUrl) {
+      clearQueuedEvents('owner mode enabled via URL');
+    }
+    if (config.debug) {
+      console.log('[Analytics] Owner mode from URL query param:', fromUrl ? 'ON' : 'OFF');
+    }
+    return true;
   }
 
   function clearQueuedEvents(reason) {
@@ -1210,10 +1276,15 @@
       // Merge configuration
       config = { ...config, ...options };
 
+      // URL query param owner exclusion (mobile-friendly) — checked first so a
+      // shared link like ?pulz_owner=1 works without console access.
+      applyOwnerFlagFromUrl();
+
       // Apply owner exclusion from init options
       if (config.excludeOwner) {
         ownerOverride = true;
         isOwner = true;
+        persistOwnerFlag(true);
       }
 
       // Check if API key is provided
@@ -1282,10 +1353,7 @@
       ownerOverride = !!flag;
       isOwner = ownerOverride;
       if (persist) {
-        try {
-          if (isOwner) localStorage.setItem('pulz_is_owner', 'true');
-          else localStorage.removeItem('pulz_is_owner');
-        } catch(e) {}
+        persistOwnerFlag(isOwner);
       }
       if (isOwner) {
         clearQueuedEvents('setOwner(true)');
@@ -1296,7 +1364,7 @@
     // Permanently disable tracking for this browser (survives page refreshes).
     // Useful for devs/admins: run PulzivoAnalytics.disableTracking() once in the console.
     disableTracking: function() {
-      try { localStorage.setItem('pulz_is_owner', 'true'); } catch(e) {}
+      persistOwnerFlag(true);
       ownerOverride = true;
       isOwner = true;
       clearQueuedEvents('disableTracking()');
@@ -1305,7 +1373,7 @@
 
     // Re-enable tracking for this browser after disableTracking() was called.
     enableTracking: function() {
-      try { localStorage.removeItem('pulz_is_owner'); } catch(e) {}
+      persistOwnerFlag(false);
       ownerOverride = false;
       isOwner = false;
       if (config.debug) console.log('[Analytics] Tracking re-enabled for this browser.');
@@ -1580,6 +1648,9 @@
 
     return Object.keys(config).length > 0 ? config : null;
   }
+
+  // Apply ?pulz_owner= as early as possible (before any auto-init tracking).
+  applyOwnerFlagFromUrl();
 
   // Auto-initialize from script tag data attributes or window config
   const scriptConfig = getConfigFromScriptTag();
