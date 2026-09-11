@@ -18,22 +18,26 @@ export class App implements OnInit {
   constructor(private authService: AuthService, private router: Router) {}
 
   ngOnInit() {
-    // Scroll to top on every route change
+    // Scroll to top on every route change; navigation counts as session activity
     this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0; // Safari fallback
+      if (this.authService.isAuthenticated()) {
+        this.authService.touchSession();
+      }
     });
 
     // Check if user is logged in on app load
     const isLoggedIn = this.authService.isAuthenticated();
     console.log('App loaded - User logged in:', isLoggedIn);
-    
+
     if (isLoggedIn) {
       const userData = this.authService.getUserData();
       console.log('User data:', userData);
       // Restore owner tracking flag so the SDK suppresses events for the owner
       // even after a page refresh (flag is in-memory, not persisted)
       this.authService.applyOwnerTracking(userData?.role);
+      this.authService.watchActivity();
     }
   }
 }
