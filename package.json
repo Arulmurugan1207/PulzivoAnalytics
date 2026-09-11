@@ -4,9 +4,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 4201",
+    "start:cloud": "node server.js",
     "build": "ng build && npm run minify:analytics",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:server": "node --test server.spec.js",
     "minify:analytics": "terser public/pulzivo-analytics.js -o public/pulzivo-analytics.min.js --compress --mangle"
   },
   "prettier": {
