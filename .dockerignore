@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+.angular
+node_modules
+dist
+coverage
+out-tsc
+tmp
+*.md
+.env
+.env.*
+npm-debug.log
+.DS_Store
+__screenshots__
+server.spec.js
