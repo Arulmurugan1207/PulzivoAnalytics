@@ -27,7 +27,7 @@ export interface AuthResponse {
     lastname: string;
     email: string;
     mobileno: string;
-    plan?: 'free' | 'pro' | 'enterprise';
+    plan?: 'free' | 'starter' | 'pro' | 'enterprise';
     role?: 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
     createdDate: string;
     token: string;

@@ -10,7 +10,7 @@
 
     <div class="hero-actions slide-up" style="animation-delay: 0.35s">
       <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" (click)="openSignUp('hero')" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined" routerLink="/demo" (click)="trackDemoClick()" class="pulse-on-hover"></button>
+      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined pulse-on-hover" routerLink="/demo" (click)="trackDemoClick()"></button>
     </div>
     <p class="no-card-note fade-in" style="animation-delay: 0.45s">
       <i class="pi pi-shield"></i> No credit card required &nbsp;&middot;&nbsp; Free forever tier &nbsp;&middot;&nbsp; Cancel anytime
@@ -178,7 +178,7 @@
       </div>
       <div class="docs-teaser-chips">
         <a class="docs-chip" routerLink="/docs" [fragment]="'no-code-platforms'">WordPress / Shopify</a>
-        <a class="docs-chip" routerLink="/docs" [fragment]="'framework-guides'">React / Next.js / Vue</a>
+        <a class="docs-chip" routerLink="/docs" [fragment]="'frameworks'">React / Next.js / Vue</a>
         <a class="docs-chip" routerLink="/docs" [fragment]="'custom-events'">Custom Events</a>
         <a class="docs-chip" routerLink="/docs" [fragment]="'advanced'">TypeScript &amp; CSP</a>
       </div>

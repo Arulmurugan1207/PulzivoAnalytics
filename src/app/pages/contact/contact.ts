@@ -157,7 +157,7 @@ export class Contact {
     },
     {
       question: 'Do you offer support?',
-      answer: 'Yes! We offer email support for all users. Enterprise customers get priority support with dedicated account managers.'
+      answer: 'Free includes community support. Starter and Pro include email support. Enterprise customers get priority support with a dedicated account manager.'
     }
   ];
 }

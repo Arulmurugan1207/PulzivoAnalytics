@@ -146,7 +146,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'What data is collected automatically?',
-      answer: 'Page views, referrer, UTM parameters, scroll depth, click events, session duration, and performance metrics. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
+      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and user identity. Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
     },
     {
       question: 'Can I track custom events on the free plan?',
@@ -178,7 +178,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Can I self-host the SDK?',
-      answer: 'Yes — download pulzivo-analytics.js from cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
+      answer: 'Yes — download https://cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
     },
     {
       question: 'What are rage clicks and does Pulzivo detect them?',
@@ -232,7 +232,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       keywords: ['track', 'event', 'custom', 'click', 'ecommerce', 'purchase', 'cart', 'identify', 'send', 'batch', 'trackevent', 'pulzivoanalytics', 'button', 'form']
     },
     {
-      id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'free',
+      id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro',
       keywords: ['user', 'email', 'identify', 'login', 'logout', 'authenticated', 'privacy', 'gdpr', 'setusemail', 'clearuseremail', 'pii']
     },
     {
@@ -240,11 +240,11 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       keywords: ['campaign', 'utm', 'promo', 'impression', 'banner', 'ad', 'marketing', 'source', 'medium', 'referrer', 'attribution', 'data-track-impression']
     },
     {
-      id: 'error-tracking', label: 'Error Tracking', icon: 'pi-exclamation-circle', plan: 'pro',
+      id: 'error-tracking', label: 'Error Tracking', icon: 'pi-exclamation-circle', plan: 'enterprise',
       keywords: ['error', 'crash', 'exception', 'onerror', 'promise', 'rejection', 'bug', 'unhandled', 'stack trace', 'react error boundary', 'js error']
     },
     {
-      id: 'rage-clicks-vitals', label: 'Rage Clicks & Web Vitals', icon: 'pi-bolt', plan: 'pro',
+      id: 'rage-clicks-vitals', label: 'Rage Clicks & Web Vitals', icon: 'pi-bolt', plan: 'enterprise',
       keywords: ['rage', 'click', 'frustrated', 'web vitals', 'lcp', 'cls', 'inp', 'fid', 'performance', 'core web vitals', 'lighthouse', 'seo', 'layout shift', 'paint']
     },
     {
@@ -612,7 +612,7 @@ window.PulzivoAnalytics.clearUserEmail();`,
     logoutUser();
   };
 }`,
-    'promo-custom-events': `<!-- Add data-track-impression to any element (Pro plan) -->
+    'promo-custom-events': `<!-- Add data-track-impression to any element (Starter plan) -->
 <div data-track-impression="summer-sale-banner"
      data-impression-name="Summer Sale 2024"
      data-impression-category="promo"

@@ -197,7 +197,7 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
   }
 
   updateUserPlan(userId: string, newPlan: string): void {
-    this.userService.updateUserPlan(userId, newPlan as 'free' | 'pro' | 'enterprise')
+    this.userService.updateUserPlan(userId, newPlan as 'free' | 'starter' | 'pro' | 'enterprise')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -205,7 +205,7 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
           // Update local data
           const user = this.users.find(u => u._id === userId);
           if (user) {
-            user.plan = newPlan as 'free' | 'pro' | 'enterprise';
+            user.plan = newPlan as 'free' | 'starter' | 'pro' | 'enterprise';
           }
           this.filterUsers();
           this.cdr.detectChanges();
@@ -249,6 +249,8 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
 
   getPlanBadgeClass(plan: string | undefined): string {
     switch (plan) {
+      case 'starter':
+        return 'badge-starter';
       case 'pro':
         return 'badge-pro';
       case 'enterprise':

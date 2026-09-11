@@ -9,7 +9,7 @@ export interface User {
   lastname: string;
   email: string;
   mobileno?: string;
-  plan?: 'free' | 'pro' | 'enterprise';
+  plan?: 'free' | 'starter' | 'pro' | 'enterprise';
   role?: 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
   createdDate: string;
   lastLoginDate?: string | null;
@@ -67,7 +67,7 @@ export class UserService {
   /**
    * Update user's plan (requires authentication via interceptor)
    */
-  updateUserPlan(userId: string, plan: 'free' | 'pro' | 'enterprise'): Observable<UpdatePlanResponse> {
+  updateUserPlan(userId: string, plan: 'free' | 'starter' | 'pro' | 'enterprise'): Observable<UpdatePlanResponse> {
     return this.http.put<UpdatePlanResponse>(
       `${this.apiUrl}/users/${userId}/plan`,
       { plan }
