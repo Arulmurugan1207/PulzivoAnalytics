@@ -102,6 +102,7 @@ export class Pricing implements OnDestroy {
         '30-day data retention',
         'Page view tracking',
         'Click tracking',
+        'Custom event tracking',
         'Basic dashboard',
         'Community support'
       ]
@@ -117,7 +118,6 @@ export class Pricing implements OnDestroy {
         '2 Websites',
         '100,000 events/month',
         '6-month data retention',
-        'Custom event tracking',
         'Auto click & scroll tracking',
         'Entry & exit page tracking',
         'Session & bounce rate analytics',
@@ -139,7 +139,6 @@ export class Pricing implements OnDestroy {
         '5 Websites',
         '500,000 events/month',
         '12-month data retention',
-        'Custom event tracking',
         'Auto impression & click tracking',
         'Scroll depth & engagement',
         'Entry & exit page tracking',
@@ -232,9 +231,9 @@ export class Pricing implements OnDestroy {
   getKeyFeatures(plan: Plan): string[] {
     switch (plan.type) {
       case 'free':
-        return ['Page view tracking', 'Click tracking', 'Basic dashboard', '30-day data retention', 'Community support'];
+        return ['Page view tracking', 'Click tracking', 'Custom event tracking', '30-day data retention', 'Community support'];
       case 'starter':
-        return ['Custom event tracking', 'Auto click & scroll tracking', 'Session & bounce rate analytics', 'Unique visitor tracking', 'UTM & attribution tracking'];
+        return ['Auto click & scroll tracking', 'Session & bounce rate analytics', 'Unique visitor tracking', 'Geographic analytics', 'UTM & attribution tracking'];
       case 'pro':
         return ['Performance metrics', 'User identity tracking', 'Element visibility tracking', 'Entry & exit page tracking', 'Custom exports (CSV)'];
       case 'enterprise':

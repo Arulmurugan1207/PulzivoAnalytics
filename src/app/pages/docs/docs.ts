@@ -138,7 +138,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   faqItems = [
     {
       question: 'How small is Pulzivo?',
-      answer: 'Just 5KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
+      answer: 'Under 10KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
     },
     {
       question: 'Does it work with React, Vue, Angular, Next.js?',
@@ -154,7 +154,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'How long is data retained?',
-      answer: 'Free plan: 30 days. Starter: 90 days. Pro: 1 year. Enterprise: unlimited. You can export your data at any time from the dashboard.'
+      answer: 'Free plan: 30 days. Starter: 6 months. Pro: 12 months. Enterprise: 24 months. You can export your data at any time from the dashboard.'
     },
     {
       question: 'Is there a rate limit?',
@@ -166,7 +166,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Will it affect my page speed / Core Web Vitals?',
-      answer: 'No. The script loads asynchronously, adds ~5KB to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
+      answer: 'No. The script loads asynchronously, adds under 10KB gzip to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
     },
     {
       question: 'How do I migrate from Google Analytics?',
@@ -265,7 +265,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       id: 'faq', label: 'FAQ', icon: 'pi-question-circle',
-      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '5kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
+      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '10kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
     },
     {
       id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar',
@@ -894,13 +894,13 @@ PulzivoAnalytics(() => {
     'csp-headers': `# Content-Security-Policy headers to add to your server / CDN
 
 # The two domains Pulzivo needs:
-script-src  'self' https://pulzivo.com;
+script-src  'self' https://cdn.pulzivo.com;
 connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;
 
 # Full example header:
 Content-Security-Policy:
   default-src 'self';
-  script-src  'self' https://pulzivo.com;
+  script-src  'self' https://cdn.pulzivo.com;
   connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;`,
 
     'csp-nextjs': `// next.config.js — add CSP headers for Pulzivo
@@ -909,7 +909,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' https://pulzivo.com",
+      "script-src 'self' https://cdn.pulzivo.com",
       "connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com",
     ].join('; ')
   }

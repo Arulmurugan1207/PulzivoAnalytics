@@ -54,7 +54,7 @@ export class Features {
       features: [
         {
           icon: 'pi-bolt',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Free', tagSeverity: 'success' as const,
           title: 'Custom Events API',
           desc: 'Fire any named event with arbitrary metadata in one line of JavaScript.',
           docsSection: 'custom-events', campaign: 'feat-custom-events',
@@ -96,8 +96,8 @@ export class Features {
         {
           icon: 'pi-bolt',
           tag: 'Free', tagSeverity: 'success' as const,
-          title: '5KB Bundle',
-          desc: 'Entire SDK is under 5KB minified + gzipped. Zero impact on your page speed.',
+          title: 'Under 10KB gzip',
+          desc: 'Entire SDK is under 10KB minified + gzipped. Zero impact on your page speed.',
           docsSection: 'getting-started', campaign: 'feat-bundle-size',
         },
         {

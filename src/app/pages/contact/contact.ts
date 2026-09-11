@@ -137,7 +137,7 @@ export class Contact {
   faqs: FAQ[] = [
     {
       question: 'How is Pulzivo different from Google Analytics?',
-      answer: 'Pulzivo is lightweight (5KB vs 45KB+), privacy-focused, and requires zero configuration. It works out of the box without complex setup or cookie banners.'
+      answer: 'Pulzivo is lightweight (under 10KB gzip vs 45KB+), privacy-focused, and requires zero configuration. It works out of the box without complex setup or cookie banners.'
     },
     {
       question: 'Do I need to write any code?',
