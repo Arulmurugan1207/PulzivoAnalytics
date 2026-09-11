@@ -64,6 +64,7 @@ export class DashboardPlans implements OnInit {
         '30-day data retention',
         'Page view tracking',
         'Click tracking',
+        'Custom event tracking',
         'Basic dashboard',
         'Community support'
       ]
@@ -80,7 +81,6 @@ export class DashboardPlans implements OnInit {
         '2 Websites',
         '100,000 events/month',
         '6-month data retention',
-        'Custom event tracking',
         'Auto click & scroll tracking',
         'Entry & exit page tracking',
         'Session & bounce rate analytics',
@@ -103,7 +103,6 @@ export class DashboardPlans implements OnInit {
         '5 Websites',
         '500,000 events/month',
         '12-month data retention',
-        'Custom event tracking',
         'Auto impression & click tracking',
         'Scroll depth & engagement',
         'Entry & exit page tracking',

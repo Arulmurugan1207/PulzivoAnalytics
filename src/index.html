@@ -5,8 +5,8 @@
   <title>Pulzivo Analytics — The Pulse of Modern Web &amp; Product Analytics | Free &amp; Privacy-First</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Pulzivo — The Pulse of Modern Web &amp; Product Analytics. Free, privacy-first, cookieless analytics in one script tag. Track page views, clicks, custom events &amp; sessions. No GDPR banners, 5KB bundle. The best Google Analytics alternative for developers.">
-  <meta name="keywords" content="free web analytics, Google Analytics alternative, privacy-first analytics, cookieless analytics, GDPR compliant analytics, no cookie analytics, lightweight analytics SDK, web analytics tool, product analytics, page view tracking, custom event tracking, click tracking, user session tracking, real-time analytics, javascript analytics, open source analytics, Plausible alternative, Matomo alternative, Fathom alternative, developer analytics, website analytics, SaaS analytics, event tracking javascript, 5kb analytics script, analytics without cookies, privacy analytics free">
+  <meta name="description" content="Pulzivo — The Pulse of Modern Web &amp; Product Analytics. Free, privacy-first, cookieless analytics in one script tag. Track page views, clicks, custom events &amp; sessions. No GDPR banners, under 10KB gzip. The best Google Analytics alternative for developers.">
+  <meta name="keywords" content="free web analytics, Google Analytics alternative, privacy-first analytics, cookieless analytics, GDPR compliant analytics, no cookie analytics, lightweight analytics SDK, web analytics tool, product analytics, page view tracking, custom event tracking, click tracking, user session tracking, real-time analytics, javascript analytics, open source analytics, Plausible alternative, Matomo alternative, Fathom alternative, developer analytics, website analytics, SaaS analytics, event tracking javascript, under 10kb analytics script, analytics without cookies, privacy analytics free">
   <meta name="author" content="Pulzivo Analytics">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <meta name="theme-color" content="#6366f1">
@@ -22,7 +22,7 @@
   <meta property="og:url" content="https://pulzivo.com/">
   <meta property="og:site_name" content="Pulzivo Analytics">
   <meta property="og:title" content="Pulzivo — The Pulse of Modern Web &amp; Product Analytics. Free, No Cookies, One Script.">
-  <meta property="og:description" content="The Pulse of Modern Web &amp; Product Analytics. Free for developers — one script tag for page views, clicks, custom events &amp; real-time sessions. GDPR compliant, cookieless, 5KB. Lightweight Google Analytics alternative.">
+  <meta property="og:description" content="The Pulse of Modern Web &amp; Product Analytics. Free for developers — one script tag for page views, clicks, custom events &amp; real-time sessions. GDPR compliant, cookieless, under 10KB gzip. Lightweight Google Analytics alternative.">
   <meta property="og:image" content="https://pulzivo.com/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -34,7 +34,7 @@
   <meta name="twitter:site" content="@pulzivo">
   <meta name="twitter:url" content="https://pulzivo.com/">
   <meta name="twitter:title" content="Pulzivo — The Pulse of Modern Web &amp; Product Analytics. Free, No Cookies, One Script.">
-  <meta name="twitter:description" content="The Pulse of Modern Web &amp; Product Analytics. Free — one script tag for page views, clicks, custom events &amp; sessions. GDPR compliant, cookieless, 5KB. Best Google Analytics alternative.">
+  <meta name="twitter:description" content="The Pulse of Modern Web &amp; Product Analytics. Free — one script tag for page views, clicks, custom events &amp; sessions. GDPR compliant, cookieless, under 10KB gzip. Best Google Analytics alternative.">
   <meta name="twitter:image" content="https://pulzivo.com/og-image.png">
   <meta name="twitter:image:alt" content="Pulzivo Analytics Dashboard">
 
@@ -106,12 +106,12 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Pulzivo Analytics",
-    "description": "Free privacy-first web analytics SDK. One script tag setup — automatic page view tracking, click tracking, custom event tracking, user sessions, real-time reporting. No cookies, GDPR &amp; CCPA compliant, 5KB bundle.",
+    "description": "Free privacy-first web analytics SDK. One script tag setup — automatic page view tracking, click tracking, custom event tracking, user sessions, real-time reporting. No cookies, GDPR &amp; CCPA compliant, under 10KB gzip.",
     "url": "https://pulzivo.com/",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Web Browser",
     "programmingLanguage": "JavaScript",
-    "fileSize": "5KB",
+    "fileSize": "10KB",
     "softwareVersion": "1.0",
     "offers": {
       "@type": "Offer",
@@ -137,7 +137,7 @@
       "CCPA compliant",
       "Privacy-first — no PII collected",
       "Cookieless analytics",
-      "5KB lightweight bundle",
+      "Under 10KB gzip lightweight bundle",
       "Form interaction tracking",
       "Performance monitoring",
       "Free forever tier"
@@ -165,7 +165,7 @@
         "name": "How do I add Pulzivo Analytics to my website?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Add one script tag to your HTML: &lt;script src='https://cdn.pulzivo.com/pulzivo-analytics.min.js' data-api-key='YOUR_API_KEY'&gt;&lt;/script&gt;. That's it — page views, clicks, and user sessions are tracked automatically with zero configuration."
+          "text": "Add one script tag to your HTML: &lt;script src='https://cdn.pulzivo.com/pulzivo-analytics.min.js' data-api-key='YOUR_API_KEY'&gt;&lt;/script&gt;. That's it — page views, clicks, and custom events are tracked automatically with zero configuration."
         }
       },
       {
@@ -205,7 +205,7 @@
         "name": "Does Pulzivo Analytics use cookies?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "No. Pulzivo Analytics is completely cookieless. It uses anonymous session identifiers that do not persist across browser sessions and never stores any data in cookies or localStorage by default."
+          "text": "No. Pulzivo Analytics is completely cookieless. Sessions use tab-scoped memory and localStorage, which does not require cookie consent banners under GDPR. No cookies are set."
         }
       }
     ]

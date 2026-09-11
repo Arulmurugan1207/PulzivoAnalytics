@@ -27,21 +27,21 @@ export class Features {
         },
         {
           icon: 'pi-mouse',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Starter', tagSeverity: 'info' as const,
           title: 'Click Tracking',
           desc: 'Capture every click with element tag, text, and page context auto-populated.',
           docsSection: 'automatic-tracking', campaign: 'feat-click-tracking',
         },
         {
           icon: 'pi-arrow-down',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Starter', tagSeverity: 'info' as const,
           title: 'Scroll Depth',
           desc: 'Track how far users scroll on each page — 25%, 50%, 75%, 100% milestones.',
           docsSection: 'automatic-tracking', campaign: 'feat-scroll-depth',
         },
         {
           icon: 'pi-users',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Starter', tagSeverity: 'info' as const,
           title: 'Session Tracking',
           desc: 'Unique visitor + session detection built-in. No cookies required.',
           docsSection: 'automatic-tracking', campaign: 'feat-sessions',
@@ -54,7 +54,7 @@ export class Features {
       features: [
         {
           icon: 'pi-bolt',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Free', tagSeverity: 'success' as const,
           title: 'Custom Events API',
           desc: 'Fire any named event with arbitrary metadata in one line of JavaScript.',
           docsSection: 'custom-events', campaign: 'feat-custom-events',
@@ -68,7 +68,7 @@ export class Features {
         },
         {
           icon: 'pi-megaphone',
-          tag: 'Pro', tagSeverity: 'warn' as const,
+          tag: 'Starter', tagSeverity: 'info' as const,
           title: 'Campaign & Promo Tracking',
           desc: 'Track UTM parameters, referral sources, promo impressions, and clicks.',
           docsSection: 'promo-tracking', campaign: 'feat-promo',
@@ -96,8 +96,8 @@ export class Features {
         {
           icon: 'pi-bolt',
           tag: 'Free', tagSeverity: 'success' as const,
-          title: '5KB Bundle',
-          desc: 'Entire SDK is under 5KB minified + gzipped. Zero impact on your page speed.',
+          title: 'Under 10KB gzip',
+          desc: 'Entire SDK is under 10KB minified + gzipped. Zero impact on your page speed.',
           docsSection: 'getting-started', campaign: 'feat-bundle-size',
         },
         {

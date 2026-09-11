@@ -27,7 +27,7 @@ export interface AuthResponse {
     lastname: string;
     email: string;
     mobileno: string;
-    plan?: 'free' | 'pro' | 'enterprise';
+    plan?: 'free' | 'starter' | 'pro' | 'enterprise';
     role?: 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
     createdDate: string;
     token: string;
@@ -39,11 +39,39 @@ export interface ApiError {
   status: number;
 }
 
+/** Log out after this much idle time. Activity slides the window forward. */
+export const IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+/** Don't rewrite localStorage on every mousemove. */
+export const ACTIVITY_TOUCH_THROTTLE_MS = 60 * 1000;
+
+export function decodeJwtExpiryMs(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = (4 - (base64.length % 4)) % 4;
+    if (pad) base64 += '='.repeat(pad);
+    const payload = JSON.parse(atob(base64));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isJwtExpired(token: string, now = Date.now()): boolean {
+  const exp = decodeJwtExpiryMs(token);
+  return exp !== null && now >= exp;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private apiUrl = environment.apiUrl;
+  private activityListenerAttached = false;
+  private lastTouchAt = 0;
+  private idleCheckTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly onUserActivity = () => this.touchSession();
 
   readonly openSignUp$ = new Subject<void>();
   requestOpenSignUp() { this.openSignUp$.next(); }
@@ -60,7 +88,11 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private router: Router
-  ) { }
+  ) {
+    if (typeof window !== 'undefined' && localStorage.getItem('authToken')) {
+      this.watchActivity();
+    }
+  }
 
   /**
    * Sign up a new user
@@ -69,16 +101,9 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/users/signup`, userData).pipe(
       tap(response => {
         console.log('Signup response:', response);
-        // Store the JWT token and user data with expiration
         if (response && response.user && response.user.token) {
-          const expirationTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
-          localStorage.setItem('authToken', response.user.token);
+          this.persistSession(response.user, response.user.token);
           localStorage.setItem('pulz_has_account', '1'); // never show sign-up exit intent again
-          localStorage.setItem('userData', JSON.stringify({
-            user: response.user,
-            expiresAt: expirationTime
-          }));
-          // Clear legacy keys from old auth system
           localStorage.removeItem('currentUser');
           localStorage.removeItem('userEmail');
           this.applyOwnerTracking(response.user.role);
@@ -97,16 +122,9 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/users/signin`, credentials).pipe(
       tap(response => {
         console.log('Signin response:', response);
-        // Store the JWT token and user data with expiration
         if (response && response.user && response.user.token) {
-          const expirationTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
-          localStorage.setItem('authToken', response.user.token);
+          this.persistSession(response.user, response.user.token);
           localStorage.setItem('pulz_has_account', '1'); // never show sign-up exit intent again
-          localStorage.setItem('userData', JSON.stringify({
-            user: response.user,
-            expiresAt: expirationTime
-          }));
-          // Clear legacy keys in case a different account was previously logged in
           localStorage.removeItem('currentUser');
           localStorage.removeItem('userEmail');
           this.applyOwnerTracking(response.user.role);
@@ -122,6 +140,7 @@ export class AuthService {
    * Sign out the current user
    */
   signout(redirect: boolean = true): void {
+    this.stopIdleWatch();
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     localStorage.removeItem('user_api_keys');
@@ -200,10 +219,8 @@ export class AuthService {
 
     try {
       const parsed = JSON.parse(userData);
-      // Check if data has expired
-      if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
-        console.log('isAuthenticated: Token expired, clearing data...');
-        this.signout(false); // Clear expired data without redirect
+      if (this.sessionHasExpired(parsed.expiresAt, token)) {
+        this.signout(false);
         return false;
       }
       return true;
@@ -227,9 +244,9 @@ export class AuthService {
     try {
       const parsed = JSON.parse(userData);
 
-      // Check if data has expired
-      if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
-        this.signout(false); // Clear expired data without redirect
+      const token = localStorage.getItem('authToken');
+      if (this.sessionHasExpired(parsed.expiresAt, token)) {
+        this.signout(false);
         return null;
       }
 
@@ -262,6 +279,102 @@ export class AuthService {
    */
   getToken(): string | null {
     return localStorage.getItem('authToken');
+  }
+
+  /**
+   * Sliding idle timeout: keep the session alive while the user is using the app.
+   * Expires only after IDLE_TIMEOUT_MS with no activity. Does not revive an
+   * already-expired session. Background API polls do not count as activity.
+   */
+  touchSession(): void {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    const raw = localStorage.getItem('userData');
+    if (!token || !raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (this.sessionHasExpired(parsed.expiresAt, token)) return;
+
+      const now = Date.now();
+      if (now - this.lastTouchAt < ACTIVITY_TOUCH_THROTTLE_MS) return;
+      this.lastTouchAt = now;
+
+      parsed.lastActivityAt = now;
+      parsed.expiresAt = now + IDLE_TIMEOUT_MS;
+      localStorage.setItem('userData', JSON.stringify(parsed));
+    } catch {
+      // Ignore malformed session payloads; isAuthenticated() will clean up.
+    }
+  }
+
+  /** Attach activity listeners + idle check. Safe to call more than once. */
+  watchActivity(): void {
+    if (typeof window === 'undefined') return;
+    this.attachActivityListeners();
+    this.startIdleCheck();
+    this.touchSession();
+  }
+
+  private persistSession(user: AuthResponse['user'], token: string): void {
+    const now = Date.now();
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userData', JSON.stringify({
+      user,
+      expiresAt: now + IDLE_TIMEOUT_MS,
+      lastActivityAt: now
+    }));
+    this.lastTouchAt = now;
+    this.watchActivity();
+  }
+
+  private sessionHasExpired(expiresAt: unknown, token: string | null): boolean {
+    if (token && isJwtExpired(token)) return true;
+    return typeof expiresAt === 'number' && Date.now() > expiresAt;
+  }
+
+  private attachActivityListeners(): void {
+    if (this.activityListenerAttached || typeof window === 'undefined') return;
+    this.activityListenerAttached = true;
+    const opts: AddEventListenerOptions = { passive: true };
+    window.addEventListener('click', this.onUserActivity, opts);
+    window.addEventListener('keydown', this.onUserActivity, opts);
+    window.addEventListener('mousemove', this.onUserActivity, opts);
+    window.addEventListener('scroll', this.onUserActivity, opts);
+    window.addEventListener('touchstart', this.onUserActivity, opts);
+    document.addEventListener('visibilitychange', this.onUserActivity);
+  }
+
+  private startIdleCheck(): void {
+    if (this.idleCheckTimer || typeof window === 'undefined') return;
+    this.idleCheckTimer = setInterval(() => this.enforceIdleTimeout(), 60 * 1000);
+  }
+
+  private enforceIdleTimeout(): void {
+    if (!localStorage.getItem('authToken')) return;
+    if (!this.isAuthenticated()) {
+      this.signout(true);
+    }
+  }
+
+  private stopIdleWatch(): void {
+    if (this.idleCheckTimer) {
+      clearInterval(this.idleCheckTimer);
+      this.idleCheckTimer = null;
+    }
+    if (this.activityListenerAttached && typeof window !== 'undefined') {
+      window.removeEventListener('click', this.onUserActivity);
+      window.removeEventListener('keydown', this.onUserActivity);
+      window.removeEventListener('mousemove', this.onUserActivity);
+      window.removeEventListener('scroll', this.onUserActivity);
+      window.removeEventListener('touchstart', this.onUserActivity);
+      document.removeEventListener('visibilitychange', this.onUserActivity);
+      this.activityListenerAttached = false;
+    }
+    this.lastTouchAt = 0;
   }
 
   /**

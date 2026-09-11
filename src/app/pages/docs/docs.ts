@@ -138,7 +138,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   faqItems = [
     {
       question: 'How small is Pulzivo?',
-      answer: 'Just 5KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
+      answer: 'Under 10KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
     },
     {
       question: 'Does it work with React, Vue, Angular, Next.js?',
@@ -146,7 +146,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'What data is collected automatically?',
-      answer: 'Page views, referrer, UTM parameters, scroll depth, click events, session duration, and performance metrics. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
+      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and user identity. Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
     },
     {
       question: 'Can I track custom events on the free plan?',
@@ -154,7 +154,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'How long is data retained?',
-      answer: 'Free plan: 30 days. Starter: 90 days. Pro: 1 year. Enterprise: unlimited. You can export your data at any time from the dashboard.'
+      answer: 'Free plan: 30 days. Starter: 6 months. Pro: 12 months. Enterprise: 24 months. You can export your data at any time from the dashboard.'
     },
     {
       question: 'Is there a rate limit?',
@@ -166,7 +166,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Will it affect my page speed / Core Web Vitals?',
-      answer: 'No. The script loads asynchronously, adds ~5KB to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
+      answer: 'No. The script loads asynchronously, adds under 10KB gzip to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
     },
     {
       question: 'How do I migrate from Google Analytics?',
@@ -178,7 +178,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Can I self-host the SDK?',
-      answer: 'Yes — download pulzivo-analytics.js from cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
+      answer: 'Yes — download https://cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
     },
     {
       question: 'What are rage clicks and does Pulzivo detect them?',
@@ -232,7 +232,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       keywords: ['track', 'event', 'custom', 'click', 'ecommerce', 'purchase', 'cart', 'identify', 'send', 'batch', 'trackevent', 'pulzivoanalytics', 'button', 'form']
     },
     {
-      id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'free',
+      id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro',
       keywords: ['user', 'email', 'identify', 'login', 'logout', 'authenticated', 'privacy', 'gdpr', 'setusemail', 'clearuseremail', 'pii']
     },
     {
@@ -240,11 +240,11 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       keywords: ['campaign', 'utm', 'promo', 'impression', 'banner', 'ad', 'marketing', 'source', 'medium', 'referrer', 'attribution', 'data-track-impression']
     },
     {
-      id: 'error-tracking', label: 'Error Tracking', icon: 'pi-exclamation-circle', plan: 'pro',
+      id: 'error-tracking', label: 'Error Tracking', icon: 'pi-exclamation-circle', plan: 'enterprise',
       keywords: ['error', 'crash', 'exception', 'onerror', 'promise', 'rejection', 'bug', 'unhandled', 'stack trace', 'react error boundary', 'js error']
     },
     {
-      id: 'rage-clicks-vitals', label: 'Rage Clicks & Web Vitals', icon: 'pi-bolt', plan: 'pro',
+      id: 'rage-clicks-vitals', label: 'Rage Clicks & Web Vitals', icon: 'pi-bolt', plan: 'enterprise',
       keywords: ['rage', 'click', 'frustrated', 'web vitals', 'lcp', 'cls', 'inp', 'fid', 'performance', 'core web vitals', 'lighthouse', 'seo', 'layout shift', 'paint']
     },
     {
@@ -265,7 +265,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       id: 'faq', label: 'FAQ', icon: 'pi-question-circle',
-      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '5kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
+      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '10kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
     },
     {
       id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar',
@@ -612,7 +612,7 @@ window.PulzivoAnalytics.clearUserEmail();`,
     logoutUser();
   };
 }`,
-    'promo-custom-events': `<!-- Add data-track-impression to any element (Pro plan) -->
+    'promo-custom-events': `<!-- Add data-track-impression to any element (Starter plan) -->
 <div data-track-impression="summer-sale-banner"
      data-impression-name="Summer Sale 2024"
      data-impression-category="promo"
@@ -894,13 +894,13 @@ PulzivoAnalytics(() => {
     'csp-headers': `# Content-Security-Policy headers to add to your server / CDN
 
 # The two domains Pulzivo needs:
-script-src  'self' https://pulzivo.com;
+script-src  'self' https://cdn.pulzivo.com;
 connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;
 
 # Full example header:
 Content-Security-Policy:
   default-src 'self';
-  script-src  'self' https://pulzivo.com;
+  script-src  'self' https://cdn.pulzivo.com;
   connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;`,
 
     'csp-nextjs': `// next.config.js — add CSP headers for Pulzivo
@@ -909,7 +909,7 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' https://pulzivo.com",
+      "script-src 'self' https://cdn.pulzivo.com",
       "connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com",
     ].join('; ')
   }

@@ -75,8 +75,8 @@ PulzivoAnalytics.sendBatch();`;
   }
 
   features = [
-    { icon: 'pi-bolt',       title: 'Zero Config',        desc: '5KB script. Auto-initialises the moment it loads.',                  link: '/docs',     campaign: 'feature-zero-config' },
-    { icon: 'pi-chart-line', title: 'Auto Tracking',       desc: 'Page views, clicks, and sessions captured automatically.',           link: '/docs',     campaign: 'feature-auto-tracking' },
+    { icon: 'pi-bolt',       title: 'Zero Config',        desc: 'Under 10KB gzip. Auto-initialises the moment it loads.',             link: '/docs',     campaign: 'feature-zero-config' },
+    { icon: 'pi-chart-line', title: 'Auto Tracking',       desc: 'Page views and clicks captured automatically. Custom events in one line.', link: '/docs',     campaign: 'feature-auto-tracking' },
     { icon: 'pi-sliders-h',  title: 'Custom Events',       desc: 'Track signups, purchases, and any custom action.',                  link: '/docs',     campaign: 'feature-custom-events' },
     { icon: 'pi-shield',     title: 'Privacy First',       desc: 'GDPR & CCPA compliant. No cookies. No PII.',                       link: '/features', campaign: 'feature-privacy' },
     { icon: 'pi-th-large',   title: 'Dashboard',           desc: 'Real-time insights with actionable analytics.',                     link: '/features', campaign: 'feature-dashboard' },
@@ -84,7 +84,7 @@ PulzivoAnalytics.sendBatch();`;
   ];
 
   stats = [
-    { value: '5KB',    label: 'Bundle size' },
+    { value: '<10KB',  label: 'gzip bundle' },
     { value: '< 60s',  label: 'Setup time' },
     { value: '0',      label: 'Cookies used' },
     { value: '100%',   label: 'Privacy-first' },

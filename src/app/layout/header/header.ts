@@ -53,7 +53,7 @@ export class Header implements OnInit, OnDestroy {
 
   userMenuItems: MenuItem[] = [
     { label: 'Dashboard', icon: 'pi pi-th-large', routerLink: '/dashboard' },
-    { label: 'Account', icon: 'pi pi-user', routerLink: '/account' },
+    { label: 'Account', icon: 'pi pi-user', routerLink: '/dashboard/settings' },
     { separator: true },
     { label: 'Logout', icon: 'pi pi-sign-out', command: () => this.logout() },
   ];

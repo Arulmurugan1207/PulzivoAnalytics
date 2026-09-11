@@ -4,7 +4,7 @@
  *
  * Usage:
  * <script
- *   src="https://pulzivo.com/pulzivo-analytics.min.js"
+ *   src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
  *   data-api-key="YOUR_API_KEY"
  *   data-api-url="https://your-api-endpoint.com/analytics/log"
  *   data-batch-interval="5000"
@@ -448,20 +448,21 @@
   async function sendBatch() {
     syncOwnerMode();
 
-    // Only log batch check if there are events to send or if debug is enabled
-    if (eventQueue.length > 0 || config.debug) {
+    if (config.debug) {
       console.log('[Analytics] Batch timer check - Events in queue:', eventQueue.length);
     }
     
     if (eventQueue.length === 0 || !config.apiUrl || !config.apiKey || isApiKeyInvalid) {
-      if (!config.apiKey) {
-        console.log('[Analytics] No API key configured - not sending logs');
-      }
-      if (!config.apiUrl) {
-        console.log('[Analytics] No API URL configured - not sending logs');
-      }
-      if (isApiKeyInvalid) {
-        console.log('[Analytics] API key is invalid - not sending logs');
+      if (config.debug) {
+        if (!config.apiKey) {
+          console.log('[Analytics] No API key configured - not sending logs');
+        }
+        if (!config.apiUrl) {
+          console.log('[Analytics] No API URL configured - not sending logs');
+        }
+        if (isApiKeyInvalid) {
+          console.log('[Analytics] API key is invalid - not sending logs');
+        }
       }
       return;
     }
@@ -469,7 +470,9 @@
     // Check if we're in rate limit backoff period
     const now = Date.now();
     if (rateLimitBackoff > 0 && (now - lastRateLimitTime) < rateLimitBackoff) {
-      console.log('[Analytics] Rate limit backoff active, skipping batch. Retry in', Math.round((rateLimitBackoff - (now - lastRateLimitTime)) / 1000), 'seconds');
+      if (config.debug) {
+        console.log('[Analytics] Rate limit backoff active, skipping batch. Retry in', Math.round((rateLimitBackoff - (now - lastRateLimitTime)) / 1000), 'seconds');
+      }
       return;
     }
 
@@ -483,8 +486,6 @@
     const eventsToSend = [...eventQueue];
     eventQueue = [];
 
-    console.log('[Analytics] Sending batch of', eventsToSend.length, 'events to', config.apiUrl);
-
     try {
       const response = await fetch(config.apiUrl, {
         method: 'POST',
@@ -495,7 +496,6 @@
       });
 
       if (response.ok) {
-        console.log('[Analytics] Batch sent successfully!');
         retryCount = 0; // Reset retry count on success
         rateLimitBackoff = 0; // Reset rate limit backoff on success
         lastRateLimitTime = 0;
@@ -1340,7 +1340,7 @@
 
       // Fetch plan from API, then setup auto-tracking based on plan
       fetchPlanFromApi().then(() => {
-        logTrackingCapabilities();
+        if (config.debug) logTrackingCapabilities();
         setupAutomaticTracking();
       });
     },
@@ -1393,7 +1393,7 @@
       // For custom events, check if plan allows it
       if (isCustomEvent && !hasFeature('custom_events')) {
         if (config.debug) {
-          console.warn('[Analytics] Custom event tracking is not available on your current plan. Upgrade at Pulzivo.io/pricing');
+          console.warn('[Analytics] Custom event tracking is not available on your current plan. Upgrade at pulzivo.com/pricing');
         }
         return;
       }
