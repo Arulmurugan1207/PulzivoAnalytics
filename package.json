@@ -9,6 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:server": "node --test server.spec.js",
+    "test:analytics-api": "npm test --prefix analytics-api",
     "minify:analytics": "terser public/pulzivo-analytics.js -o public/pulzivo-analytics.min.js --compress --mangle"
   },
   "prettier": {
