@@ -356,10 +356,11 @@ export class AnalyticsAPIService {
   }
 
   /**
-   * Public stats — no API key required (used in site footer)
+   * Public stats — homepage / footer counters.
+   * Uses Cloud Run (`analyticsApiUrl`); App Engine `apiUrl` is idle and has no CORS.
    */
   getPublicStats(): Observable<{ totalPageViews: number; scriptCopied: number }> {
-    return this.http.get<{ totalPageViews: number; scriptCopied: number }>(`${this.apiUrl}/analytics/public-stats?apiKey=${environment.siteApiKey}`).pipe(
+    return this.http.get<{ totalPageViews: number; scriptCopied: number }>(`${environment.analyticsApiUrl}/analytics/public-stats?apiKey=${environment.siteApiKey}`).pipe(
       catchError(() => of({ totalPageViews: 0, scriptCopied: 0 }))
     );
   }

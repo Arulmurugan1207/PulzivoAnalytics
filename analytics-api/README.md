@@ -4,17 +4,21 @@ Distinct Cloud Run service for the Analytics Node API (`POST /analytics/log`).
 
 This is **not** the Pulzivo marketing SPA. Do **not** deploy this over Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`). Do **not** stop App Engine `analytics` — the dashboard / billing / users APIs still run there.
 
-Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`POST /analytics/log`). Tracker and site ingest clients now use this host.
+Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app`. Tracker ingest, homepage public-stats, and site-key validate use this host.
 
-## Contract (matches AE analytics)
+## Contract
 
 | Method | Path | Result |
 |--------|------|--------|
 | OPTIONS | `/analytics/log` | `204` + CORS |
 | POST | `/analytics/log` | `200` `{"status":"ok"}` |
 | GET | `/analytics/log` | `404` |
+| GET | `/analytics/public-stats` | `200` `{ totalPageViews, scriptCopied }` |
+| GET | `/analytics/page-stats` | `200` per-path counters |
 | GET | `/api-keys/:apiKey/validate` | `200` plan / `401` invalid |
 | GET | `/health` | `200` |
+
+Dashboard / billing / users / metrics APIs are **not** implemented here. Do not point `environment.apiUrl` at this service.
 
 CORS allowlist:
 
