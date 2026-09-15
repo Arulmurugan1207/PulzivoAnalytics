@@ -89,7 +89,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       attribute: 'data-api-url', 
       type: 'String', 
       required: false, 
-      description: 'Override the default API endpoint URL' 
+      description: 'Override the default ingest URL (https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log)' 
     },
     { 
       attribute: 'data-batch-interval', 
@@ -895,13 +895,13 @@ PulzivoAnalytics(() => {
 
 # The two domains Pulzivo needs:
 script-src  'self' https://cdn.pulzivo.com;
-connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;
+connect-src 'self' https://pulzivo-analytics-api-167308220305.us-east1.run.app;
 
 # Full example header:
 Content-Security-Policy:
   default-src 'self';
   script-src  'self' https://cdn.pulzivo.com;
-  connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com;`,
+  connect-src 'self' https://pulzivo-analytics-api-167308220305.us-east1.run.app;`,
 
     'csp-nextjs': `// next.config.js — add CSP headers for Pulzivo
 const securityHeaders = [
@@ -910,7 +910,7 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' https://cdn.pulzivo.com",
-      "connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com",
+      "connect-src 'self' https://pulzivo-analytics-api-167308220305.us-east1.run.app",
     ].join('; ')
   }
 ];
@@ -923,7 +923,7 @@ module.exports = {
 
     'advanced-network': `// What a successful Pulzivo batch request looks like in DevTools:
 
-POST https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log
+POST https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log
 Content-Type: application/json
 
 // Request body (array of events):

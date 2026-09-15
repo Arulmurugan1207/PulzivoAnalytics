@@ -21,7 +21,7 @@
 
   // Configuration
   let config = {
-    apiUrl: 'https://analytics-dot-node-server-apis.ue.r.appspot.com/analytics/log',
+    apiUrl: 'https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log',
     apiKey: 'unknown', // Changed from serviceName to apiKey
     batchIntervalMs: 15000, // Increased from 5s to 15s to reduce rate limiting
     debug: false,

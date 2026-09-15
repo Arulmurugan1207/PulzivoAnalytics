@@ -60,11 +60,12 @@ This repo is the Pulzivo Analytics Angular SPA. Cloud Run requires the container
 
 `server.js` serves `dist/simpletrack-prime-ng/browser`, falls back to `index.html` for SPA routes, and treats `GET /` as the health check.
 
-There are **no runtime secrets** in this frontend. Client API URLs stay in `src/environments/environment.ts` (do not invent new env vars). The production client currently calls the App Engine API:
+There are **no runtime secrets** in this frontend. Client API URLs stay in `src/environments/environment.ts` (do not invent new env vars).
 
-`https://analytics-dot-node-server-apis.ue.r.appspot.com`
+- **Dashboard / billing / users / metrics** still call App Engine: `https://analytics-dot-node-server-apis.ue.r.appspot.com` (`environment.apiUrl`).
+- **Tracker ingest** (`POST /analytics/log`) and plan validate go to Cloud Run: `https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log` (`environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`).
 
-That Node API is **not** this repository. Deploying this SPA to Cloud Run does **not** replace that API and does **not** require MongoDB changes. Prefer service name `pulzivo-analytics` so it does not collide with the existing App Engine service `analytics`.
+The dashboard Node API is **not** this repository. Deploying this SPA to Cloud Run does **not** replace that API and does **not** require MongoDB changes. Prefer service name `pulzivo-analytics` so it does not collide with the existing Cloud Run service `analytics` (marketing SPA) or App Engine service `analytics`.
 
 ### Deploy (source build)
 
@@ -108,15 +109,40 @@ gcloud run deploy analytics \
   --cpu-boost
 ```
 
-Do **not** delete App Engine service `analytics` until the Node API behind `/analytics/log` has its own Cloud Run (or other) host. Removing it now would break the dashboard and the tracking script.
+Do **not** stop or delete App Engine service `analytics`. The dashboard, billing, users, and metrics APIs still run there. Ingest clients have switched to Cloud Run `pulzivo-analytics-api`; App Engine remains required until those remaining endpoints are migrated.
 
 ## Analytics Node API Cloud Run (`pulzivo-analytics-api`)
 
 The existing Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`) is the **marketing SPA**. `/analytics/log` there returns HTML. Do **not** replace or delete that service for the API cutover.
 
-Deploy the ingest API from `analytics-api/` as a **new** service named `pulzivo-analytics-api` (`min-instances=0`). Full commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md).
+The ingest API is already deployed from `analytics-api/` as service `pulzivo-analytics-api`. Redeploy commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md).
 
-Leave App Engine `https://analytics-dot-node-server-apis.ue.r.appspot.com` running until clients switch to the new Cloud Run API URL.
+Live ingest URL:
+
+`https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log`
+
+## Tracker script and CDN (`cdn.pulzivo.com`)
+
+Source of truth: `public/pulzivo-analytics.js`. The default `apiUrl` inside that file is what third-party sites get when they load the script **without** `data-api-url`.
+
+This repo has **no standalone CDN deploy command**. Publishing the tracker is:
+
+```bash
+# From repo root — regenerates public/pulzivo-analytics.min.js
+npm run minify:analytics
+
+# Full site build (also runs minify:analytics, copies public/ into dist)
+npm run build
+```
+
+Merge / push to `main` runs [`.github/workflows/deploy-cpanel.yml`](.github/workflows/deploy-cpanel.yml), which FTPs `dist/simpletrack-prime-ng/browser/` to cPanel `/public_html/`. That includes `pulzivo-analytics.min.js` (production build ignores the unminified `pulzivo-analytics.js`).
+
+`https://cdn.pulzivo.com/pulzivo-analytics.min.js` is **not** deployed by a separate job in this repo. After the cPanel deploy:
+
+1. If `cdn.pulzivo.com` is the same cPanel `public_html` (or a CNAME to it), the new min.js is live once FTP finishes — purge any CDN cache if the file is cached.
+2. If `cdn.pulzivo.com` is a distinct origin, copy `public/pulzivo-analytics.min.js` there after minify. There is no `gcloud` / npm script here that does that.
+
+SPA Cloud Run (`gcloud run deploy pulzivo-analytics --source . ...` above) serves the same built `pulzivo-analytics.min.js` from the container, but **does not** update `cdn.pulzivo.com`. Do **not** use `gcloud run deploy analytics` for this cutover.
 
 ### Local check that `$PORT` is bound
 

@@ -2,7 +2,9 @@
 
 Distinct Cloud Run service for the Analytics Node API (`POST /analytics/log`).
 
-This is **not** the Pulzivo marketing SPA. Do **not** deploy this over Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`). Do **not** stop App Engine `analytics` until clients have switched to this URL.
+This is **not** the Pulzivo marketing SPA. Do **not** deploy this over Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`). Do **not** stop App Engine `analytics` — the dashboard / billing / users APIs still run there.
+
+Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`POST /analytics/log`). Tracker and site ingest clients now use this host.
 
 ## Contract (matches AE analytics)
 
