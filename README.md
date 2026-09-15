@@ -110,6 +110,14 @@ gcloud run deploy analytics \
 
 Do **not** delete App Engine service `analytics` until the Node API behind `/analytics/log` has its own Cloud Run (or other) host. Removing it now would break the dashboard and the tracking script.
 
+## Analytics Node API Cloud Run (`pulzivo-analytics-api`)
+
+The existing Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`) is the **marketing SPA**. `/analytics/log` there returns HTML. Do **not** replace or delete that service for the API cutover.
+
+Deploy the ingest API from `analytics-api/` as a **new** service named `pulzivo-analytics-api` (`min-instances=0`). Full commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md).
+
+Leave App Engine `https://analytics-dot-node-server-apis.ue.r.appspot.com` running until clients switch to the new Cloud Run API URL.
+
 ### Local check that `$PORT` is bound
 
 ```bash
