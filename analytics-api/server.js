@@ -59,6 +59,65 @@ function eventsCollectionName() {
   return process.env.EVENTS_COLLECTION || 'events';
 }
 
+
+function normalizePagePath(page) {
+  if (typeof page !== 'string') return page;
+  let p = page;
+  for (let i = 0; i < 3; i++) {
+    p = p
+      .replace(/%0A/gi, '')
+      .replace(/%0D/gi, '')
+      .replace(/%09/gi, '')
+      .replace(/\r/g, '')
+      .replace(/\n/g, '')
+      .replace(/\t/g, '');
+  }
+  p = p.trim();
+  if (p.length > 1) p = p.replace(/\/+$/, '');
+  return p || '/';
+}
+
+function buildDateFilter(req) {
+  const { startDate, endDate } = req.query || {};
+  if (!startDate && !endDate) return {};
+  const filter = {};
+  if (startDate) filter.$gte = new Date(startDate);
+  if (endDate) filter.$lte = new Date(endDate);
+  return { timestamp: filter };
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hostnameFromOrigin(origin) {
+  if (!origin) return '';
+  try {
+    return new URL(origin).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return String(origin).replace(/^www\./, '').toLowerCase();
+  }
+}
+
+async function resolveApiKeyFromRequest(db, req) {
+  const q = String(req.query.apiKey || req.query.apikey || req.headers['x-api-key'] || '').trim();
+  if (q && q !== 'unknown') return q;
+  if (!db) return '';
+  const host = hostnameFromOrigin(req.headers.origin || req.headers.referer || req.headers.referrer || '');
+  if (!host) return '';
+  const doc = await db.collection(apiKeysCollectionName()).findOne({
+    isActive: { $ne: false },
+    isDeleted: { $ne: true },
+    allowedDomains: {
+      $elemMatch: {
+        $regex: `^(https?://)?(www\\.)?${escapeRegex(host)}/?$`,
+        $options: 'i',
+      },
+    },
+  });
+  return doc?.apiKey || '';
+}
+
 function createApp(options = {}) {
   const allowedOrigins = new Set(options.origins || parseOrigins(process.env.CORS_ORIGINS));
   const db = options.db || null;
@@ -141,7 +200,7 @@ function createApp(options = {}) {
     res.status(200).json({
       ok: true,
       service: 'pulzivo-analytics-api',
-      endpoints: ['/analytics/log', '/api-keys/:apiKey/validate', '/health'],
+      endpoints: ['/analytics/log', '/analytics/public-stats', '/analytics/page-stats', '/api-keys/:apiKey/validate', '/health'],
     });
   });
 
@@ -174,6 +233,104 @@ function createApp(options = {}) {
     } catch (err) {
       console.error('[analytics-api] validate failed', err);
       return res.status(503).json({ valid: false, message: 'API key store unavailable' });
+    }
+  });
+
+
+  // Site-wide public counters (footer / header visits)
+  app.get('/analytics/public-stats', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({ error: 'stats unavailable' });
+      }
+      const apiKey = await resolveApiKeyFromRequest(db, req);
+      if (!apiKey) {
+        return res.status(400).json({ error: 'apiKey query param required' });
+      }
+      const [totalPageViews, scriptCopied] = await Promise.all([
+        db.collection(eventsCollectionName()).countDocuments({ apiKey, event_name: 'page_view' }),
+        db.collection(eventsCollectionName()).countDocuments({ apiKey, event_name: 'script_copied' }),
+      ]);
+      res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=60');
+      return res.json({ totalPageViews, scriptCopied });
+    } catch (err) {
+      console.error('[analytics-api] public-stats failed', err);
+      return res.status(500).json({ error: err.message || 'stats failed' });
+    }
+  });
+
+  // Per-path counters (articles / tournaments). Tournament root paths use prefix match.
+  app.get('/analytics/page-stats', async (req, res) => {
+    try {
+      if (!db) {
+        return res.status(503).json({ error: 'stats unavailable' });
+      }
+      const apiKey = await resolveApiKeyFromRequest(db, req);
+      const rawPath = String(req.query.path || '').trim();
+      if (!rawPath) {
+        return res.status(400).json({ error: 'path query param required' });
+      }
+
+      let decodedPath = rawPath;
+      try {
+        decodedPath = decodeURIComponent(rawPath);
+      } catch {
+        decodedPath = rawPath;
+      }
+      const normalizedPath = normalizePagePath(decodedPath.split('?')[0]);
+
+      const truthy = (value) => {
+        const v = String(value ?? '').trim().toLowerCase();
+        return v === '1' || v === 'true' || v === 'yes' || v === 'prefix' || v === 'recursive';
+      };
+      const matchRaw = String(req.query.match || '').trim().toLowerCase();
+      const wantsPrefix =
+        matchRaw === 'prefix' ||
+        truthy(req.query.prefix) ||
+        truthy(req.query.includeChildren) ||
+        truthy(req.query.recursive);
+      const isTournamentRoot = /^\/tournaments\/[^/]+$/.test(normalizedPath);
+      const usePrefix = matchRaw === 'exact' ? false : (wantsPrefix || isTournamentRoot);
+      const matchMode = usePrefix ? 'prefix' : 'exact';
+
+      let pageFilter;
+      if (usePrefix) {
+        const prefixRegex = `^${escapeRegex(normalizedPath)}(?:/.*)?$`;
+        pageFilter = { 'data.page': { $regex: prefixRegex, $options: 'i' } };
+      } else {
+        const variants = Array.from(new Set([
+          normalizedPath,
+          `${normalizedPath}/`,
+          rawPath,
+          decodedPath,
+        ].map((p) => normalizePagePath(String(p || '').split('?')[0]))));
+        pageFilter = { 'data.page': { $in: variants } };
+      }
+
+      const dateFilter = buildDateFilter(req);
+      const apiKeyFilter = apiKey ? { apiKey } : {};
+      const events = db.collection(eventsCollectionName());
+      const [totalPageViews, totalShares] = await Promise.all([
+        events.countDocuments({ ...apiKeyFilter, event_name: 'page_view', ...pageFilter, ...dateFilter }),
+        events.countDocuments({ ...apiKeyFilter, event_name: 'article_share', ...pageFilter, ...dateFilter }),
+      ]);
+
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      return res.json({
+        apiKey: apiKey || null,
+        scopedByApiKey: Boolean(apiKey),
+        path: normalizedPath,
+        match: matchMode,
+        totalPageViews,
+        pageViews: totalPageViews,
+        count: totalPageViews,
+        totalShares,
+        shares: totalShares,
+      });
+    } catch (err) {
+      console.error('[analytics-api] page-stats failed', err);
+      return res.status(500).json({ error: err.message || 'stats failed' });
     }
   });
 

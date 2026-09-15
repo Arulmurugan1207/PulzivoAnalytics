@@ -189,3 +189,48 @@ test('GET /api-keys/:key/validate returns plan for active key', async () => {
     assert.equal(body.name, 'Prod');
   });
 });
+
+
+test('GET /analytics/public-stats requires apiKey or resolvable origin', async () => {
+  const fakeDb = {
+    collection(name) {
+      return {
+        async countDocuments() { return name === 'events' ? 42 : 0; },
+        async findOne() { return null; },
+      };
+    },
+  };
+  await withServer(createApp({ db: fakeDb }), async (url) => {
+    const missing = await fetch(`${url}/analytics/public-stats`);
+    assert.equal(missing.status, 400);
+    const ok = await fetch(`${url}/analytics/public-stats?apiKey=PULZ-PRD-TEST`);
+    assert.equal(ok.status, 200);
+    assert.deepEqual(await ok.json(), { totalPageViews: 42, scriptCopied: 42 });
+  });
+});
+
+test('GET /analytics/page-stats returns counts and prefix for tournament roots', async () => {
+  const filters = [];
+  const fakeDb = {
+    collection() {
+      return {
+        async countDocuments(filter) {
+          filters.push(filter);
+          return 7;
+        },
+        async findOne() { return { apiKey: 'PULZ-PRD-TEST' }; },
+      };
+    },
+  };
+  await withServer(createApp({ db: fakeDb }), async (url) => {
+    const res = await fetch(`${url}/analytics/page-stats?apiKey=PULZ-PRD-TEST&path=/tournaments/abc`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.totalPageViews, 7);
+    assert.equal(body.pageViews, 7);
+    assert.equal(body.count, 7);
+    assert.equal(body.match, 'prefix');
+    assert.equal(body.path, '/tournaments/abc');
+    assert.ok(filters[0]['data.page'].$regex);
+  });
+});
