@@ -62,8 +62,8 @@ This repo is the Pulzivo Analytics Angular SPA. Cloud Run requires the container
 
 There are **no runtime secrets** in this frontend. Client API URLs stay in `src/environments/environment.ts` (do not invent new env vars).
 
-- **Dashboard / billing / users / metrics** still call App Engine: `https://analytics-dot-node-server-apis.ue.r.appspot.com` (`environment.apiUrl`).
-- **Tracker ingest** (`POST /analytics/log`) and plan validate go to Cloud Run: `https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log` (`environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`).
+- **Dashboard / billing / users / metrics** still call App Engine: `https://analytics-dot-node-server-apis.ue.r.appspot.com` (`environment.apiUrl`). That host is currently an idle stub (`default idle — use Cloud Run`, no CORS). Auth, billing, key CRUD, and dashboard metric routes are **not** on Cloud Run yet.
+- **Homepage public-stats + tracker plan validate + ingest** go to Cloud Run `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`environment.analyticsApiUrl`, `environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`). Routes that exist there: `/analytics/log`, `/analytics/public-stats`, `/analytics/page-stats`, `/api-keys/:apiKey/validate`, `/health`.
 
 The dashboard Node API is **not** this repository. Deploying this SPA to Cloud Run does **not** replace that API and does **not** require MongoDB changes. Prefer service name `pulzivo-analytics` so it does not collide with the existing Cloud Run service `analytics` (marketing SPA) or App Engine service `analytics`.
 
@@ -109,7 +109,7 @@ gcloud run deploy analytics \
   --cpu-boost
 ```
 
-Do **not** stop or delete App Engine service `analytics`. The dashboard, billing, users, and metrics APIs still run there. Ingest clients have switched to Cloud Run `pulzivo-analytics-api`; App Engine remains required until those remaining endpoints are migrated.
+Do **not** stop or delete App Engine service `analytics` until dashboard / billing / users / metrics are migrated. Those routes are **not** on Cloud Run `pulzivo-analytics-api` (ingest + public read + key validate only). The AE host currently returns an idle stub, so dashboard auth will stay broken until that API is restored or those endpoints are added to Cloud Run.
 
 ## Analytics Node API Cloud Run (`pulzivo-analytics-api`)
 
