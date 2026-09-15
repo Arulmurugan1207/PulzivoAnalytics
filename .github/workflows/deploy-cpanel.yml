@@ -36,4 +36,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/simpletrack-prime-ng/browser/
-          server-dir: /public_html/
+          # FTP user is already chrooted/homed to public_html (the real web root).
+          # Using /public_html/ here created a nested public_html/public_html/ and
+          # left the live site serving the old login-root build.
+          server-dir: ./
