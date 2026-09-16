@@ -38,8 +38,37 @@ function contentType(filePath) {
   return MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
 }
 
+const FALLBACK_SITEMAP = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://pulzivo.com/</loc></url>
+  <url><loc>https://pulzivo.com/features</loc></url>
+  <url><loc>https://pulzivo.com/pricing</loc></url>
+  <url><loc>https://pulzivo.com/docs</loc></url>
+  <url><loc>https://pulzivo.com/why-pulzivo</loc></url>
+  <url><loc>https://pulzivo.com/use-cases</loc></url>
+  <url><loc>https://pulzivo.com/blog</loc></url>
+  <url><loc>https://pulzivo.com/contact</loc></url>
+  <url><loc>https://pulzivo.com/privacy</loc></url>
+  <url><loc>https://pulzivo.com/terms</loc></url>
+</urlset>
+`;
+
+const FALLBACK_ROBOTS = `User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /reset-password/
+Disallow: /api/
+
+Sitemap: https://pulzivo.com/sitemap.xml
+`;
+
 function safeFilePath(urlPath) {
-  const decoded = decodeURIComponent((urlPath || '/').split('?')[0]);
+  let decoded;
+  try {
+    decoded = decodeURIComponent((urlPath || '/').split('?')[0]);
+  } catch {
+    return null;
+  }
   const relative = decoded === '/' ? 'index.html' : decoded.replace(/^\/+/, '');
   const resolved = path.normalize(path.join(DIST_DIR, relative));
   if (!resolved.startsWith(DIST_DIR + path.sep) && resolved !== DIST_DIR) {
@@ -48,19 +77,38 @@ function safeFilePath(urlPath) {
   return resolved;
 }
 
+function cacheControlFor(filePath) {
+  const base = path.basename(filePath);
+  if (base === 'index.html' || base === 'sitemap.xml' || base === 'robots.txt') {
+    return 'no-cache';
+  }
+  return 'public, max-age=31536000, immutable';
+}
+
 function sendFile(res, filePath, statusCode) {
   const type = contentType(filePath);
-  const cacheControl =
-    path.basename(filePath) === 'index.html'
-      ? 'no-cache'
-      : 'public, max-age=31536000, immutable';
-
   res.writeHead(statusCode, {
     'Content-Type': type,
-    'Cache-Control': cacheControl,
+    'Cache-Control': cacheControlFor(filePath),
     'X-Content-Type-Options': 'nosniff',
   });
   fs.createReadStream(filePath).pipe(res);
+}
+
+function sendSeoFallback(req, res, fileName) {
+  const body = fileName === 'sitemap.xml' ? FALLBACK_SITEMAP : FALLBACK_ROBOTS;
+  const type =
+    fileName === 'sitemap.xml' ? 'application/xml; charset=utf-8' : 'text/plain; charset=utf-8';
+  res.writeHead(200, {
+    'Content-Type': type,
+    'Cache-Control': 'no-cache',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  if (req.method === 'HEAD') {
+    res.end();
+    return;
+  }
+  res.end(body);
 }
 
 function sendText(res, statusCode, body) {
@@ -88,6 +136,12 @@ const server = http.createServer((req, res) => {
         return;
       }
       sendFile(res, filePath, 200);
+      return;
+    }
+
+    const seoName = path.basename(filePath);
+    if (seoName === 'sitemap.xml' || seoName === 'robots.txt') {
+      sendSeoFallback(req, res, seoName);
       return;
     }
 

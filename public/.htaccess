@@ -1,0 +1,18 @@
+# Pulzivo marketing SPA (cPanel / LiteSpeed)
+# Static files (sitemap.xml, robots.txt, hashed assets) are served as-is.
+# Unknown paths fall through to index.html.
+
+RewriteEngine On
+
+# Never rewrite SEO files to the Angular app
+RewriteRule ^sitemap\.xml$ - [L]
+RewriteRule ^robots\.txt$ - [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . index.html [L]
+
+<IfModule mod_mime.c>
+  AddType application/xml .xml
+  AddType text/plain .txt
+</IfModule>

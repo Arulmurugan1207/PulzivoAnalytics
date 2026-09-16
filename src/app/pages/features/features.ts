@@ -27,9 +27,9 @@ export class Features {
         },
         {
           icon: 'pi-mouse',
-          tag: 'Starter', tagSeverity: 'info' as const,
+          tag: 'Free', tagSeverity: 'success' as const,
           title: 'Click Tracking',
-          desc: 'Capture every click with element tag, text, and page context auto-populated.',
+          desc: 'Capture clicks with element tag, text, and page context. Included on Free.',
           docsSection: 'automatic-tracking', campaign: 'feat-click-tracking',
         },
         {
