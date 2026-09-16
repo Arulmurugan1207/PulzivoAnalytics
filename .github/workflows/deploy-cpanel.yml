@@ -24,11 +24,7 @@ jobs:
       - name: Build
         run: npm run build
       - name: Create .htaccess for SPA
-        run: |
-          echo "RewriteEngine On" > dist/simpletrack-prime-ng/browser/.htaccess
-          echo "RewriteCond %{REQUEST_FILENAME} !-f" >> dist/simpletrack-prime-ng/browser/.htaccess
-          echo "RewriteCond %{REQUEST_FILENAME} !-d" >> dist/simpletrack-prime-ng/browser/.htaccess
-          echo "RewriteRule . index.html [L]" >> dist/simpletrack-prime-ng/browser/.htaccess
+        run: cp public/.htaccess dist/simpletrack-prime-ng/browser/.htaccess
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
