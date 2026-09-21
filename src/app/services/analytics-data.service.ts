@@ -191,7 +191,8 @@ export interface WebVitals {
   providedIn: 'root'
 })
 export class AnalyticsDataService {
-  private baseUrl = environment.apiUrl;
+  /** SSE live events — same Cloud Run event store as dashboard metrics. */
+  private baseUrl = environment.analyticsApiUrl;
 
   constructor(
     private http: HttpClient,

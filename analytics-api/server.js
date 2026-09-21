@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Pulzivo Analytics Node API — ingest + key validate.
+ * Pulzivo Analytics Node API — ingest, key validate, dashboard metrics.
  *
  * Distinct from Cloud Run service `analytics` (Pulzivo marketing SPA).
  * Matches App Engine analytics-dot-node-server-apis /analytics/log behavior:
@@ -15,6 +15,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { MongoClient } = require('mongodb');
+const { buildDateFilter, toDate } = require('./query');
+const { registerMetricRoutes } = require('./metrics');
 
 const DEFAULT_ORIGINS = [
   'https://tabletennistube.com',
@@ -77,14 +79,7 @@ function normalizePagePath(page) {
   return p || '/';
 }
 
-function buildDateFilter(req) {
-  const { startDate, endDate } = req.query || {};
-  if (!startDate && !endDate) return {};
-  const filter = {};
-  if (startDate) filter.$gte = new Date(startDate);
-  if (endDate) filter.$lte = new Date(endDate);
-  return { timestamp: filter };
-}
+// Date matching lives in query.js so numeric ingest timestamps are included.
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -200,7 +195,16 @@ function createApp(options = {}) {
     res.status(200).json({
       ok: true,
       service: 'pulzivo-analytics-api',
-      endpoints: ['/analytics/log', '/analytics/public-stats', '/analytics/page-stats', '/api-keys/:apiKey/validate', '/health'],
+      endpoints: [
+        '/analytics/log',
+        '/analytics/public-stats',
+        '/analytics/page-stats',
+        '/analytics/metrics',
+        '/analytics/page-views',
+        '/analytics/event-history',
+        '/api-keys/:apiKey/validate',
+        '/health',
+      ],
     });
   });
 
@@ -334,7 +338,9 @@ function createApp(options = {}) {
     }
   });
 
-  app.post('/analytics/log', async (req, res) => {
+  registerMetricRoutes(app, { db });
+
+  const persistIngest = async (req, res) => {
     const events = normalizeEvents(req);
     if (db && events.length) {
       try {
@@ -351,7 +357,10 @@ function createApp(options = {}) {
       }
     }
     return res.status(200).json({ status: 'ok' });
-  });
+  };
+
+  app.post('/analytics/log', persistIngest);
+  app.post('/analytics/events', persistIngest);
 
   app.use((req, res) => {
     res.status(404).type('html').send(
@@ -415,7 +424,7 @@ function normalizeEvents(req) {
         apiKey: service,
         page: event.page || event.data?.page || null,
         session_id: event.session_id || event.data?.session_id || null,
-        timestamp: event.timestamp || event.data?.timestamp || Date.now(),
+        timestamp: toDate(event.timestamp || event.data?.timestamp) || new Date(),
       };
     });
 }
@@ -464,4 +473,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, start, parseOrigins, DEFAULT_ORIGINS, normalizeEvents };
+module.exports = { createApp, start, parseOrigins, DEFAULT_ORIGINS, normalizeEvents, buildDateFilter, toDate };

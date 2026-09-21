@@ -16,7 +16,12 @@ export interface DateRange {
   providedIn: 'root'
 })
 export class AnalyticsAPIService {
-  private apiUrl = environment.apiUrl;
+  /**
+   * Dashboard charts / history read Cloud Run (`analyticsApiUrl`) — the same
+   * Mongo event store the tracker POSTs to. Auth, billing, and API-key CRUD
+   * stay on App Engine via other services (`environment.apiUrl`).
+   */
+  private apiUrl = environment.analyticsApiUrl;
 
   constructor(
     private http: HttpClient,
@@ -356,8 +361,7 @@ export class AnalyticsAPIService {
   }
 
   /**
-   * Public stats — homepage / footer counters.
-   * Uses Cloud Run (`analyticsApiUrl`); App Engine `apiUrl` is idle and has no CORS.
+   * Public stats — homepage / footer counters (Cloud Run event store).
    */
   getPublicStats(): Observable<{ totalPageViews: number; scriptCopied: number }> {
     return this.http.get<{ totalPageViews: number; scriptCopied: number }>(`${environment.analyticsApiUrl}/analytics/public-stats?apiKey=${environment.siteApiKey}`).pipe(
