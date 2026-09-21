@@ -2,9 +2,9 @@
 
 Distinct Cloud Run service for the Analytics Node API (`POST /analytics/log`).
 
-This is **not** the Pulzivo marketing SPA. Do **not** deploy this over Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`). Do **not** stop App Engine `analytics` — the dashboard / billing / users APIs still run there.
+This is **not** the Pulzivo marketing SPA. Do **not** deploy this over Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`). Do **not** stop App Engine `analytics` — auth / billing / users / API-key CRUD still run there.
 
-Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app`. Tracker ingest, homepage public-stats, and site-key validate use this host.
+Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app`. Tracker ingest, homepage public-stats, site-key validate, and **dashboard metric reads** use this host.
 
 ## Contract
 
@@ -16,9 +16,14 @@ Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app`. Tracker
 | GET | `/analytics/public-stats` | `200` `{ totalPageViews, scriptCopied }` |
 | GET | `/analytics/page-stats` | `200` per-path counters |
 | GET | `/api-keys/:apiKey/validate` | `200` plan / `401` invalid |
+| GET | `/analytics/metrics` | `200` overview KPIs for `apiKey` + date range |
+| GET | `/analytics/page-views` | `200` `{ trend, period }` |
+| GET | `/analytics/top-pages` | `200` paginated page-view ranks |
+| GET | `/analytics/event-history` | `200` `{ events, total, eventTypes, filterOptions }` |
+| GET | `/analytics/events-breakdown` | `200` event / click / custom breakdown |
 | GET | `/health` | `200` |
 
-Dashboard / billing / users / metrics APIs are **not** implemented here. Do not point `environment.apiUrl` at this service.
+Auth / billing / users / API-key CRUD stay on App Engine. Point only `environment.analyticsApiUrl` (dashboard metric clients) at this service — do **not** point `environment.apiUrl` here.
 
 CORS allowlist:
 

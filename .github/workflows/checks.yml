@@ -23,3 +23,7 @@ jobs:
         run: |
           npm run test:server
           npm run test:copy
+      - name: Analytics API routes
+        run: |
+          npm ci --prefix analytics-api
+          npm run test:analytics-api
