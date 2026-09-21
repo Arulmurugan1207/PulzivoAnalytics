@@ -27,3 +27,7 @@ jobs:
         run: |
           npm ci --prefix analytics-api
           npm run test:analytics-api
+      - name: Analytics API image includes runtime modules
+        run: |
+          docker build -t pulzivo-analytics-api:ci analytics-api
+          docker run --rm --entrypoint node pulzivo-analytics-api:ci -e "require('./query'); require('./metrics'); require('./server'); console.log('modules-ok');"
