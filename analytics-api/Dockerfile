@@ -12,7 +12,9 @@ ENV HOST=0.0.0.0
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY server.js ./
+# server.js requires sibling modules (./query, ./metrics). Copy the full
+# runtime tree — do not COPY only server.js.
+COPY . .
 
 USER node
 EXPOSE 8080

@@ -5,4 +5,7 @@ node_modules
 .env
 .env.*
 npm-debug.log
-server.spec.js
+*.spec.js
+memory-db.js
+# Do not ignore runtime JS (query.js, metrics.js, server.js).
+# Cloud Run `--source` + Dockerfile must receive those files.

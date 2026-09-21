@@ -65,6 +65,8 @@ echo -n "$AE_ANALYTICS_MONGODB_URI" | gcloud secrets create analytics-mongodb-ur
   --data-file=-
 ```
 
+The image must include every sibling module `server.js` requires (`query.js`, `metrics.js`, …). The Dockerfile copies the full runtime tree after `npm ci` — do **not** `COPY server.js` alone.
+
 ## Local
 
 ```bash
