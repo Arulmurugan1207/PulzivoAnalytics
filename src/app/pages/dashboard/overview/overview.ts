@@ -210,6 +210,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
     technical: false,
   };
 
+  /** False until the first metrics response for the current API key. */
+  metricsSettled = false;
+
+  /** Plain-language load failures. Empty string means the last request succeeded. */
+  loadErrors: Partial<Record<'metrics' | 'pageViews' | 'devices' | 'geography' | 'topPages' | 'sessions', string>> = {};
+
   // Loading states
   loadingStates = {
     metrics: false,
@@ -489,6 +495,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.selectedApiKey = 'DEMO-KEY';
     this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
     this.activePreset = 'Last 7 Days';
+    const demoEnd = new Date();
+    const demoStart = new Date();
+    demoStart.setDate(demoEnd.getDate() - 6);
+    demoStart.setHours(0, 0, 0, 0);
+    demoEnd.setHours(23, 59, 59, 999);
+    this.dateRangeValue = [demoStart, demoEnd];
+    this.updateDateLabel();
+    this.metricsSettled = true;
+    this.loadErrors = {};
     this.availableTrendPeriods = [
       { label: 'Daily', value: 'daily' },
       { label: 'Weekly', value: 'weekly' }
@@ -504,8 +519,18 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.trends = { ...d.overviewTrends };
     this.prevBarChartDataset = d.prevBarChartDataset ?? null;
     this.sessionStats = { ...d.sessionStats } as any;
+    const demoCounts = (d.barChartData?.datasets?.[0]?.data as number[]) || [];
+    const demoEndDay = new Date();
+    demoEndDay.setHours(0, 0, 0, 0);
+    this.trendPeriod = 'daily';
+    this.pageViewsTrend = demoCounts.map((pageViews, index) => {
+      const date = new Date(demoEndDay);
+      date.setDate(demoEndDay.getDate() - (demoCounts.length - 1 - index));
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return { date: iso, pageViews };
+    });
     this.initChartOptions();
-    this.barChartData = d.barChartData;
+    this.updateBarChart();
     this.doughnutChartData = d.doughnutChartData;
     this.funnelLabels = d.funnelData.labels;
     this.funnelSteps = d.funnelData.steps;
@@ -694,6 +719,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     // Reset tab-loaded state so each tab reloads fresh data for the new key
     this.tabLoaded = { overview: false, acquisition: false, behaviour: false, technical: false };
     this.activeTab = 'overview';
+    this.metricsSettled = false;
+    this.loadErrors = {};
 
     if (this.selectedApiKey) {
       this.clearAllData();
@@ -709,48 +736,95 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // Load metrics
     this.subscriptions.add(
-      this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe(data => {
-        if (data && Object.keys(data).length > 0) {
-          this.metrics = data;
-          // Fire once when the first real event is detected (activation milestone)
-          const firstEventKey = 'pulzivo_first_event_tracked';
-          if (!localStorage.getItem(firstEventKey) && (data.totalPageViews || 0) > 0) {
-            localStorage.setItem(firstEventKey, '1');
-            if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
-              (window as any).PulzivoAnalytics('event', 'first_event_tracked', {
-                total_page_views: data.totalPageViews,
-              });
+      this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe({
+        next: data => {
+          if (data && Object.keys(data).length > 0) {
+            this.metrics = data;
+            // Fire once when the first real event is detected (activation milestone)
+            const firstEventKey = 'pulzivo_first_event_tracked';
+            if (!localStorage.getItem(firstEventKey) && (data.totalPageViews || 0) > 0) {
+              localStorage.setItem(firstEventKey, '1');
+              if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+                (window as any).PulzivoAnalytics('event', 'first_event_tracked', {
+                  total_page_views: data.totalPageViews,
+                });
+              }
             }
           }
+          delete this.loadErrors.metrics;
+          this.metricsSettled = true;
+          this.loadingStates.metrics = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.loadErrors.metrics = 'Couldn’t load metrics for this site.';
+          this.metricsSettled = true;
+          this.loadingStates.metrics = false;
+          this.cdr.markForCheck();
         }
-        this.cdr.markForCheck();
       })
     );
 
     // Load page views trend
+    this.loadingStates.pageViews = true;
     this.subscriptions.add(
-      this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe(data => {
-        this.pageViewsTrend = Array.isArray(data) ? data : [];
-        this.updateBarChart();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe({
+        next: data => {
+          this.pageViewsTrend = Array.isArray(data) ? data : [];
+          delete this.loadErrors.pageViews;
+          this.updateBarChart();
+          this.loadingStates.pageViews = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.pageViewsTrend = [];
+          this.loadErrors.pageViews = 'Couldn’t load the page view chart.';
+          this.loadingStates.pageViews = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
     // Load device breakdown
+    this.loadingStates.devices = true;
     this.subscriptions.add(
-      this.analyticsDataService.getDeviceBreakdown(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
-        this.deviceBreakdown = data;
-        this.updateDoughnutChart();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getDeviceBreakdown(this.currentDateRange || undefined, this.selectedApiKey).subscribe({
+        next: data => {
+          this.deviceBreakdown = data;
+          delete this.loadErrors.devices;
+          this.updateDoughnutChart();
+          this.loadingStates.devices = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.loadErrors.devices = 'Couldn’t load the device breakdown.';
+          this.loadingStates.devices = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
     // Load geo data
+    if (this.hasFeature('sessions')) {
+      this.loadingStates.geography = true;
+      this.loadingStates.sessionStats = true;
+      this.loadSessionStatsWithDelay();
+    }
     this.subscriptions.add(
-      this.analyticsDataService.getGeographicData(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
-        this.geoData = Array.isArray(data) ? data : [];
-        this.buildMapOptions();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getGeographicData(this.currentDateRange || undefined, this.selectedApiKey).subscribe({
+        next: data => {
+          this.geoData = Array.isArray(data) ? data : [];
+          delete this.loadErrors.geography;
+          this.buildMapOptions();
+          this.loadingStates.geography = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.geoData = [];
+          this.loadErrors.geography = 'Couldn’t load country data.';
+          this.loadingStates.geography = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
@@ -816,10 +890,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.isRefreshing = true;
     this.showComparison = false;  // reset compare on refresh
     this.prevBarChartDataset = null;
+    this.loadErrors = {};
+    this.metricsSettled = false;
     this.cdr.markForCheck();
 
-    // Reload all data including comparison trends
-    this.loadAllData();
+    this.loadAnalyticsDataWithLoading();
+    if (this.tabLoaded['acquisition']) this.loadAcquisitionTab();
+    if (this.tabLoaded['behaviour']) this.loadBehaviourTab();
+    if (this.tabLoaded['technical']) this.loadTechnicalTab();
 
     // Reset the auto-refresh timer (restart the 30s countdown)
     this.startRealtimeUpdates();
@@ -1038,7 +1116,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     if (this.hasFeature('sessions')) {
       this.loadingStates.geography = true;
-      promises.push(this.loadGeographyWithDelay());
+      this.loadingStates.sessionStats = true;
+      promises.push(this.loadGeographyWithDelay(), this.loadSessionStatsWithDelay());
     }
 
     this.cdr.markForCheck();
@@ -1057,11 +1136,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getMetrics(this.currentDateRange ?? undefined).subscribe({
           next: (data: AnalyticsMetrics) => {
             this.metrics = data;
+            delete this.loadErrors.metrics;
+            this.metricsSettled = true;
             this.loadingStates.metrics = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.loadErrors.metrics = 'Couldn’t load metrics for this site.';
+            this.metricsSettled = true;
             this.loadingStates.metrics = false;
             this.cdr.markForCheck();
             resolve();
@@ -1116,12 +1199,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe({
           next: (data: PageViewsTrendData[]) => {
             this.pageViewsTrend = data;
+            delete this.loadErrors.pageViews;
             this.updateBarChart();
             this.loadingStates.pageViews = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.pageViewsTrend = [];
+            this.loadErrors.pageViews = 'Couldn’t load the page view chart.';
             this.loadingStates.pageViews = false;
             this.cdr.markForCheck();
             resolve();
@@ -1137,12 +1223,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getDeviceBreakdown(this.currentDateRange ?? undefined).subscribe({
           next: (data: DeviceBreakdown) => {
             this.deviceBreakdown = data;
+            delete this.loadErrors.devices;
             this.updateDoughnutChart();
             this.loadingStates.devices = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.loadErrors.devices = 'Couldn’t load the device breakdown.';
             this.loadingStates.devices = false;
             this.cdr.markForCheck();
             resolve();
@@ -1159,12 +1247,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
           next: (data: GeographicData[]) => {
             this.geoData = data;
             this.geoDataPage = 1;
+            delete this.loadErrors.geography;
             this.buildMapOptions();
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.geoData = [];
+            this.loadErrors.geography = 'Couldn’t load country data.';
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();
@@ -1182,11 +1273,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.topPages = res.pages;
             this.topPagesTotal = res.total;
             this.topPagesPage = 1;
+            delete this.loadErrors.topPages;
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.topPages = [];
+            this.loadErrors.topPages = 'Couldn’t load top pages.';
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
@@ -1202,11 +1296,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getSessionStats(this.currentDateRange ?? undefined).subscribe({
           next: (data: SessionStats) => {
             this.sessionStats = data;
+            delete this.loadErrors.sessions;
             this.loadingStates.sessionStats = false;
             this.cdr.markForCheck();
             resolve();
           },
           error: () => {
+            this.loadErrors.sessions = 'Couldn’t load sessions.';
             this.loadingStates.sessionStats = false;
             this.cdr.markForCheck();
             resolve();
@@ -1942,8 +2038,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   private updateDateLabel(): void {
     if (this.dateRangeValue.length === 2 && this.dateRangeValue[0] && this.dateRangeValue[1]) {
-      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-      this.dateRangeLabel = `${fmt(this.dateRangeValue[0])} - ${fmt(this.dateRangeValue[1])}`;
+      const start = this.dateRangeValue[0];
+      const end = this.dateRangeValue[1];
+      const sameYear = start.getFullYear() === end.getFullYear();
+      const startText = start.toLocaleDateString('en-US', sameYear
+        ? { month: 'short', day: 'numeric' }
+        : { month: 'short', day: 'numeric', year: 'numeric' });
+      const endText = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      this.dateRangeLabel = `${startText} – ${endText}`;
     }
   }
 
@@ -2250,6 +2352,37 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return Math.round(Math.random() * 10000 + 1000);
   }
 
+  get selectedSiteName(): string {
+    const match = this.availableApiKeys.find(key => key.apiKey === this.selectedApiKey);
+    return match?.name?.trim() || 'Unnamed site';
+  }
+
+  get selectedKeyHint(): string {
+    const key = this.selectedApiKey || '';
+    if (!key) return '';
+    if (key.length <= 12) return key;
+    return `${key.slice(0, 4)}…${key.slice(-4)}`;
+  }
+
+  get showSetupEmpty(): boolean {
+    if (this.demoService.isDemoMode() || !this.metricsSettled || this.loadingStates.metrics || this.loadErrors.metrics) {
+      return false;
+    }
+    return (this.metrics.totalPageViews || 0) === 0
+      && (this.metrics.liveVisitors || 0) === 0
+      && (this.metrics.uniqueVisitors || 0) === 0;
+  }
+
+  get deviceTotal(): number {
+    return (this.deviceBreakdown.desktop || 0)
+      + (this.deviceBreakdown.mobile || 0)
+      + (this.deviceBreakdown.tablet || 0);
+  }
+
+  get trendTotal(): number {
+    return this.pageViewsTrend.reduce((sum, point) => sum + (point.pageViews || 0), 0);
+  }
+
   formatTrend(value: number | null, invertPositive = false): { label: string; cssClass: string } {
     if (value === null) return { label: '—', cssClass: 'neutral' };
     const sign = value >= 0 ? '+' : '';
@@ -2260,6 +2393,20 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return {
       label,
       cssClass: isNeutral ? 'neutral' : isPositive ? 'positive' : 'negative'
+    };
+  }
+
+  /** Compact delta for KPI chips. Full sentence stays on the tooltip. */
+  formatTrendChip(value: number | null, invertPositive = false): { label: string; cssClass: string; title: string } {
+    const trend = this.formatTrend(value, invertPositive);
+    if (value === null) {
+      return { label: 'No comparison', cssClass: 'neutral', title: 'Not enough data in the previous period.' };
+    }
+    const sign = value > 0 ? '+' : '';
+    return {
+      label: `${sign}${value.toFixed(1)}%`,
+      cssClass: trend.cssClass,
+      title: trend.label
     };
   }
 }

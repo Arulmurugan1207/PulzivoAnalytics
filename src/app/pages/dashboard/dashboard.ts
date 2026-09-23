@@ -281,6 +281,15 @@ export class Dashboard implements OnInit, OnDestroy {
     return `${this.user.firstname} ${this.user.lastname}`;
   }
 
+  get selectedSiteContext(): string {
+    if (!this.selectedApiKey) return '';
+    const match = this.availableApiKeys.find(key => key.apiKey === this.selectedApiKey);
+    const name = match?.name?.trim() || 'Unnamed site';
+    const key = this.selectedApiKey;
+    const hint = key.length <= 12 ? key : `${key.slice(0, 4)}…${key.slice(-4)}`;
+    return `${name} · ${hint}`;
+  }
+
   getTabTitle(): string {
     const urlSegments = this.router.url.split('/');
     const currentTab = urlSegments[urlSegments.length - 1];

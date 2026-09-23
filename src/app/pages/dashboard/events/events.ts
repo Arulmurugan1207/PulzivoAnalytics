@@ -157,6 +157,17 @@ export class DashboardEvents implements OnInit, OnDestroy {
     return new Date();
   }
 
+  get siteContextLabel(): string {
+    const match = this.availableApiKeys.find(key => key.apiKey === this.selectedApiKey);
+    return match?.name?.trim() || 'No site selected';
+  }
+
+  get rangeContextLabel(): string {
+    if (!this.dateRange.start || !this.dateRange.end) return this.activePreset;
+    const fmt = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${this.activePreset} · ${fmt(this.dateRange.start)} – ${fmt(this.dateRange.end)}`;
+  }
+
   // Filter Options
   filterOptions: FilterOptions = {
     countries: [],
