@@ -115,7 +115,7 @@ Do **not** stop or delete App Engine service `analytics` until auth / billing / 
 
 The existing Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`) is the **marketing SPA**. `/analytics/log` there returns HTML. Do **not** replace or delete that service for the API cutover.
 
-The ingest API is already deployed from `analytics-api/` as service `pulzivo-analytics-api`. Redeploy commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md).
+The ingest API is already deployed from `analytics-api/` as service `pulzivo-analytics-api`. Redeploy commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md). Every source deploy of that service must pass `--cpu 2 --memory 1Gi --min-instances 1`. `gcloud run deploy` replaces omitted resource flags, and dropping them returns the API to 512Mi / 1 CPU / scale-to-zero.
 
 Live ingest URL:
 

@@ -2,12 +2,12 @@
 
 /**
  * Minimal in-memory Mongo stand-in for route tests.
- * Supports the find / count / distinct / insert operators used by ingest + metrics.
+ * Supports find / count / distinct / insert / aggregate used by ingest + metrics.
  */
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value), (key, val) => {
-    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(val)) {
+    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
       const d = new Date(val);
       if (!Number.isNaN(d.getTime())) return d;
     }
@@ -57,6 +57,20 @@ function compareLte(docVal, filterVal) {
   return docVal <= filterVal;
 }
 
+function mongoTypeMatches(value, want) {
+  const actual = value instanceof Date ? 'date'
+    : value === null ? 'null'
+      : value === undefined ? 'missing'
+        : typeof value === 'number' ? 'double'
+          : typeof value === 'string' ? 'string'
+            : typeof value === 'boolean' ? 'bool'
+              : Array.isArray(value) ? 'array'
+                : typeof value === 'object' ? 'object'
+                  : 'unknown';
+  if (want === 'number') return actual === 'double' || actual === 'int' || actual === 'long' || actual === 'decimal';
+  return actual === want;
+}
+
 function matchOp(docVal, op) {
   if (op instanceof RegExp) return typeof docVal === 'string' && op.test(docVal);
   if (op && typeof op === 'object' && !Array.isArray(op) && !(op instanceof Date)) {
@@ -80,6 +94,7 @@ function matchOp(docVal, op) {
     if (Object.prototype.hasOwnProperty.call(op, '$lte')) ok = ok && compareLte(docVal, op.$lte);
     if (Object.prototype.hasOwnProperty.call(op, '$gt')) ok = ok && (toMs(docVal) ?? docVal) > (toMs(op.$gt) ?? op.$gt);
     if (Object.prototype.hasOwnProperty.call(op, '$lt')) ok = ok && (toMs(docVal) ?? docVal) < (toMs(op.$lt) ?? op.$lt);
+    if (Object.prototype.hasOwnProperty.call(op, '$type')) ok = ok && mongoTypeMatches(docVal, op.$type);
     return ok;
   }
   return docVal === op;
@@ -160,6 +175,22 @@ class MemoryCollection {
     };
     return cursor;
   }
+
+  aggregate(pipeline) {
+    const { runPipeline } = require('./memory-agg');
+    const rows = runPipeline(this.docs.map((doc) => clone(doc)), pipeline);
+    return {
+      async toArray() {
+        return rows.map((doc) => clone(doc));
+      },
+    };
+  }
+
+  async createIndex(key, options = {}) {
+    if (!this.indexes) this.indexes = [];
+    this.indexes.push({ key, name: options.name || null });
+    return options.name || 'index';
+  }
 }
 
 function createMemoryDb(seed = {}) {
@@ -175,4 +206,4 @@ function createMemoryDb(seed = {}) {
   };
 }
 
-module.exports = { MemoryCollection, createMemoryDb, matches };
+module.exports = { MemoryCollection, createMemoryDb, matches, getPath, clone };

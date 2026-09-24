@@ -7,5 +7,6 @@ node_modules
 npm-debug.log
 *.spec.js
 memory-db.js
+memory-agg.js
 # Do not ignore runtime JS (query.js, metrics.js, server.js).
 # Cloud Run `--source` + Dockerfile must receive those files.
