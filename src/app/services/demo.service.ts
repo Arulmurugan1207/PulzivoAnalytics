@@ -58,12 +58,28 @@ export class DemoService {
   ];
 
   readonly trafficSources = [
-    { source: 'Organic Search', visitors: 3142, percentage: 37.3 },
-    { source: 'Direct', visitors: 2187, percentage: 25.9 },
-    { source: 'Referral', visitors: 1241, percentage: 14.7 },
-    { source: 'Social Media', visitors: 897, percentage: 10.6 },
-    { source: 'Email', visitors: 541, percentage: 6.4 },
-    { source: 'Paid Search', visitors: 415, percentage: 4.9 },
+    { source: 'Organic Search', visits: 3142, percentage: 37.3 },
+    { source: 'Direct', visits: 2187, percentage: 25.9 },
+    { source: 'Referral', visits: 1241, percentage: 14.7 },
+    { source: 'Social Media', visits: 897, percentage: 10.6 },
+    { source: 'Email', visits: 541, percentage: 6.4 },
+    { source: 'Paid Search', visits: 415, percentage: 4.9 },
+  ];
+
+  /** Actual places, not the buckets. Referral rows are the sites that linked here. */
+  readonly referrers = [
+    { name: 'Google', channel: 'Organic Search', host: 'google.com', visits: 2480, percentage: 29.4 },
+    { name: 'Direct', channel: 'Direct', host: '', visits: 2187, percentage: 26.0 },
+    { name: 'Bing', channel: 'Organic Search', host: 'bing.com', visits: 662, percentage: 7.9 },
+    { name: 'github.com', channel: 'Referral', host: 'github.com', visits: 540, percentage: 6.4 },
+    { name: 'Email', channel: 'Email', host: '', visits: 541, percentage: 6.4 },
+    { name: 'Google Ads', channel: 'Paid Search', host: 'googleads.g.doubleclick.net', visits: 415, percentage: 4.9 },
+    { name: 'Facebook', channel: 'Social Media', host: 'facebook.com', visits: 410, percentage: 4.9 },
+    { name: 'news.ycombinator.com', channel: 'Referral', host: 'news.ycombinator.com', visits: 401, percentage: 4.8 },
+    { name: 'producthunt.com', channel: 'Referral', host: 'producthunt.com', visits: 300, percentage: 3.6 },
+    { name: 'WhatsApp', channel: 'Social Media', host: 'web.whatsapp.com', visits: 246, percentage: 2.9 },
+    { name: 'X', channel: 'Social Media', host: 'x.com', visits: 188, percentage: 2.2 },
+    { name: 'Instagram', channel: 'Social Media', host: 'l.instagram.com', visits: 53, percentage: 0.6 },
   ];
 
   readonly topClicks = [
@@ -271,17 +287,17 @@ export class DemoService {
     avgSessionDuration: 5.1
   };
 
-  /** Previous-period bar chart dataset (overlaid on trend chart when comparison is ON) */
+  /** Previous-period line overlaid on the page-view chart when comparison is on. */
   readonly prevBarChartDataset = {
     label: 'Prev. Period',
     data: [724, 891, 812, 1043, 1187, 934, 778],
-    backgroundColor: 'rgba(99,102,241,0.18)',
-    borderColor: '#6366f1',
-    borderWidth: 2,
-    borderRadius: 6,
-    borderSkipped: false,
-    barThickness: 24,
-    type: 'bar'
+    borderColor: '#94a3b8',
+    backgroundColor: 'transparent',
+    fill: false,
+    tension: 0.35,
+    pointRadius: 0,
+    borderWidth: 1.5,
+    borderDash: [4, 4]
   };
 
   /** Acquisition tab — Entry Pages */

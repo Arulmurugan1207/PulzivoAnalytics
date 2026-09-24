@@ -103,14 +103,17 @@
     @if (activeTab === 'overview') {
 
       @if (!metricsSettled) {
-        <div class="kpi-grid" aria-busy="true">
-          @for (item of [1,2,3,4,5,6,7,8]; track item) {
-            <div class="kpi-card kpi-card-loading">
-              <p-skeleton width="40%" height="0.75rem" styleClass="mb-3"></p-skeleton>
-              <p-skeleton width="70%" height="2rem" styleClass="mb-2"></p-skeleton>
-              <p-skeleton width="90%" height="0.75rem"></p-skeleton>
-            </div>
-          }
+        <div class="pulse-board" aria-busy="true">
+          <div class="pulse-metrics">
+            @for (item of [1,2,3,4,5,6,7,8]; track item) {
+              <div class="pulse-metric">
+                <p-skeleton width="55%" height="0.65rem"></p-skeleton>
+                <p-skeleton width="70%" height="1.2rem"></p-skeleton>
+                <p-skeleton width="36%" height="0.6rem"></p-skeleton>
+              </div>
+            }
+          </div>
+          <div class="pulse-chart"><p-skeleton width="100%" height="220px"></p-skeleton></div>
         </div>
         <p class="context-status">Loading page views, visitors, and sessions for {{ selectedSiteName }}…</p>
       } @else if (loadErrors.metrics) {
@@ -156,182 +159,174 @@
       } @else {
       <div class="metrics-grid">
 
-        <div class="kpi-grid">
-          <article class="kpi-card">
-            <div class="kpi-top">
-              <span class="kpi-label">Page views</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Every page load in this date range, including repeat views by the same person."
-                tooltipPosition="top"></button>
-            </div>
-            @if (loadingStates.metrics) {
-              <p-skeleton width="60%" height="2rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ metrics.totalPageViews | number }}</div>
-              @if (showComparison) {
-                <span class="kpi-trend {{ formatTrendChip(trends.totalPageViews).cssClass }}"
+        <div class="pulse-board">
+          <div class="pulse-metrics">
+
+            <div class="pulse-metric is-selected">
+              <div class="pulse-label">
+                <span>Page views</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Every page load in this date range, including repeat views by the same person. The chart is this metric."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (loadingStates.metrics) {
+                <p-skeleton width="60%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ metrics.totalPageViews | number }}</div>
+                <span class="pulse-delta {{ formatTrendChip(trends.totalPageViews).cssClass }}"
                   [attr.title]="formatTrendChip(trends.totalPageViews).title">
                   {{ formatTrendChip(trends.totalPageViews).label }}
-                  <span>vs previous</span>
                 </span>
+                @if (pageViewSparkline) {
+                  <svg class="pulse-spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline fill="none" stroke="#1d9bf0" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round" [attr.points]="pageViewSparkline"></polyline>
+                  </svg>
+                }
               }
-            }
-          </article>
-
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('unique_visitors')">
-            <div class="kpi-top">
-              <span class="kpi-label">Visitors</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Distinct people in this date range. Each person is counted once, no matter how many pages they open."
-                tooltipPosition="top"></button>
             </div>
-            @if (!hasFeature('unique_visitors')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.metrics) {
-              <p-skeleton width="55%" height="2rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ (metrics.uniqueVisitors ?? 0) | number }}</div>
-              @if (showComparison) {
-                <span class="kpi-trend {{ formatTrendChip(trends.uniqueVisitors).cssClass }}"
+
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('unique_visitors')">
+              <div class="pulse-label">
+                <span>Visitors</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Distinct people in this date range. Each person is counted once, no matter how many pages they open."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('unique_visitors')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.metrics) {
+                <p-skeleton width="55%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ (metrics.uniqueVisitors ?? 0) | number }}</div>
+                <span class="pulse-delta {{ formatTrendChip(trends.uniqueVisitors).cssClass }}"
                   [attr.title]="formatTrendChip(trends.uniqueVisitors).title">
                   {{ formatTrendChip(trends.uniqueVisitors).label }}
-                  <span>vs previous</span>
                 </span>
               }
-            }
-          </article>
-
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
-            <div class="kpi-top">
-              <span class="kpi-label">Sessions</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="A session is one visit. It can include several page views before the person leaves."
-                tooltipPosition="top"></button>
             </div>
-            @if (!hasFeature('sessions')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.sessionStats) {
-              <p-skeleton width="55%" height="2rem"></p-skeleton>
-            } @else if (loadErrors.sessions) {
-              <p class="kpi-hint">{{ loadErrors.sessions }}</p>
-              <button type="button" class="kpi-upgrade" (click)="manualRefresh()">Try again</button>
-            } @else {
-              <div class="kpi-value">{{ sessionStats.totalSessions | number }}</div>
-            }
-          </article>
 
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
-            <div class="kpi-top">
-              <span class="kpi-label">Bounce rate</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Share of visits that left after a single page. A lower rate means more people continued."
-                tooltipPosition="top"></button>
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('sessions')">
+              <div class="pulse-label">
+                <span>Sessions</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="A session is one visit. It can include several page views before the person leaves."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('sessions')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.sessionStats) {
+                <p-skeleton width="55%" height="1.25rem"></p-skeleton>
+              } @else if (loadErrors.sessions) {
+                <button type="button" class="pulse-lock" (click)="manualRefresh()">Try again</button>
+              } @else {
+                <div class="pulse-value">{{ sessionStats.totalSessions | number }}</div>
+                <span class="pulse-delta neutral">—</span>
+              }
             </div>
-            @if (!hasFeature('sessions')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.metrics) {
-              <p-skeleton width="45%" height="2rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
-              @if (showComparison) {
-                <span class="kpi-trend {{ formatTrendChip(trends.bounceRate, true).cssClass }}"
+
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('sessions')">
+              <div class="pulse-label">
+                <span>Bounce rate</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Share of visits that left after a single page. A lower rate means more people continued."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('sessions')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.metrics) {
+                <p-skeleton width="45%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
+                <span class="pulse-delta {{ formatTrendChip(trends.bounceRate, true).cssClass }}"
                   [attr.title]="formatTrendChip(trends.bounceRate, true).title">
                   {{ formatTrendChip(trends.bounceRate, true).label }}
-                  <span>vs previous</span>
                 </span>
               }
-            }
-          </article>
-
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
-            <div class="kpi-top">
-              <span class="kpi-label">Avg. time</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Average length of a visit in this date range."
-                tooltipPosition="top"></button>
             </div>
-            @if (!hasFeature('sessions')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
-              <p-skeleton width="55%" height="1.4rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ sessionDurationSeconds ? formatDuration(sessionDurationSeconds) : '—' }}</div>
-              @if (showComparison) {
-                <span class="kpi-trend {{ formatTrendChip(trends.avgSessionDuration).cssClass }}"
+
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('sessions')">
+              <div class="pulse-label">
+                <span>Avg. time</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Average length of a visit in this date range."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('sessions')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+                <p-skeleton width="50%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ sessionDurationSeconds ? formatDuration(sessionDurationSeconds) : '—' }}</div>
+                <span class="pulse-delta {{ formatTrendChip(trends.avgSessionDuration).cssClass }}"
                   [attr.title]="formatTrendChip(trends.avgSessionDuration).title">
                   {{ formatTrendChip(trends.avgSessionDuration).label }}
                 </span>
               }
-            }
-          </article>
-
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
-            <div class="kpi-top">
-              <span class="kpi-label">Pages / visit</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Average number of pages opened in one visit."
-                tooltipPosition="top"></button>
             </div>
-            @if (!hasFeature('sessions')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
-              <p-skeleton width="40%" height="1.4rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ pagesPerSession ? (pagesPerSession | number:'1.1-1') : '—' }}</div>
-            }
-          </article>
 
-          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
-            <div class="kpi-top">
-              <span class="kpi-label">New visitors</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="Share of people in this range who had not been seen before. The rest are returning."
-                tooltipPosition="top"></button>
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('sessions')">
+              <div class="pulse-label">
+                <span>Pages / visit</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Average number of pages opened in one visit."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('sessions')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+                <p-skeleton width="40%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ pagesPerSession ? (pagesPerSession | number:'1.1-1') : '—' }}</div>
+                <span class="pulse-delta neutral">—</span>
+              }
             </div>
-            @if (!hasFeature('sessions')) {
-              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-            } @else if (loadingStates.metrics) {
-              <p-skeleton width="45%" height="1.4rem"></p-skeleton>
-            } @else if (newVisitorPercent === null) {
-              <div class="kpi-value">—</div>
-            } @else {
-              <div class="kpi-value">{{ newVisitorPercent | number:'1.0-0' }}%</div>
-            }
-          </article>
 
-          <article class="kpi-card kpi-live">
-            <div class="kpi-top">
-              <span class="kpi-label"><span class="live-dot active"></span> Live now</span>
-              <button type="button" class="pi pi-info-circle section-info-icon"
-                pTooltip="People on the site at this moment. This number ignores the date range and refreshes about every 30 seconds."
-                tooltipPosition="top"></button>
+            <div class="pulse-metric" [class.is-locked]="!hasFeature('sessions')">
+              <div class="pulse-label">
+                <span>New visitors</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Share of people in this range who had not been seen before. The rest are returning."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (!hasFeature('sessions')) {
+                <a class="pulse-lock" routerLink="/dashboard/plans"><i class="pi pi-lock"></i> Starter</a>
+              } @else if (loadingStates.metrics) {
+                <p-skeleton width="40%" height="1.25rem"></p-skeleton>
+              } @else if (newVisitorPercent === null) {
+                <div class="pulse-value">—</div>
+              } @else {
+                <div class="pulse-value">{{ newVisitorPercent | number:'1.0-0' }}%</div>
+                <span class="pulse-delta neutral">of visitors</span>
+              }
             </div>
-            @if (loadingStates.metrics) {
-              <p-skeleton width="40%" height="2rem"></p-skeleton>
-            } @else {
-              <div class="kpi-value">{{ metrics.liveVisitors | number }}</div>
-            }
-          </article>
-        </div>
 
-        <!-- Charts Row -->
-        <div class="charts-row">
+            <div class="pulse-metric pulse-live">
+              <div class="pulse-label">
+                <span><span class="live-dot active"></span> Live</span>
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="People on the site at this moment. This number ignores the date range and refreshes about every 30 seconds."
+                  tooltipPosition="top"></button>
+              </div>
+              @if (loadingStates.metrics) {
+                <p-skeleton width="40%" height="1.25rem"></p-skeleton>
+              } @else {
+                <div class="pulse-value">{{ metrics.liveVisitors | number }}</div>
+                <span class="pulse-delta neutral">Right now</span>
+              }
+            </div>
 
-          <!-- Page Views Trend -->
-          <div class="chart-card theme-blue hero-chart" data-section="page-views-trend">
-            <div class="card-header">
+          </div>
+
+          <div class="pulse-chart">
+            <div class="pulse-chart-head">
               <div class="panel-title">
-                <h3>Page views over time
-                  <button type="button" class="pi pi-info-circle section-info-icon"
-                     pTooltip="Page views bucketed by hour, day, week, or month for the date range above."
-                     tooltipPosition="top"></button>
-                </h3>
-                <p>Each bar is one {{ trendPeriod === 'hourly' ? 'hour' : trendPeriod === 'weekly' ? 'week' : trendPeriod === 'monthly' ? 'month' : 'day' }} in {{ dateRangeLabel || activePreset }}.</p>
+                <h3>Page views</h3>
+                <p>Each point is one {{ trendPeriod === 'hourly' ? 'hour' : trendPeriod === 'weekly' ? 'week' : trendPeriod === 'monthly' ? 'month' : 'day' }} in {{ dateRangeLabel || activePreset }}.</p>
               </div>
               @if (showComparison) {
                 <div class="chart-compare-legend">
-                  <span class="clegend-dot" style="background:#2a6df6"></span><span>This period</span>
-                  <span class="clegend-dot" style="background:#6366f1"></span><span>Prev. period</span>
+                  <span class="clegend-dot" style="background:#1d9bf0"></span><span>This period</span>
+                  <span class="clegend-dot" style="background:#94a3b8"></span><span>Previous</span>
                 </div>
               }
               @if (availableTrendPeriods.length > 1) {
@@ -349,8 +344,7 @@
               }
             </div>
             @if (loadingStates.pageViews) {
-              <div class="chart-skeleton"><p-skeleton width="100%" height="200px"></p-skeleton></div>
-              <p class="chart-note">Loading the page view chart…</p>
+              <div class="chart-skeleton"><p-skeleton width="100%" height="220px"></p-skeleton></div>
             } @else if (loadErrors.pageViews) {
               <div class="state-panel state-error">
                 <i class="pi pi-exclamation-circle"></i>
@@ -365,74 +359,112 @@
               </div>
             } @else {
               <div class="bar-chart-wrap">
-                <p-chart type="bar" [data]="barChartData" [options]="barChartOptions"></p-chart>
+                <p-chart type="line" [data]="barChartData" [options]="barChartOptions"></p-chart>
               </div>
               @if (!trendTotal) {
                 <p class="chart-note">Every point in this range is zero. Nothing was recorded for {{ selectedSiteName }}.</p>
               }
             }
-          </div>
 
-          <!-- Device Breakdown -->
-          <div class="chart-card theme-violet" data-section="device-breakdown" [class.locked-section]="!hasFeature('unique_visitors')">
-            <div class="card-header">
-              <div class="panel-title">
-                <h3>Devices
-                  <button type="button" class="pi pi-info-circle section-info-icon"
-                     pTooltip="Share of visits from desktop, mobile, and tablet in this date range."
-                     tooltipPosition="top"></button>
-                </h3>
-                <p>Where people opened {{ selectedSiteName }}.</p>
-              </div>
-              @if (hasFeature('unique_visitors') && loadingStates.devices) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-              }
-            </div>
             @if (!hasFeature('unique_visitors')) {
-              <div class="locked-overlay">
-                <div class="locked-content">
-                  <span class="plan-badge badge-pro"><i class="pi pi-star"></i> Pro Feature</span>
-                  <i class="pi pi-lock lock-icon"></i>
-                  <h4>Device Breakdown</h4>
-                  <p>See how visitors split across Desktop, Mobile, and Tablet.</p>
-                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
-                </div>
-              </div>
+              <p class="device-locked">Desktop, mobile, and tablet split is available on Starter. <a routerLink="/dashboard/plans">View plans</a></p>
             } @else if (loadingStates.devices) {
-              <div class="chart-skeleton"><p-skeleton width="100%" height="200px"></p-skeleton></div>
               <p class="chart-note">Loading device split…</p>
             } @else if (loadErrors.devices) {
-              <div class="state-panel state-error">
-                <i class="pi pi-exclamation-circle"></i>
-                <p>{{ loadErrors.devices }}</p>
-                <button type="button" class="state-action" (click)="manualRefresh()">Try again</button>
-              </div>
-            } @else if (!deviceTotal) {
-              <div class="state-panel">
-                <i class="pi pi-desktop"></i>
-                <p>No device data in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
-                <span>Desktop, mobile, and tablet shares appear after the first tracked visits.</span>
-              </div>
-            } @else {
-              <div class="donut-chart-wrap">
-                <p-chart type="doughnut" [data]="doughnutChartData" [options]="doughnutChartOptions"></p-chart>
-              </div>
-              <div class="donut-legend">
-                <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#2a6df6"></span><span>Desktop</span>
-                  <span class="donut-pct">{{ deviceBreakdown.desktopPercentage | number:'1.0-0' }}%</span>
+              <p class="chart-note">{{ loadErrors.devices }}</p>
+            } @else if (deviceTotal) {
+              <div class="device-strip">
+                <div class="device-bar" aria-hidden="true">
+                  <span class="desktop" [style.width.%]="deviceBreakdown.desktopPercentage"></span>
+                  <span class="mobile" [style.width.%]="deviceBreakdown.mobilePercentage"></span>
+                  <span class="tablet" [style.width.%]="deviceBreakdown.tabletPercentage"></span>
                 </div>
-                <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#6f41ff"></span><span>Mobile</span>
-                  <span class="donut-pct">{{ deviceBreakdown.mobilePercentage | number:'1.0-0' }}%</span>
-                </div>
-                <div class="donut-legend-item">
-                  <span class="donut-dot" style="background:#f59e0b"></span><span>Tablet</span>
-                  <span class="donut-pct">{{ deviceBreakdown.tabletPercentage | number:'1.0-0' }}%</span>
+                <div class="device-stats">
+                  <span><i class="device-dot desktop"></i> Desktop <strong>{{ deviceBreakdown.desktop | number }}</strong> <em>{{ deviceBreakdown.desktopPercentage | number:'1.0-0' }}%</em></span>
+                  <span><i class="device-dot mobile"></i> Mobile <strong>{{ deviceBreakdown.mobile | number }}</strong> <em>{{ deviceBreakdown.mobilePercentage | number:'1.0-0' }}%</em></span>
+                  <span><i class="device-dot tablet"></i> Tablet <strong>{{ deviceBreakdown.tablet | number }}</strong> <em>{{ deviceBreakdown.tabletPercentage | number:'1.0-0' }}%</em></span>
                 </div>
               </div>
             }
+
+            @if (liveCountries.length) {
+              <div class="live-geo-strip">
+                @for (c of liveCountries; track c.country) {
+                  <span class="live-geo-pill" [pTooltip]="c.country + ': ' + c.count + ' recent'" tooltipPosition="top">
+                    {{ c.flag }} <span class="geo-count">{{ c.count }}</span>
+                  </span>
+                }
+              </div>
+            }
           </div>
+        </div>
+
+        <div class="data-card source-board" [class.locked-section]="!hasFeature('utm_attribution')">
+          <div class="card-header">
+            <div class="panel-title">
+              <h3>How people got here
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                  pTooltip="Where this date range’s page views started: search, a link from another site, social, email, paid, or a direct visit."
+                  tooltipPosition="top"></button>
+              </h3>
+              <p>Each row is the actual place. <strong>Referral</strong> means another site linked here. <strong>Social</strong> is Facebook, WhatsApp, X, and the rest.</p>
+            </div>
+            @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!hasFeature('utm_attribution')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Traffic sources</h4>
+                <p>See whether people arrived from search, a referral, social, email, paid, or directly.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">View plans <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else if (loadingStates.trafficSources) {
+            <div class="source-list">
+              @for (item of [1,2,3,4,5]; track item) {
+                <p-skeleton width="100%" height="1.15rem" styleClass="mb-2"></p-skeleton>
+              }
+            </div>
+          } @else if (!trafficSources.length) {
+            <div class="state-panel">
+              <i class="pi pi-sign-in"></i>
+              <p>No traffic sources in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
+              <span>A source appears after a page view is tracked with a referrer, or as a direct visit.</span>
+            </div>
+          } @else {
+            <div class="source-split">
+              <div class="source-pie">
+                <p-chart type="doughnut" [data]="sourcePieData" [options]="sourcePieOptions"></p-chart>
+              </div>
+              <div class="source-list">
+                @for (src of sourceRows; track src.name + src.host) {
+                  <div class="source-row">
+                    <span class="source-swatch" [style.background]="src.color"></span>
+                    <span class="source-name">
+                      {{ src.name }}
+                      @if (src.host && src.host.toLowerCase() !== src.name.toLowerCase()) {
+                        <em>{{ src.host }}</em>
+                      }
+                    </span>
+                    @if (channelLabel(src.channel) && channelLabel(src.channel) !== src.name) {
+                      <span class="source-channel" [attr.title]="channelHint(src.channel)">{{ channelLabel(src.channel) }}</span>
+                    } @else {
+                      <span class="source-channel source-channel-spacer"></span>
+                    }
+                    <span class="source-bar-wrap" aria-hidden="true">
+                      <span class="source-bar" [style.width.%]="src.percentage" [style.background]="src.color"></span>
+                    </span>
+                    <span class="source-visits">{{ (src.visits || 0) | number }}</span>
+                    <span class="source-pct">{{ src.percentage | number:'1.0-0' }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <!-- Top Pages + Countries -->
@@ -479,6 +511,12 @@
                 <p>No pages viewed in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
               </div>
             } @else {
+              <div class="scan-head">
+                <span>Page</span>
+                <span class="scan-cols">
+                  <span>Views</span><span>Share</span><span>Time</span><span>Scroll</span>
+                </span>
+              </div>
               <div class="top-pages-list">
                 @for (page of topPages; track page.path; let i = $index) {
                   <div class="top-page-card">
@@ -593,6 +631,12 @@
                 <span>Country is stored with each session and shows up after visitors are tracked.</span>
               </div>
             } @else {
+              <div class="scan-head scan-head-country">
+                <span>Country</span>
+                <span class="scan-cols">
+                  <span>Views</span><span>Share</span>
+                </span>
+              </div>
               <div class="top-pages-list">
                 @for (geo of pagedGeoData; track geo.country; let i = $index) {
                   <div class="top-page-card top-country-card">

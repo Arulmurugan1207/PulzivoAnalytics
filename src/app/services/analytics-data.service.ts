@@ -161,6 +161,14 @@ export interface TrafficSource {
   percentage: number;
 }
 
+export interface ReferrerDetail {
+  name: string;
+  channel: string;
+  host: string;
+  visits: number;
+  percentage: number;
+}
+
 export interface UtmSource {
   source: string;
   medium: string;
@@ -397,14 +405,15 @@ export class AnalyticsDataService {
   /**
    * Get traffic sources / referrers
    */
-  getTrafficSources(dateRange?: DateRange): Observable<{ sources: TrafficSource[]; utmSources: UtmSource[]; totalVisits: number }> {
+  getTrafficSources(dateRange?: DateRange): Observable<{ sources: TrafficSource[]; referrers: ReferrerDetail[]; utmSources: UtmSource[]; totalVisits: number }> {
     return this.analyticsAPI.getTrafficSources(dateRange).pipe(
       map((data: any) => ({
         sources: data?.sources || [],
+        referrers: data?.referrers || [],
         utmSources: data?.utmSources || [],
         totalVisits: data?.totalVisits || 0
       })),
-      catchError(() => of({ sources: [], utmSources: [], totalVisits: 0 }))
+      catchError(() => of({ sources: [], referrers: [], utmSources: [], totalVisits: 0 }))
     );
   }
 

@@ -26,6 +26,7 @@ import {
   DateRange,
   ConversionFunnel,
   TrafficSource,
+  ReferrerDetail,
   UtmSource,
   BrowserData,
   WebVitals,
@@ -122,6 +123,23 @@ export class DashboardOverview implements OnInit, OnDestroy {
   pageViewsTrend: PageViewsTrendData[] = [];
   realtimeEvents: RealtimeEvent[] = [];
   trafficSources: TrafficSource[] = [];
+  referrers: ReferrerDetail[] = [];
+  sourceRows: Array<ReferrerDetail & { color: string }> = [];
+  sourcePieData: any = { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] };
+  sourcePieOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.label}: ${Number(ctx.parsed || 0).toLocaleString()} visits`
+        }
+      }
+    },
+    cutout: '62%'
+  };
+  private readonly sourceColors = ['#1d9bf0', '#7856ff', '#00ba7c', '#f59e0b', '#f4212e', '#0ea5e9', '#8b5cf6', '#64748b', '#14b8a6', '#e11d48'];
   utmSources: UtmSource[] = [];
   browsers: BrowserData[] = [];
   operatingSystems: BrowserData[] = [];
@@ -257,7 +275,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   @ViewChild('datePopover') datePopover!: Popover;
   dateRangeValue: Date[] = [];
   tempDateRange: Date[] = [];
-  activePreset = 'Last 7 Days';
+  activePreset = 'Last 30 Days';
   dateRangeLabel = '';
 
   // Trend period: auto-set based on date range, can be overridden manually
@@ -332,12 +350,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     console.log('🚀 Overview: Component initializing...');
     
-    // Initialize default date range: last 7 days
+    // Last 30 days. This Month stays in the preset list.
+    const openingPreset = this.activePreset;
+    const openingRange = this.presets.find(preset => preset.label === openingPreset)?.range()
+      ?? this.getPresetRange('last30');
     this.dateRangeSubject.next({
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      endDate: new Date()
+      startDate: openingRange[0],
+      endDate: openingRange[1]
     });
-    
+
     this.initChartOptions();
     this.loadUserPlan();
     this.loadAnalyticsPreferences();
@@ -345,12 +366,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadWorldGeoJson();
     // this.loadFeaturesDataWithDelay(); // no-op, removed
     // this.loadLiveEventsWithDelay();   // Live events disabled
-    this.applyPreset('Last 7 Days');
+    this.applyPreset(openingPreset);
     // availableTrendPeriods initialized by applyPreset → emitDateRange → computeAvailablePeriods
     if (!this.availableTrendPeriods.length) {
-      const end = new Date();
-      const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      this.availableTrendPeriods = this.computeAvailablePeriods(start, end);
+      this.availableTrendPeriods = this.computeAvailablePeriods(openingRange[0], openingRange[1]);
     }
 
     // Shared dashboard API key (persisted in localStorage)
@@ -494,20 +513,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
     this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
-    this.activePreset = 'Last 7 Days';
-    const demoEnd = new Date();
-    const demoStart = new Date();
-    demoStart.setDate(demoEnd.getDate() - 6);
-    demoStart.setHours(0, 0, 0, 0);
-    demoEnd.setHours(23, 59, 59, 999);
+    const [demoStart, demoEnd] = this.getPresetRange('last30');
     this.dateRangeValue = [demoStart, demoEnd];
     this.updateDateLabel();
     this.metricsSettled = true;
     this.loadErrors = {};
-    this.availableTrendPeriods = [
-      { label: 'Daily', value: 'daily' },
-      { label: 'Weekly', value: 'weekly' }
-    ];
+    this.trendPeriod = this.autoTrendPeriod(demoStart, demoEnd);
+    this.availableTrendPeriods = this.computeAvailablePeriods(demoStart, demoEnd);
 
     // ── Overview tab ──────────────────────────────────────────────────────────
     this.metrics = { ...d.overviewMetrics } as any;
@@ -538,6 +550,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // ── Acquisition tab ───────────────────────────────────────────────────────
     this.trafficSources = d.trafficSources as any;
+    this.referrers = d.referrers as any;
+    this.applySourceBreakdown();
     this.utmSources = d.utmSources as any;
     this.entryPages = d.entryPages as any;
     this.exitPages = d.exitPages as any;
@@ -651,6 +665,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -667,7 +682,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } },
+          ticks: { precision: 0, color: '#94a3b8', font: { size: 11 }, maxTicksLimit: 5 },
           grid: { color: '#f1f5f9' },
           border: { display: false }
         },
@@ -690,11 +705,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartData = {
       labels: [],
       datasets: [{
+        label: 'This Period',
         data: [],
-        backgroundColor: '#2a6df6',
-        borderRadius: 6,
-        borderSkipped: false,
-        barThickness: 24
+        borderColor: '#1d9bf0',
+        backgroundColor: 'rgba(29, 155, 240, 0.14)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        borderWidth: 2
       }]
     };
 
@@ -851,9 +870,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
       if (this.hasFeature('error_tracking')) this.loadErrorTrackingWithDelay();
       if (this.hasFeature('rage_clicks') || this.hasFeature('dead_clicks')) this.loadRageDeadClicksWithDelay();
     }
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      this.loadTrafficSourcesWithDelay();
+    }
     if (this.tabLoaded['acquisition']) {
       if (this.hasFeature('utm_attribution')) {
-        this.loadTrafficSourcesWithDelay();
         this.loadAttributionWithDelay();
       }
       if (this.hasFeature('page_exit')) this.loadEntryExitPagesWithDelay();
@@ -976,6 +998,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.funnelSteps = [];
     this.realtimeEvents = [];
     this.trafficSources = [];
+    this.referrers = [];
+    this.applySourceBreakdown();
     this.utmSources = [];
     this.browsers = [];
     this.operatingSystems = [];
@@ -1117,6 +1141,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.loadTopPagesWithDelay(),
     ];
 
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      promises.push(this.loadTrafficSourcesWithDelay());
+    }
+
     if (this.hasFeature('sessions')) {
       this.loadingStates.geography = true;
       this.loadingStates.sessionStats = true;
@@ -1174,13 +1203,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
                 this.prevBarChartDataset = {
                   label: 'Prev. Period',
                   data: (data as any).prevPageViews,
-                  backgroundColor: 'rgba(99,102,241,0.18)',
-                  borderColor: '#6366f1',
-                  borderWidth: 2,
-                  borderRadius: 6,
-                  borderSkipped: false,
-                  barThickness: 24,
-                  type: 'bar'
+                  borderColor: '#94a3b8',
+                  backgroundColor: 'transparent',
+                  fill: false,
+                  tension: 0.35,
+                  pointRadius: 0,
+                  borderWidth: 1.5,
+                  borderDash: [4, 4]
                 };
               }
             }
@@ -1535,6 +1564,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getTrafficSources(this.currentDateRange ?? undefined).subscribe({
           next: (data) => {
             this.trafficSources = data.sources || [];
+            this.referrers = data.referrers || [];
+            this.applySourceBreakdown();
             this.utmSources = (data.utmSources || []).filter((utm: any) =>
               !!utm?.source && !!utm?.medium && !!utm?.campaign
             );
@@ -2433,11 +2464,92 @@ export class DashboardOverview implements OnInit, OnDestroy {
     };
   }
 
+
+  channelLabel(channel: string): string {
+    if (channel === 'Social Media') return 'Social';
+    if (channel === 'Organic Search') return 'Search';
+    if (channel === 'Paid Search') return 'Paid';
+    return channel || '';
+  }
+
+  channelHint(channel: string): string {
+    switch (channel) {
+      case 'Direct':
+        return 'No referring site. They typed the address, used a bookmark, or the browser hid the previous page.';
+      case 'Referral':
+        return 'Another website linked here. The name on this row is that site.';
+      case 'Social Media':
+        return 'A social app, such as Facebook, WhatsApp, X, Instagram, LinkedIn, YouTube, Reddit, or TikTok.';
+      case 'Organic Search':
+        return 'A search engine, without a paid tag.';
+      case 'Paid Search':
+        return 'A paid search ad.';
+      case 'Email':
+        return 'A link in an email.';
+      default:
+        return channel;
+    }
+  }
+
+  private applySourceBreakdown(): void {
+    const detailed = this.referrers.length
+      ? this.referrers
+      : this.trafficSources.map(source => ({
+          name: source.source,
+          channel: source.source,
+          host: '',
+          visits: source.visits || 0,
+          percentage: source.percentage || 0,
+        }));
+    this.sourceRows = detailed.map((row, index) => ({
+      ...row,
+      color: this.sourceColors[index % this.sourceColors.length],
+    }));
+    const pie = this.sourceRows.length > 8
+      ? [
+          ...this.sourceRows.slice(0, 7),
+          {
+            name: 'Other',
+            channel: '',
+            host: '',
+            visits: this.sourceRows.slice(7).reduce((sum, row) => sum + (row.visits || 0), 0),
+            percentage: this.sourceRows.slice(7).reduce((sum, row) => sum + (row.percentage || 0), 0),
+            color: '#94a3b8',
+          },
+        ]
+      : this.sourceRows;
+    this.sourcePieData = {
+      labels: pie.map(row => row.name),
+      datasets: [{
+        data: pie.map(row => row.visits),
+        backgroundColor: pie.map(row => row.color),
+        borderWidth: 0,
+        hoverOffset: 4,
+      }],
+    };
+  }
+
+  /** Page-view series as an SVG polyline. Empty until at least two points exist. */
+  get pageViewSparkline(): string {
+    const values = this.pageViewsTrend.map(point => point.pageViews || 0);
+    if (values.length < 2) return '';
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const span = Math.max(max - min, 1);
+    const width = 100;
+    const height = 28;
+    return values.map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - 2 - ((value - min) / span) * (height - 4);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
   /** Compact delta for KPI chips. Full sentence stays on the tooltip. */
   formatTrendChip(value: number | null, invertPositive = false): { label: string; cssClass: string; title: string } {
     const trend = this.formatTrend(value, invertPositive);
     if (value === null) {
-      return { label: 'No comparison', cssClass: 'neutral', title: 'Not enough data in the previous period.' };
+      return { label: '—', cssClass: 'neutral', title: 'Not enough data in the previous period.' };
     }
     const sign = value > 0 ? '+' : '';
     return {

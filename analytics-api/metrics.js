@@ -21,6 +21,7 @@ const {
   percentile,
   avg,
   classifySource,
+  referrerIdentity,
   formatHistoryEvent,
   sessionIdOf,
   userIdOf,
@@ -347,6 +348,17 @@ function registerMetricRoutes(app, { db }) {
     const docs = await loadScopedEvents(col, apiKey, req, { event_name: { $in: PAGE_VIEW_EVENTS } });
     const sources = withPercentage(topCounts(docs, (d) => classifySource(d.data || {})), docs.length, 'source')
       .map((row) => ({ source: row.source, visits: row.count, percentage: row.percentage }));
+    const refMap = new Map();
+    for (const doc of docs) {
+      const id = referrerIdentity(doc.data || {});
+      const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: id.host, visits: 0 };
+      prev.visits += 1;
+      if (!prev.host && id.host) prev.host = id.host;
+      refMap.set(id.name, prev);
+    }
+    const referrers = [...refMap.values()]
+      .sort((a, b) => b.visits - a.visits)
+      .map((row) => ({ ...row, percentage: percent(row.visits, docs.length || 1) }));
     const utmMap = new Map();
     for (const doc of docs) {
       const attr = doc.data?.attribution || {};
@@ -361,6 +373,7 @@ function registerMetricRoutes(app, { db }) {
     }
     return res.json({
       sources,
+      referrers,
       utmSources: [...utmMap.values()].sort((a, b) => b.visits - a.visits),
       totalVisits: docs.length,
     });
