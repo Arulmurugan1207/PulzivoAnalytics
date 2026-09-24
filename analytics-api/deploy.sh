@@ -21,11 +21,11 @@ DEPLOY_ARGS=(
   --region "${REGION}"
   --allow-unauthenticated
   --port 8080
-  --cpu 1
-  --memory 512Mi
+  --cpu 2
+  --memory 1Gi
   --concurrency 80
   --timeout 60s
-  --min-instances 0
+  --min-instances 1
   --max-instances 5
   --cpu-boost
   --set-env-vars "NODE_ENV=production,MONGODB_DB=analytics,API_KEYS_COLLECTION=api_keys,EVENTS_COLLECTION=events"

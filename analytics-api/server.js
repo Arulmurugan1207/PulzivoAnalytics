@@ -19,6 +19,7 @@ const { buildDateFilter, toDate, mergeUtmAttribution } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
 const { isCrawlerUserAgent } = require('./bots');
 const { loadExclusionRules, isExcludedEvent } = require('./owner-exclusion');
+const { ensureEventIndexes } = require('./indexes');
 
 const DEFAULT_ORIGINS = [
   'https://tabletennistube.com',
@@ -539,6 +540,13 @@ async function start() {
     console.error('[analytics-api] Mongo connect failed; serving ingest without persist', err);
   }
   const app = createApp({ db });
+  if (db) {
+    // Do not await: index builds must not hold the startup probe.
+    // createIndex is idempotent and does not rewrite event documents.
+    ensureEventIndexes(db).catch((err) => {
+      console.error('[analytics-api] ensure indexes failed', err);
+    });
+  }
   const server = app.listen(port, host, () => {
     console.log(`[analytics-api] listening on ${host}:${port}`);
   });
