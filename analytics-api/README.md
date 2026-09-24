@@ -25,12 +25,14 @@ Live URL: `https://pulzivo-analytics-api-167308220305.us-east1.run.app`. Tracker
 
 Auth / billing / users / API-key CRUD stay on App Engine. Point only `environment.analyticsApiUrl` (dashboard metric clients) at this service — do **not** point `environment.apiUrl` here.
 
-CORS allowlist:
+CORS allowlist (OPTIONS preflight and GET/POST on every `/analytics/*` route):
 
-- `https://tabletennistube.com`
-- `https://www.tabletennistube.com`
-- `https://pulzivo.com`
-- `https://www.pulzivo.com`
+- `https://pulzivo.com`, `http://pulzivo.com`
+- `https://www.pulzivo.com`, `http://www.pulzivo.com`
+- `https://tabletennistube.com`, `https://www.tabletennistube.com`
+- `http://localhost:4201` and `http://127.0.0.1:4201` (`ng serve`), plus any other `localhost` / `127.0.0.1` port
+
+`Access-Control-Allow-Origin` is the request origin when it is allowlisted. A missing `apiKey` is still `400` on metric reads. `CORS_ORIGINS` adds origins; it does not remove the list above.
 
 ## Deploy (GCP project `node-server-apis`)
 
@@ -54,7 +56,7 @@ gcloud run deploy pulzivo-analytics-api \
   --set-secrets "MONGODB_URI=analytics-mongodb-uri:latest"
 ```
 
-CORS origins default in `server.js` (tabletennistube.com / pulzivo.com + www). Override with `CORS_ORIGINS` using gcloud's `^@^` delimiter if needed.
+CORS origins default in `server.js`. Extra origins can be added with `CORS_ORIGINS` (gcloud `^@^` delimiter). That variable does not remove `pulzivo.com` or localhost.
 
 `MONGODB_URI` must be the **same prod Mongo** used by App Engine service `analytics` (database `analytics`). Create the Secret Manager secret if it does not exist:
 

@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createApp, DEFAULT_ORIGINS, normalizeEvents, buildDateFilter } = require('./server');
+const { createApp, DEFAULT_ORIGINS, parseOrigins, normalizeEvents, buildDateFilter } = require('./server');
 const { createMemoryDb, matches } = require('./memory-db');
 
 function listen(app) {
@@ -42,7 +42,7 @@ test('OPTIONS /analytics/log is 204 with CORS for tabletennistube.com', async ()
   });
 });
 
-test('OPTIONS /analytics/log allows all four production origins', async () => {
+test('OPTIONS /analytics/log allows marketing and local dashboard origins', async () => {
   await withServer(createApp(), async (url) => {
     for (const origin of DEFAULT_ORIGINS) {
       const res = await fetch(`${url}/analytics/log`, {
@@ -58,17 +58,102 @@ test('OPTIONS /analytics/log allows all four production origins', async () => {
   });
 });
 
+test('OPTIONS and GET /analytics/* allow pulzivo.com and keep apiKey required', async () => {
+  const paths = [
+    '/analytics/metrics',
+    '/analytics/page-views',
+    '/analytics/session-stats',
+    '/analytics/conversion-funnel',
+    '/analytics/geographic',
+    '/analytics/device-breakdown',
+    '/analytics/top-pages',
+  ];
+  const db = createMemoryDb({ events: tttDocs() });
+  await withServer(createApp({ db }), async (url) => {
+    for (const path of paths) {
+      const preflight = await fetch(`${url}${path}?apiKey=PULZ-PRD-TTT`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://pulzivo.com',
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'authorization',
+        },
+      });
+      assert.equal(preflight.status, 204, path);
+      assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://pulzivo.com', path);
+      const allowHeaders = (preflight.headers.get('access-control-allow-headers') || '').toLowerCase();
+      assert.match(allowHeaders, /authorization/, path);
+
+      const missingKey = await fetch(`${url}${path}`, {
+        headers: { Origin: 'https://pulzivo.com', Authorization: 'Bearer session' },
+      });
+      assert.equal(missingKey.status, 400, path);
+      assert.equal(missingKey.headers.get('access-control-allow-origin'), 'https://pulzivo.com', path);
+      const missingBody = await missingKey.json();
+      assert.equal(missingBody.error, 'apiKey query param required');
+
+      const authed = await fetch(`${url}${path}?apiKey=PULZ-PRD-TTT`, {
+        headers: { Origin: 'https://pulzivo.com', Authorization: 'Bearer session' },
+      });
+      assert.equal(authed.status, 200, path);
+      assert.equal(authed.headers.get('access-control-allow-origin'), 'https://pulzivo.com', path);
+    }
+
+    const otherKey = await fetch(`${url}/analytics/metrics?apiKey=PULZ-PRD-OTHER`, {
+      headers: { Origin: 'https://pulzivo.com' },
+    });
+    assert.equal(otherKey.status, 200);
+    assert.equal((await otherKey.json()).totalPageViews, 0);
+  });
+});
+
+test('OPTIONS /analytics/* allows http pulzivo and ng serve loopback origins', async () => {
+  const origins = [
+    'http://pulzivo.com',
+    'http://www.pulzivo.com',
+    'https://www.pulzivo.com',
+    'http://localhost:4201',
+    'http://127.0.0.1:4201',
+    'http://localhost:4300',
+  ];
+  await withServer(createApp(), async (url) => {
+    for (const origin of origins) {
+      const res = await fetch(`${url}/analytics/geographic`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: origin,
+          'Access-Control-Request-Method': 'GET',
+          'Access-Control-Request-Headers': 'authorization,content-type',
+        },
+      });
+      assert.equal(res.status, 204, origin);
+      assert.equal(res.headers.get('access-control-allow-origin'), origin, origin);
+    }
+  });
+});
+
+test('parseOrigins keeps marketing origins when CORS_ORIGINS is partial', () => {
+  const origins = parseOrigins('https://extra.example');
+  assert.ok(origins.includes('https://pulzivo.com'));
+  assert.ok(origins.includes('http://pulzivo.com'));
+  assert.ok(origins.includes('https://www.pulzivo.com'));
+  assert.ok(origins.includes('http://www.pulzivo.com'));
+  assert.ok(origins.includes('https://extra.example'));
+});
+
 test('OPTIONS /analytics/log does not reflect unknown origins', async () => {
   await withServer(createApp(), async (url) => {
-    const res = await fetch(`${url}/analytics/log`, {
-      method: 'OPTIONS',
-      headers: {
-        Origin: 'https://evil.example',
-        'Access-Control-Request-Method': 'POST',
-      },
-    });
-    assert.equal(res.status, 204);
-    assert.equal(res.headers.get('access-control-allow-origin'), null);
+    for (const path of ['/analytics/log', '/analytics/metrics', '/analytics/conversion-funnel']) {
+      const res = await fetch(`${url}${path}`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://evil.example',
+          'Access-Control-Request-Method': 'GET',
+        },
+      });
+      assert.equal(res.status, 204, path);
+      assert.equal(res.headers.get('access-control-allow-origin'), null, path);
+    }
   });
 });
 

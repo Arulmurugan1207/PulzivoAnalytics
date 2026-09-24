@@ -41,6 +41,8 @@ import {
   PageVital
 } from '../../../services/analytics-data.service';
 import { AnalyticsAPIService } from '../../../services/analytics-api.service';
+import { metricReadFailureMessage } from '../../../services/analytics-unreachable';
+import { environment } from '../../../../environments/environment';
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
@@ -2393,16 +2395,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   private metricError(summary: string, err: unknown): string {
     const status = err instanceof HttpErrorResponse ? err.status : 0;
-    if (status === 0) {
-      return `${summary} The analytics API did not respond. Start the dashboard with npm start so /analytics is proxied to Cloud Run.`;
-    }
-    if (status === 401 || status === 403) {
-      return `${summary} The metrics API returned ${status} for this API key. Sign-in uses the auth server; metric reads use the selected key.`;
-    }
-    if (status) {
-      return `${summary} The metrics API returned ${status}.`;
-    }
-    return summary;
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    return metricReadFailureMessage(summary, status, {
+      production: environment.production,
+      hostname,
+    });
   }
 
   get selectedSiteName(): string {

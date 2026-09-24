@@ -57,6 +57,6 @@ spec:
               value: api_keys
             - name: EVENTS_COLLECTION
               value: events
-            # CORS defaults in server.js: tabletennistube.com + pulzivo.com (+ www).
+            # CORS defaults in server.js: pulzivo.com (http+https, www), tabletennistube.com, localhost.
             # Prod Mongo URI must match AE analytics. Inject at deploy:
             #   --set-secrets=MONGODB_URI=analytics-mongodb-uri:latest
