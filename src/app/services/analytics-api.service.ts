@@ -6,6 +6,7 @@ import { APIKeyManagementService } from './api-key-management.service';
 import { UserAPIKeysResponse, APIKey } from './api-key.model';
 import { ApiKeysService } from './api-keys.service';
 import { environment } from '../../environments/environment';
+import { analyticsUnreachableConsole } from './analytics-unreachable';
 
 export interface DateRange {
   startDate: Date;
@@ -39,9 +40,8 @@ export class AnalyticsAPIService {
     const status = error?.status ?? 0;
     const url = error?.url || '';
     if (status === 0) {
-      console.warn(
-        `Analytics API unreachable${url ? `: ${url}` : ''}. npm start proxies /analytics to Cloud Run.`
-      );
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+      console.warn(analyticsUnreachableConsole(url, { production: environment.production, hostname }));
     } else {
       console.warn(`Analytics API returned ${status}${url ? ` for ${url}` : ''}.`);
     }

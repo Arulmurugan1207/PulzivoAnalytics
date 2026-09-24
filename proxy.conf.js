@@ -3,9 +3,8 @@
  *
  * Development builds call same-origin `/analytics/*`. This forwards those
  * requests to Cloud Run, which authorizes them with the `apiKey` query param.
- * The browser must not call Cloud Run directly: its CORS allowlist does not
- * include localhost, and a signed-in session sends `Authorization`, which
- * forces a preflight that host does not answer for this origin.
+ * Cloud Run also allowlists localhost for direct calls. The proxy stays the
+ * dev path so metric reads remain same-origin while auth stays on port 3004.
  *
  * Auth / API-key CRUD stay on `environment.apiUrl` and are not proxied.
  *

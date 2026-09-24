@@ -23,6 +23,7 @@ jobs:
         run: |
           npm run test:server
           npm run test:copy
+          node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts
       - name: Analytics API routes
         run: |
           npm ci --prefix analytics-api

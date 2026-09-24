@@ -22,7 +22,12 @@ const DEFAULT_ORIGINS = [
   'https://tabletennistube.com',
   'https://www.tabletennistube.com',
   'https://pulzivo.com',
+  'http://pulzivo.com',
   'https://www.pulzivo.com',
+  'http://www.pulzivo.com',
+  // `ng serve` (angular.json port 4201). Other loopback ports are allowed too.
+  'http://localhost:4201',
+  'http://127.0.0.1:4201',
 ];
 
 const CORS_HEADERS = [
@@ -38,11 +43,28 @@ const CORS_HEADERS = [
 ];
 
 function parseOrigins(raw) {
-  if (!raw || !String(raw).trim()) return [...DEFAULT_ORIGINS];
-  return String(raw)
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const fromEnv = !raw || !String(raw).trim()
+    ? []
+    : String(raw).split(',').map((s) => s.trim()).filter(Boolean);
+  // Marketing origins stay allowed even if CORS_ORIGINS is a partial override.
+  return [...new Set([...DEFAULT_ORIGINS, ...fromEnv])];
+}
+
+function isLoopbackOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+}
+
+function originAllowed(origin, allowedOrigins) {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  return isLoopbackOrigin(origin);
 }
 
 function mongoUri() {
@@ -145,20 +167,32 @@ function createApp(options = {}) {
     next();
   });
 
-  const corsOptions = {
-    origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.has(origin)) return callback(null, origin);
-      return callback(null, false);
-    },
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: CORS_HEADERS,
-    optionsSuccessStatus: 204,
-    maxAge: 86400,
-    credentials: false,
-  };
-
-  app.use(cors(corsOptions));
+  // Dynamic options so preflight echoes whatever headers the dashboard sends
+  // (Authorization from the auth interceptor, plus the fixed list).
+  app.use(cors((req, callback) => {
+    const origin = req.headers.origin;
+    const allowed = originAllowed(origin, allowedOrigins);
+    const requested = String(req.headers['access-control-request-headers'] || '')
+      .split(',')
+      .map((header) => header.trim())
+      .filter(Boolean);
+    const seen = new Set(CORS_HEADERS.map((header) => header.toLowerCase()));
+    const allowedHeaders = [...CORS_HEADERS];
+    for (const header of requested) {
+      if (!seen.has(header.toLowerCase())) {
+        seen.add(header.toLowerCase());
+        allowedHeaders.push(header);
+      }
+    }
+    callback(null, {
+      origin: allowed,
+      methods: ['GET', 'POST', 'OPTIONS'],
+      allowedHeaders,
+      optionsSuccessStatus: 204,
+      maxAge: 86400,
+      credentials: false,
+    });
+  }));
 
   app.use(express.json({ limit: '1mb' }));
   app.use(express.text({ type: ['text/plain', 'text/*'], limit: '1mb' }));
@@ -171,15 +205,19 @@ function createApp(options = {}) {
     validate: { trustProxy: false },
   }));
 
-  // Always ACK preflight with 204 (AE analytics). Reflect ACAO only for allowlisted origins.
-  app.options('/analytics/log', (req, res) => {
+  // cors() ends allowed preflights. This catches every other OPTIONS (including
+  // /analytics/* when the origin is not allowlisted) so the browser gets 204
+  // instead of an HTML 404 with no CORS headers.
+  app.use((req, res, next) => {
+    if (req.method !== 'OPTIONS') return next();
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.has(origin)) {
+    if (origin && originAllowed(origin, allowedOrigins)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', CORS_HEADERS.join(','));
+    res.setHeader('Access-Control-Max-Age', '86400');
     res.status(204).end();
   });
 
@@ -473,4 +511,13 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createApp, start, parseOrigins, DEFAULT_ORIGINS, normalizeEvents, buildDateFilter, toDate };
+module.exports = {
+  createApp,
+  start,
+  parseOrigins,
+  originAllowed,
+  DEFAULT_ORIGINS,
+  normalizeEvents,
+  buildDateFilter,
+  toDate,
+};
