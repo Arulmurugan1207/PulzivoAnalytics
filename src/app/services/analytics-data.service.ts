@@ -223,14 +223,6 @@ export class AnalyticsDataService {
         avgScrollDepth: data.avgScrollDepth,
         avgTimeOnPage: data.avgTimeOnPage,
         avgPagesPerSession: data.avgPagesPerSession
-      })),
-      catchError(() => of({
-        liveVisitors: 0,
-        totalPageViews: 0,
-        conversionRate: 0,
-        bounceRate: 0,
-        avgSessionDuration: 0,
-        newVsReturning: { new: 0, returning: 0 }
       }))
     );
   }
@@ -286,15 +278,7 @@ export class AnalyticsDataService {
           mobilePercentage: 0,
           tabletPercentage: 0
         };
-      }),
-      catchError(() => of({
-        desktop: 0,
-        mobile: 0,
-        tablet: 0,
-        desktopPercentage: 0,
-        mobilePercentage: 0,
-        tabletPercentage: 0
-      }))
+      })
     );
   }
 
@@ -314,11 +298,7 @@ export class AnalyticsDataService {
           return { ...p, path };
         }) : [],
         total: data?.total ?? 0
-      })),
-      catchError(() => {
-        console.warn('Failed to load top pages data');
-        return of({ pages: [], total: 0 });
-      })
+      }))
     );
   }
 
@@ -335,8 +315,7 @@ export class AnalyticsDataService {
 
         // Fallback for old format or empty data
         return Array.isArray(data) ? data : [];
-      }),
-      catchError(() => of([]))
+      })
     );
   }
 
@@ -353,8 +332,7 @@ export class AnalyticsDataService {
 
         // Fallback for old format or empty data
         return Array.isArray(data) ? data : [];
-      }),
-      catchError(() => of([]))
+      })
     );
   }
 
@@ -463,8 +441,7 @@ export class AnalyticsDataService {
         current:  data?.current  || {},
         previous: data?.previous || {},
         trends:   data?.trends   || {}
-      })),
-      catchError(() => of({ current: {}, previous: {}, trends: {} }))
+      }))
     );
   }
 
@@ -538,8 +515,7 @@ export class AnalyticsDataService {
         avgSessionDuration:  data.avgSessionDuration  ?? 0,
         topEntryPages:       data.topEntryPages        ?? [],
         topExitPages:        data.topExitPages         ?? []
-      })),
-      catchError(() => of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] }))
+      }))
     );
   }
 

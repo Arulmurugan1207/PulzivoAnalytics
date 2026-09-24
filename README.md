@@ -4,13 +4,24 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+`npm start` runs the dashboard on **http://localhost:4201/** with the development environment.
+
+Auth, billing, and API-key CRUD use `http://localhost:3004` (`environment.apiUrl`). Keep that local service running to sign in and load API keys.
+
+Dashboard metric reads (`/analytics/metrics`, page views, devices, geography, and the rest) stay on the dev-server origin. `proxy.conf.js` forwards them to Cloud Run `pulzivo-analytics-api`, which accepts the selected `apiKey` and ignores the login JWT. Do not point those reads at `localhost:3004`: that host returns 401 for `/analytics/*`, and the overview then shows “No traffic yet” even when Cloud Run has page views.
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:4201/dashboard/overview`, sign in, and select a site.
+
+To serve metrics from a local `analytics-api` (only data in that process’s MongoDB) instead of Cloud Run:
+
+```bash
+cd analytics-api && npm ci && PORT=8080 HOST=127.0.0.1 npm start
+ANALYTICS_API_PROXY_TARGET=http://127.0.0.1:8080 npm start
+```
 
 ## Code scaffolding
 

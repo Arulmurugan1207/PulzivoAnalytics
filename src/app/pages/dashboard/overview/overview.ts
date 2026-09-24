@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import * as echarts from 'echarts';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
@@ -756,8 +756,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
           this.loadingStates.metrics = false;
           this.cdr.markForCheck();
         },
-        error: () => {
-          this.loadErrors.metrics = 'Couldn’t load metrics for this site.';
+        error: (err) => {
+          this.loadErrors.metrics = this.metricError('Couldn’t load metrics for this site.', err);
           this.metricsSettled = true;
           this.loadingStates.metrics = false;
           this.cdr.markForCheck();
@@ -776,9 +776,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
           this.loadingStates.pageViews = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err) => {
           this.pageViewsTrend = [];
-          this.loadErrors.pageViews = 'Couldn’t load the page view chart.';
+          this.loadErrors.pageViews = this.metricError('Couldn’t load the page view chart.', err);
           this.loadingStates.pageViews = false;
           this.cdr.markForCheck();
         }
@@ -796,8 +796,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
           this.loadingStates.devices = false;
           this.cdr.markForCheck();
         },
-        error: () => {
-          this.loadErrors.devices = 'Couldn’t load the device breakdown.';
+        error: (err) => {
+          this.loadErrors.devices = this.metricError('Couldn’t load the device breakdown.', err);
           this.loadingStates.devices = false;
           this.cdr.markForCheck();
         }
@@ -819,9 +819,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
           this.loadingStates.geography = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err) => {
           this.geoData = [];
-          this.loadErrors.geography = 'Couldn’t load country data.';
+          this.loadErrors.geography = this.metricError('Couldn’t load country data.', err);
           this.loadingStates.geography = false;
           this.cdr.markForCheck();
         }
@@ -876,8 +876,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.updateInterval = setInterval(() => {
       if (this.selectedApiKey) {
         this.subscriptions.add(
-          this.analyticsAPIService.getRealtimeMetrics().subscribe(data => {
-            if (data && Object.keys(data).length > 0) { this.metrics = data; this.cdr.markForCheck(); }
+          this.analyticsAPIService.getRealtimeMetrics().subscribe({
+            next: data => {
+              if (data && Object.keys(data).length > 0) { this.metrics = data; this.cdr.markForCheck(); }
+            },
+            error: () => { /* keep the last successful metrics on a background refresh */ }
           })
         );
       }
@@ -1142,8 +1145,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
-            this.loadErrors.metrics = 'Couldn’t load metrics for this site.';
+          error: (err) => {
+            this.loadErrors.metrics = this.metricError('Couldn’t load metrics for this site.', err);
             this.metricsSettled = true;
             this.loadingStates.metrics = false;
             this.cdr.markForCheck();
@@ -1205,9 +1208,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
             this.pageViewsTrend = [];
-            this.loadErrors.pageViews = 'Couldn’t load the page view chart.';
+            this.loadErrors.pageViews = this.metricError('Couldn’t load the page view chart.', err);
             this.loadingStates.pageViews = false;
             this.cdr.markForCheck();
             resolve();
@@ -1229,8 +1232,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
-            this.loadErrors.devices = 'Couldn’t load the device breakdown.';
+          error: (err) => {
+            this.loadErrors.devices = this.metricError('Couldn’t load the device breakdown.', err);
             this.loadingStates.devices = false;
             this.cdr.markForCheck();
             resolve();
@@ -1253,9 +1256,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
             this.geoData = [];
-            this.loadErrors.geography = 'Couldn’t load country data.';
+            this.loadErrors.geography = this.metricError('Couldn’t load country data.', err);
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();
@@ -1278,9 +1281,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
             this.topPages = [];
-            this.loadErrors.topPages = 'Couldn’t load top pages.';
+            this.loadErrors.topPages = this.metricError('Couldn’t load top pages.', err);
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
@@ -1301,8 +1304,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
-            this.loadErrors.sessions = 'Couldn’t load sessions.';
+          error: (err) => {
+            this.loadErrors.sessions = this.metricError('Couldn’t load sessions.', err);
             this.loadingStates.sessionStats = false;
             this.cdr.markForCheck();
             resolve();
@@ -1482,7 +1485,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.loadingStates.topPages = false;
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err) => {
+        this.loadErrors.topPages = this.metricError('Couldn’t load top pages.', err);
         this.loadingStates.topPages = false;
         this.cdr.markForCheck();
       }
@@ -2350,6 +2354,20 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   getRandomMetricValue(): number {
     return Math.round(Math.random() * 10000 + 1000);
+  }
+
+  private metricError(summary: string, err: unknown): string {
+    const status = err instanceof HttpErrorResponse ? err.status : 0;
+    if (status === 0) {
+      return `${summary} The analytics API did not respond. Start the dashboard with npm start so /analytics is proxied to Cloud Run.`;
+    }
+    if (status === 401 || status === 403) {
+      return `${summary} The metrics API returned ${status} for this API key. Sign-in uses the auth server; metric reads use the selected key.`;
+    }
+    if (status) {
+      return `${summary} The metrics API returned ${status}.`;
+    }
+    return summary;
   }
 
   get selectedSiteName(): string {

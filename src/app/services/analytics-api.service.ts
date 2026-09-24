@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { APIKeyManagementService } from './api-key-management.service';
@@ -34,6 +34,20 @@ export class AnalyticsAPIService {
     return `&startDate=${dateRange.startDate.toISOString()}&endDate=${dateRange.endDate.toISOString()}`;
   }
 
+  /** Keep the HTTP error so the dashboard can show a failure instead of an empty site. */
+  private failMetricRead(error: HttpErrorResponse): Observable<never> {
+    const status = error?.status ?? 0;
+    const url = error?.url || '';
+    if (status === 0) {
+      console.warn(
+        `Analytics API unreachable${url ? `: ${url}` : ''}. npm start proxies /analytics to Cloud Run.`
+      );
+    } else {
+      console.warn(`Analytics API returned ${status}${url ? ` for ${url}` : ''}.`);
+    }
+    return throwError(() => error);
+  }
+
   /**
    * Fetch real analytics data from your backend
    * Replace these endpoints with your actual API endpoints
@@ -44,10 +58,7 @@ export class AnalyticsAPIService {
       return of({});
     }
     return this.http.get(`${this.apiUrl}/analytics/metrics?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of({});
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -57,19 +68,13 @@ export class AnalyticsAPIService {
       return of([]);
     }
     return this.http.get(`${this.apiUrl}/analytics/page-views?range=${timeRange}&apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of([]);
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
   getUserEvents(userId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/analytics/users/${userId}/events`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available');
-        return of([]);
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -79,10 +84,7 @@ export class AnalyticsAPIService {
       return of({ steps: [] });
     }
     return this.http.get(`${this.apiUrl}/analytics/conversion-funnel?apiKey=${selectedApiKey}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of({ steps: [] });
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -92,10 +94,7 @@ export class AnalyticsAPIService {
       return of([]);
     }
     return this.http.get(`${this.apiUrl}/analytics/geographic?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of([]);
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -105,10 +104,7 @@ export class AnalyticsAPIService {
       return of({});
     }
     return this.http.get(`${this.apiUrl}/analytics/device-breakdown?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of({});
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -120,10 +116,7 @@ export class AnalyticsAPIService {
     const periodParam = period ? `&period=${period}` : '';
     // Backend route is /analytics/page-views (not page-views-trend)
     return this.http.get(`${this.apiUrl}/analytics/page-views?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}${periodParam}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of([]);
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -133,10 +126,7 @@ export class AnalyticsAPIService {
       return of([]);
     }
     return this.http.get(`${this.apiUrl}/analytics/funnel-events/${stepEvent}?limit=${limit}&apiKey=${selectedApiKey}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of([]);
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -146,10 +136,7 @@ export class AnalyticsAPIService {
       return of({ pages: [], total: 0, totalPageViews: 0 });
     }
     return this.http.get(`${this.apiUrl}/analytics/top-pages?apiKey=${selectedApiKey}&page=${page}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => {
-        console.warn('API endpoint not available or no API key selected');
-        return of({ pages: [], total: 0, totalPageViews: 0 });
-      })
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -157,7 +144,7 @@ export class AnalyticsAPIService {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({ current: {}, previous: {}, trends: {} });
     return this.http.get(`${this.apiUrl}/analytics/metrics-comparison?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => of({ current: {}, previous: {}, trends: {} }))
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -377,7 +364,7 @@ export class AnalyticsAPIService {
     if (!selectedApiKey) return of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] });
 
     return this.http.get(`${this.apiUrl}/analytics/session-stats?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => of({ totalSessions: 0, avgPagesPerSession: 0, avgSessionDuration: 0, topEntryPages: [], topExitPages: [] }))
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 
@@ -461,7 +448,7 @@ export class AnalyticsAPIService {
     if (!selectedApiKey) return of({ geographic: [] });
 
     return this.http.get(`${this.apiUrl}/analytics/geographic?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
-      catchError(() => of({ geographic: [] }))
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
     );
   }
 }
