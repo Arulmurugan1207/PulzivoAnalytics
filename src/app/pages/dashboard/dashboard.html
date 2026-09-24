@@ -162,7 +162,12 @@
     <!-- Top bar -->
     <header class="topbar">
       <div class="topbar-left">
-        <h1 class="page-title">{{ getTabTitle() }}</h1>
+        <div class="page-heading">
+          <h1 class="page-title">{{ getTabTitle() }}</h1>
+          @if (selectedSiteContext) {
+            <p class="page-context">{{ selectedSiteContext }}</p>
+          }
+        </div>
       </div>
       <div class="topbar-right">
         @if (availableApiKeys.length > 0) {
@@ -193,7 +198,7 @@
           <i class="pi pi-home"></i>
           <span class="topbar-home-label">pulzivo.com</span>
         </button>
-        <span class="date-text">{{ getTodayInfo() }}</span>
+        <span class="date-text">Today · {{ getTodayInfo() }}</span>
         <div class="user-menu" (click)="toggleUserDropdown($event)">
           <div class="user-avatar">{{ (user?.firstname || 'U')[0].toUpperCase() }}</div>
           <div class="user-greeting">

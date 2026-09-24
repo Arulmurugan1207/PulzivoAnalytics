@@ -4,13 +4,58 @@ This project was generated using [Angular CLI](https://github.com/angular/angula
 
 ## Development server
 
-To start a local development server, run:
+`npm start` runs the dashboard on **http://localhost:4201/** with the development environment.
+
+Auth, billing, and API-key CRUD use `http://localhost:3004` (`environment.apiUrl`). Keep that local service running to sign in and load API keys.
+
+Dashboard metric reads (`/analytics/metrics`, page views, devices, geography, and the rest) stay on the dev-server origin. `proxy.conf.js` forwards them to Cloud Run `pulzivo-analytics-api`, which accepts the selected `apiKey` and ignores the login JWT. Do not point those reads at `localhost:3004`: that host returns 401 for `/analytics/*`, and the overview then shows “No traffic yet” even when Cloud Run has page views.
 
 ```bash
-ng serve
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Open `http://localhost:4201/dashboard/overview`, sign in, and select a site.
+
+To serve metrics from a local `analytics-api` (only data in that process’s MongoDB) instead of Cloud Run:
+
+```bash
+cd analytics-api && npm ci
+MONGODB_URI='mongodb://127.0.0.1:27017/analytics-dev' MONGODB_DB=analytics-dev \
+  PORT=8080 HOST=127.0.0.1 npm start
+```
+
+In another terminal, from the repo root:
+
+```bash
+ANALYTICS_API_PROXY_TARGET=http://127.0.0.1:8080 npm start
+```
+
+`MONGODB_URI` for that process must be the local database. Do not point it at the Cloud Run / App Engine production URI.
+
+### Copy production analytics into local Mongo (read-only on prod)
+
+`scripts/copy-prod-analytics-readonly.sh` exports `events` and `api_keys` from production and restores them only into a MongoDB on `localhost` / `127.0.0.1`. It exits before any dump if the two URIs match, if the write target is not local, or if the source URI is local.
+
+This environment does not include `PROD_MONGODB_URI`, `gcloud`, or `mongodump`. Do not guess the connection string. On a machine that can read the secret:
+
+```bash
+# Read the prod URI. Do not print it into tickets or commit it.
+export PROD_MONGODB_URI="$(gcloud secrets versions access latest \
+  --secret=analytics-mongodb-uri --project=node-server-apis)"
+export LOCAL_MONGODB_URI='mongodb://127.0.0.1:27017'
+export LOCAL_MONGODB_DB='analytics-dev'
+# Optional. Comma-separated keys. Omit to copy every key in the analytics DB.
+# export API_KEYS='PULZ-...'
+
+# Local Mongo must already be listening, for example:
+# docker run -d --name pulzivo-analytics-dev -p 27017:27017 mongo:7
+
+./scripts/copy-prod-analytics-readonly.sh
+```
+
+Requires MongoDB Database Tools (`mongodump`, `mongorestore`). The script never passes the production URI to `mongorestore`.
+
+After the copy, start `analytics-api` with `MONGODB_URI` pointing at `analytics-dev` and `ANALYTICS_API_PROXY_TARGET=http://127.0.0.1:8080`, as above. Sign in still uses the auth service on port 3004.
 
 ## Code scaffolding
 

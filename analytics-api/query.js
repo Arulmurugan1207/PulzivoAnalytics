@@ -352,14 +352,60 @@ function classifySource(data = {}) {
     if (/google|bing|duckduckgo|yahoo|baidu/.test(s)) {
       return utmMedium === 'cpc' ? 'Paid Search' : 'Organic Search';
     }
-    if (/facebook|twitter|instagram|linkedin|reddit|tiktok|youtube|t\.co/.test(s)) return 'Social Media';
+    if (SOCIAL_HOST.test(s)) return 'Social Media';
     return 'Referral';
   }
   const ref = attr.referrer_domain || hostnameOf(attr.referrer || data.referrer);
   if (!ref) return 'Direct';
   if (/google|bing|duckduckgo|yahoo|baidu/.test(ref)) return 'Organic Search';
-  if (/facebook|twitter|instagram|linkedin|reddit|tiktok|youtube|t\.co/.test(ref)) return 'Social Media';
+  if (SOCIAL_HOST.test(ref)) return 'Social Media';
   return 'Referral';
+}
+
+const SOCIAL_HOST = /facebook|fb\.me|fb\.com|twitter|instagram|linkedin|reddit|tiktok|youtube|t\.co|x\.com|whatsapp|wa\.me|telegram|t\.me|snapchat|pinterest|threads\.net/;
+
+const NAMED_REFERRERS = [
+  [/(^|\.)facebook\.com$|^fb\.com$|^fb\.me$/, 'Facebook'],
+  [/(^|\.)whatsapp\.com$|^wa\.me$/, 'WhatsApp'],
+  [/(^|\.)twitter\.com$|^t\.co$|^x\.com$/, 'X'],
+  [/(^|\.)instagram\.com$/, 'Instagram'],
+  [/(^|\.)linkedin\.com$|^lnkd\.in$/, 'LinkedIn'],
+  [/(^|\.)youtube\.com$|^youtu\.be$/, 'YouTube'],
+  [/(^|\.)reddit\.com$|^redd\.it$/, 'Reddit'],
+  [/(^|\.)tiktok\.com$/, 'TikTok'],
+  [/(^|\.)pinterest\.com$|^pin\.it$/, 'Pinterest'],
+  [/(^|\.)snapchat\.com$/, 'Snapchat'],
+  [/(^|\.)telegram\.org$|^t\.me$/, 'Telegram'],
+  [/(^|\.)threads\.net$/, 'Threads'],
+  [/(^|\.)google\.[a-z.]+$/, 'Google'],
+  [/(^|\.)bing\.com$/, 'Bing'],
+  [/(^|\.)duckduckgo\.com$/, 'DuckDuckGo'],
+  [/(^|\.)yahoo\.[a-z.]+$/, 'Yahoo'],
+  [/(^|\.)baidu\.com$/, 'Baidu'],
+  [/news\.ycombinator\.com$/, 'Hacker News'],
+  [/(^|\.)github\.com$/, 'GitHub'],
+];
+
+function namedReferrer(value) {
+  const host = String(value || '').replace(/^www\./, '').toLowerCase();
+  if (!host) return '';
+  for (const [pattern, name] of NAMED_REFERRERS) {
+    if (pattern.test(host)) return name;
+  }
+  return '';
+}
+
+/** The actual place a visit came from, plus the bucket that place belongs to. */
+function referrerIdentity(data = {}) {
+  const attr = data.attribution && typeof data.attribution === 'object' ? data.attribution : {};
+  const channel = classifySource(data);
+  const host = String(attr.referrer_domain || hostnameOf(attr.referrer || data.referrer) || '').replace(/^www\./, '');
+  const utm = String(attr.utm_source || data.utm_source || '').trim();
+  if (channel === 'Direct' && !host && !utm) {
+    return { name: 'Direct', channel: 'Direct', host: '' };
+  }
+  const name = namedReferrer(host) || namedReferrer(utm) || host || utm || channel;
+  return { name, channel, host };
 }
 
 function hostnameOf(url) {
@@ -450,6 +496,7 @@ module.exports = {
   percentile,
   avg,
   classifySource,
+  referrerIdentity,
   hostnameOf,
   formatHistoryEvent,
   sessionIdOf,

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRe
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import * as echarts from 'echarts';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
@@ -26,6 +26,7 @@ import {
   DateRange,
   ConversionFunnel,
   TrafficSource,
+  ReferrerDetail,
   UtmSource,
   BrowserData,
   WebVitals,
@@ -110,18 +111,35 @@ export class DashboardOverview implements OnInit, OnDestroy {
   topPages: PageData[] = [];
   topPagesTotal = 0;
   topPagesPage = 1;
-  topPagesRows = 10;
+  topPagesRows = 5;
   entryPages: PageData[] = [];
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
   geoDataPage = 1;
-  geoDataRows = 10;
+  geoDataRows = 5;
   mapOptions: any = null;
   mapReady = false;
   private worldGeoJson: any = null;
   pageViewsTrend: PageViewsTrendData[] = [];
   realtimeEvents: RealtimeEvent[] = [];
   trafficSources: TrafficSource[] = [];
+  referrers: ReferrerDetail[] = [];
+  sourceRows: Array<ReferrerDetail & { color: string }> = [];
+  sourcePieData: any = { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] };
+  sourcePieOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) => ` ${ctx.label}: ${Number(ctx.parsed || 0).toLocaleString()} visits`
+        }
+      }
+    },
+    cutout: '62%'
+  };
+  private readonly sourceColors = ['#1d9bf0', '#7856ff', '#00ba7c', '#f59e0b', '#f4212e', '#0ea5e9', '#8b5cf6', '#64748b', '#14b8a6', '#e11d48'];
   utmSources: UtmSource[] = [];
   browsers: BrowserData[] = [];
   operatingSystems: BrowserData[] = [];
@@ -210,6 +228,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
     technical: false,
   };
 
+  /** False until the first metrics response for the current API key. */
+  metricsSettled = false;
+
+  /** Plain-language load failures. Empty string means the last request succeeded. */
+  loadErrors: Partial<Record<'metrics' | 'pageViews' | 'devices' | 'geography' | 'topPages' | 'sessions', string>> = {};
+
   // Loading states
   loadingStates = {
     metrics: false,
@@ -251,7 +275,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   @ViewChild('datePopover') datePopover!: Popover;
   dateRangeValue: Date[] = [];
   tempDateRange: Date[] = [];
-  activePreset = 'Last 7 Days';
+  activePreset = 'Last 30 Days';
   dateRangeLabel = '';
 
   // Trend period: auto-set based on date range, can be overridden manually
@@ -326,12 +350,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     console.log('🚀 Overview: Component initializing...');
     
-    // Initialize default date range: last 7 days
+    // Last 30 days. This Month stays in the preset list.
+    const openingPreset = this.activePreset;
+    const openingRange = this.presets.find(preset => preset.label === openingPreset)?.range()
+      ?? this.getPresetRange('last30');
     this.dateRangeSubject.next({
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      endDate: new Date()
+      startDate: openingRange[0],
+      endDate: openingRange[1]
     });
-    
+
     this.initChartOptions();
     this.loadUserPlan();
     this.loadAnalyticsPreferences();
@@ -339,12 +366,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadWorldGeoJson();
     // this.loadFeaturesDataWithDelay(); // no-op, removed
     // this.loadLiveEventsWithDelay();   // Live events disabled
-    this.applyPreset('Last 7 Days');
+    this.applyPreset(openingPreset);
     // availableTrendPeriods initialized by applyPreset → emitDateRange → computeAvailablePeriods
     if (!this.availableTrendPeriods.length) {
-      const end = new Date();
-      const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      this.availableTrendPeriods = this.computeAvailablePeriods(start, end);
+      this.availableTrendPeriods = this.computeAvailablePeriods(openingRange[0], openingRange[1]);
     }
 
     // Shared dashboard API key (persisted in localStorage)
@@ -488,11 +513,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.availableApiKeys = [{ apiKey: 'DEMO-KEY', name: 'demo-site.com', isActive: true } as any];
     this.selectedApiKey = 'DEMO-KEY';
     this.apiKeysService.setDemoApiKeys(this.availableApiKeys, this.selectedApiKey);
-    this.activePreset = 'Last 7 Days';
-    this.availableTrendPeriods = [
-      { label: 'Daily', value: 'daily' },
-      { label: 'Weekly', value: 'weekly' }
-    ];
+    const [demoStart, demoEnd] = this.getPresetRange('last30');
+    this.dateRangeValue = [demoStart, demoEnd];
+    this.updateDateLabel();
+    this.metricsSettled = true;
+    this.loadErrors = {};
+    this.trendPeriod = this.autoTrendPeriod(demoStart, demoEnd);
+    this.availableTrendPeriods = this.computeAvailablePeriods(demoStart, demoEnd);
 
     // ── Overview tab ──────────────────────────────────────────────────────────
     this.metrics = { ...d.overviewMetrics } as any;
@@ -504,8 +531,18 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.trends = { ...d.overviewTrends };
     this.prevBarChartDataset = d.prevBarChartDataset ?? null;
     this.sessionStats = { ...d.sessionStats } as any;
+    const demoCounts = (d.barChartData?.datasets?.[0]?.data as number[]) || [];
+    const demoEndDay = new Date();
+    demoEndDay.setHours(0, 0, 0, 0);
+    this.trendPeriod = 'daily';
+    this.pageViewsTrend = demoCounts.map((pageViews, index) => {
+      const date = new Date(demoEndDay);
+      date.setDate(demoEndDay.getDate() - (demoCounts.length - 1 - index));
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return { date: iso, pageViews };
+    });
     this.initChartOptions();
-    this.barChartData = d.barChartData;
+    this.updateBarChart();
     this.doughnutChartData = d.doughnutChartData;
     this.funnelLabels = d.funnelData.labels;
     this.funnelSteps = d.funnelData.steps;
@@ -513,6 +550,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // ── Acquisition tab ───────────────────────────────────────────────────────
     this.trafficSources = d.trafficSources as any;
+    this.referrers = d.referrers as any;
+    this.applySourceBreakdown();
     this.utmSources = d.utmSources as any;
     this.entryPages = d.entryPages as any;
     this.exitPages = d.exitPages as any;
@@ -626,6 +665,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -642,7 +682,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       scales: {
         y: {
           beginAtZero: true,
-          ticks: { precision: 0, color: '#94a3b8', font: { size: 11 } },
+          ticks: { precision: 0, color: '#94a3b8', font: { size: 11 }, maxTicksLimit: 5 },
           grid: { color: '#f1f5f9' },
           border: { display: false }
         },
@@ -665,11 +705,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.barChartData = {
       labels: [],
       datasets: [{
+        label: 'This Period',
         data: [],
-        backgroundColor: '#2a6df6',
-        borderRadius: 6,
-        borderSkipped: false,
-        barThickness: 24
+        borderColor: '#1d9bf0',
+        backgroundColor: 'rgba(29, 155, 240, 0.14)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 0,
+        pointHoverRadius: 3,
+        borderWidth: 2
       }]
     };
 
@@ -694,6 +738,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     // Reset tab-loaded state so each tab reloads fresh data for the new key
     this.tabLoaded = { overview: false, acquisition: false, behaviour: false, technical: false };
     this.activeTab = 'overview';
+    this.metricsSettled = false;
+    this.loadErrors = {};
 
     if (this.selectedApiKey) {
       this.clearAllData();
@@ -709,48 +755,95 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
     // Load metrics
     this.subscriptions.add(
-      this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe(data => {
-        if (data && Object.keys(data).length > 0) {
-          this.metrics = data;
-          // Fire once when the first real event is detected (activation milestone)
-          const firstEventKey = 'pulzivo_first_event_tracked';
-          if (!localStorage.getItem(firstEventKey) && (data.totalPageViews || 0) > 0) {
-            localStorage.setItem(firstEventKey, '1');
-            if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
-              (window as any).PulzivoAnalytics('event', 'first_event_tracked', {
-                total_page_views: data.totalPageViews,
-              });
+      this.analyticsAPIService.getRealtimeMetrics(this.currentDateRange ?? undefined).subscribe({
+        next: data => {
+          if (data && Object.keys(data).length > 0) {
+            this.metrics = data;
+            // Fire once when the first real event is detected (activation milestone)
+            const firstEventKey = 'pulzivo_first_event_tracked';
+            if (!localStorage.getItem(firstEventKey) && (data.totalPageViews || 0) > 0) {
+              localStorage.setItem(firstEventKey, '1');
+              if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
+                (window as any).PulzivoAnalytics('event', 'first_event_tracked', {
+                  total_page_views: data.totalPageViews,
+                });
+              }
             }
           }
+          delete this.loadErrors.metrics;
+          this.metricsSettled = true;
+          this.loadingStates.metrics = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.loadErrors.metrics = this.metricError('Couldn’t load metrics for this site.', err);
+          this.metricsSettled = true;
+          this.loadingStates.metrics = false;
+          this.cdr.markForCheck();
         }
-        this.cdr.markForCheck();
       })
     );
 
     // Load page views trend
+    this.loadingStates.pageViews = true;
     this.subscriptions.add(
-      this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe(data => {
-        this.pageViewsTrend = Array.isArray(data) ? data : [];
-        this.updateBarChart();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe({
+        next: data => {
+          this.pageViewsTrend = Array.isArray(data) ? data : [];
+          delete this.loadErrors.pageViews;
+          this.updateBarChart();
+          this.loadingStates.pageViews = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.pageViewsTrend = [];
+          this.loadErrors.pageViews = this.metricError('Couldn’t load the page view chart.', err);
+          this.loadingStates.pageViews = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
     // Load device breakdown
+    this.loadingStates.devices = true;
     this.subscriptions.add(
-      this.analyticsDataService.getDeviceBreakdown(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
-        this.deviceBreakdown = data;
-        this.updateDoughnutChart();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getDeviceBreakdown(this.currentDateRange || undefined, this.selectedApiKey).subscribe({
+        next: data => {
+          this.deviceBreakdown = data;
+          delete this.loadErrors.devices;
+          this.updateDoughnutChart();
+          this.loadingStates.devices = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.loadErrors.devices = this.metricError('Couldn’t load the device breakdown.', err);
+          this.loadingStates.devices = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
     // Load geo data
+    if (this.hasFeature('sessions')) {
+      this.loadingStates.geography = true;
+      this.loadingStates.sessionStats = true;
+      this.loadSessionStatsWithDelay();
+    }
     this.subscriptions.add(
-      this.analyticsDataService.getGeographicData(this.currentDateRange || undefined, this.selectedApiKey).subscribe(data => {
-        this.geoData = Array.isArray(data) ? data : [];
-        this.buildMapOptions();
-        this.cdr.markForCheck();
+      this.analyticsDataService.getGeographicData(this.currentDateRange || undefined, this.selectedApiKey).subscribe({
+        next: data => {
+          this.geoData = Array.isArray(data) ? data : [];
+          delete this.loadErrors.geography;
+          this.buildMapOptions();
+          this.loadingStates.geography = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.geoData = [];
+          this.loadErrors.geography = this.metricError('Couldn’t load country data.', err);
+          this.loadingStates.geography = false;
+          this.cdr.markForCheck();
+        }
       })
     );
 
@@ -777,9 +870,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
       if (this.hasFeature('error_tracking')) this.loadErrorTrackingWithDelay();
       if (this.hasFeature('rage_clicks') || this.hasFeature('dead_clicks')) this.loadRageDeadClicksWithDelay();
     }
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      this.loadTrafficSourcesWithDelay();
+    }
     if (this.tabLoaded['acquisition']) {
       if (this.hasFeature('utm_attribution')) {
-        this.loadTrafficSourcesWithDelay();
         this.loadAttributionWithDelay();
       }
       if (this.hasFeature('page_exit')) this.loadEntryExitPagesWithDelay();
@@ -802,8 +898,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.updateInterval = setInterval(() => {
       if (this.selectedApiKey) {
         this.subscriptions.add(
-          this.analyticsAPIService.getRealtimeMetrics().subscribe(data => {
-            if (data && Object.keys(data).length > 0) { this.metrics = data; this.cdr.markForCheck(); }
+          this.analyticsAPIService.getRealtimeMetrics().subscribe({
+            next: data => {
+              if (data && Object.keys(data).length > 0) { this.metrics = data; this.cdr.markForCheck(); }
+            },
+            error: () => { /* keep the last successful metrics on a background refresh */ }
           })
         );
       }
@@ -816,10 +915,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.isRefreshing = true;
     this.showComparison = false;  // reset compare on refresh
     this.prevBarChartDataset = null;
+    this.loadErrors = {};
+    this.metricsSettled = false;
     this.cdr.markForCheck();
 
-    // Reload all data including comparison trends
-    this.loadAllData();
+    this.loadAnalyticsDataWithLoading();
+    if (this.tabLoaded['acquisition']) this.loadAcquisitionTab();
+    if (this.tabLoaded['behaviour']) this.loadBehaviourTab();
+    if (this.tabLoaded['technical']) this.loadTechnicalTab();
 
     // Reset the auto-refresh timer (restart the 30s countdown)
     this.startRealtimeUpdates();
@@ -895,6 +998,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.funnelSteps = [];
     this.realtimeEvents = [];
     this.trafficSources = [];
+    this.referrers = [];
+    this.applySourceBreakdown();
     this.utmSources = [];
     this.browsers = [];
     this.operatingSystems = [];
@@ -1036,9 +1141,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.loadTopPagesWithDelay(),
     ];
 
+    if (this.hasFeature('utm_attribution')) {
+      this.loadingStates.trafficSources = true;
+      promises.push(this.loadTrafficSourcesWithDelay());
+    }
+
     if (this.hasFeature('sessions')) {
       this.loadingStates.geography = true;
-      promises.push(this.loadGeographyWithDelay());
+      this.loadingStates.sessionStats = true;
+      promises.push(this.loadGeographyWithDelay(), this.loadSessionStatsWithDelay());
     }
 
     this.cdr.markForCheck();
@@ -1057,11 +1168,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getMetrics(this.currentDateRange ?? undefined).subscribe({
           next: (data: AnalyticsMetrics) => {
             this.metrics = data;
+            delete this.loadErrors.metrics;
+            this.metricsSettled = true;
             this.loadingStates.metrics = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.loadErrors.metrics = this.metricError('Couldn’t load metrics for this site.', err);
+            this.metricsSettled = true;
             this.loadingStates.metrics = false;
             this.cdr.markForCheck();
             resolve();
@@ -1088,13 +1203,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
                 this.prevBarChartDataset = {
                   label: 'Prev. Period',
                   data: (data as any).prevPageViews,
-                  backgroundColor: 'rgba(99,102,241,0.18)',
-                  borderColor: '#6366f1',
-                  borderWidth: 2,
-                  borderRadius: 6,
-                  borderSkipped: false,
-                  barThickness: 24,
-                  type: 'bar'
+                  borderColor: '#94a3b8',
+                  backgroundColor: 'transparent',
+                  fill: false,
+                  tension: 0.35,
+                  pointRadius: 0,
+                  borderWidth: 1.5,
+                  borderDash: [4, 4]
                 };
               }
             }
@@ -1116,12 +1231,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getPageViewsTrend(this.currentDateRange ?? undefined, this.trendPeriod).subscribe({
           next: (data: PageViewsTrendData[]) => {
             this.pageViewsTrend = data;
+            delete this.loadErrors.pageViews;
             this.updateBarChart();
             this.loadingStates.pageViews = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.pageViewsTrend = [];
+            this.loadErrors.pageViews = this.metricError('Couldn’t load the page view chart.', err);
             this.loadingStates.pageViews = false;
             this.cdr.markForCheck();
             resolve();
@@ -1137,12 +1255,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getDeviceBreakdown(this.currentDateRange ?? undefined).subscribe({
           next: (data: DeviceBreakdown) => {
             this.deviceBreakdown = data;
+            delete this.loadErrors.devices;
             this.updateDoughnutChart();
             this.loadingStates.devices = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.loadErrors.devices = this.metricError('Couldn’t load the device breakdown.', err);
             this.loadingStates.devices = false;
             this.cdr.markForCheck();
             resolve();
@@ -1159,12 +1279,15 @@ export class DashboardOverview implements OnInit, OnDestroy {
           next: (data: GeographicData[]) => {
             this.geoData = data;
             this.geoDataPage = 1;
+            delete this.loadErrors.geography;
             this.buildMapOptions();
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.geoData = [];
+            this.loadErrors.geography = this.metricError('Couldn’t load country data.', err);
             this.loadingStates.geography = false;
             this.cdr.markForCheck();
             resolve();
@@ -1182,11 +1305,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
             this.topPages = res.pages;
             this.topPagesTotal = res.total;
             this.topPagesPage = 1;
+            delete this.loadErrors.topPages;
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.topPages = [];
+            this.loadErrors.topPages = this.metricError('Couldn’t load top pages.', err);
             this.loadingStates.topPages = false;
             this.cdr.markForCheck();
             resolve();
@@ -1202,11 +1328,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getSessionStats(this.currentDateRange ?? undefined).subscribe({
           next: (data: SessionStats) => {
             this.sessionStats = data;
+            delete this.loadErrors.sessions;
             this.loadingStates.sessionStats = false;
             this.cdr.markForCheck();
             resolve();
           },
-          error: () => {
+          error: (err) => {
+            this.loadErrors.sessions = this.metricError('Couldn’t load sessions.', err);
             this.loadingStates.sessionStats = false;
             this.cdr.markForCheck();
             resolve();
@@ -1386,7 +1514,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.loadingStates.topPages = false;
         this.cdr.markForCheck();
       },
-      error: () => {
+      error: (err) => {
+        this.loadErrors.topPages = this.metricError('Couldn’t load top pages.', err);
         this.loadingStates.topPages = false;
         this.cdr.markForCheck();
       }
@@ -1435,6 +1564,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.analyticsDataService.getTrafficSources(this.currentDateRange ?? undefined).subscribe({
           next: (data) => {
             this.trafficSources = data.sources || [];
+            this.referrers = data.referrers || [];
+            this.applySourceBreakdown();
             this.utmSources = (data.utmSources || []).filter((utm: any) =>
               !!utm?.source && !!utm?.medium && !!utm?.campaign
             );
@@ -1793,8 +1924,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   formatDuration(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    if (!Number.isFinite(seconds) || seconds < 0) return '—';
+    const total = Math.round(seconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}h ${m}m`;
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
@@ -1942,8 +2077,14 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   private updateDateLabel(): void {
     if (this.dateRangeValue.length === 2 && this.dateRangeValue[0] && this.dateRangeValue[1]) {
-      const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-      this.dateRangeLabel = `${fmt(this.dateRangeValue[0])} - ${fmt(this.dateRangeValue[1])}`;
+      const start = this.dateRangeValue[0];
+      const end = this.dateRangeValue[1];
+      const sameYear = start.getFullYear() === end.getFullYear();
+      const startText = start.toLocaleDateString('en-US', sameYear
+        ? { month: 'short', day: 'numeric' }
+        : { month: 'short', day: 'numeric', year: 'numeric' });
+      const endText = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      this.dateRangeLabel = `${startText} – ${endText}`;
     }
   }
 
@@ -2250,6 +2391,66 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return Math.round(Math.random() * 10000 + 1000);
   }
 
+  private metricError(summary: string, err: unknown): string {
+    const status = err instanceof HttpErrorResponse ? err.status : 0;
+    if (status === 0) {
+      return `${summary} The analytics API did not respond. Start the dashboard with npm start so /analytics is proxied to Cloud Run.`;
+    }
+    if (status === 401 || status === 403) {
+      return `${summary} The metrics API returned ${status} for this API key. Sign-in uses the auth server; metric reads use the selected key.`;
+    }
+    if (status) {
+      return `${summary} The metrics API returned ${status}.`;
+    }
+    return summary;
+  }
+
+  get selectedSiteName(): string {
+    const match = this.availableApiKeys.find(key => key.apiKey === this.selectedApiKey);
+    return match?.name?.trim() || 'Unnamed site';
+  }
+
+  get selectedKeyHint(): string {
+    const key = this.selectedApiKey || '';
+    if (!key) return '';
+    if (key.length <= 12) return key;
+    return `${key.slice(0, 4)}…${key.slice(-4)}`;
+  }
+
+  get sessionDurationSeconds(): number {
+    return this.sessionStats?.avgSessionDuration || this.metrics.avgSessionDuration || 0;
+  }
+
+  get pagesPerSession(): number {
+    return this.sessionStats?.avgPagesPerSession || this.metrics.avgPagesPerSession || 0;
+  }
+
+  get newVisitorPercent(): number | null {
+    const split = this.metrics.newVsReturning;
+    const total = (split?.new || 0) + (split?.returning || 0);
+    if (!total) return null;
+    return (split.new / total) * 100;
+  }
+
+  get showSetupEmpty(): boolean {
+    if (this.demoService.isDemoMode() || !this.metricsSettled || this.loadingStates.metrics || this.loadErrors.metrics) {
+      return false;
+    }
+    return (this.metrics.totalPageViews || 0) === 0
+      && (this.metrics.liveVisitors || 0) === 0
+      && (this.metrics.uniqueVisitors || 0) === 0;
+  }
+
+  get deviceTotal(): number {
+    return (this.deviceBreakdown.desktop || 0)
+      + (this.deviceBreakdown.mobile || 0)
+      + (this.deviceBreakdown.tablet || 0);
+  }
+
+  get trendTotal(): number {
+    return this.pageViewsTrend.reduce((sum, point) => sum + (point.pageViews || 0), 0);
+  }
+
   formatTrend(value: number | null, invertPositive = false): { label: string; cssClass: string } {
     if (value === null) return { label: '—', cssClass: 'neutral' };
     const sign = value >= 0 ? '+' : '';
@@ -2260,6 +2461,101 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return {
       label,
       cssClass: isNeutral ? 'neutral' : isPositive ? 'positive' : 'negative'
+    };
+  }
+
+
+  channelLabel(channel: string): string {
+    if (channel === 'Social Media') return 'Social';
+    if (channel === 'Organic Search') return 'Search';
+    if (channel === 'Paid Search') return 'Paid';
+    return channel || '';
+  }
+
+  channelHint(channel: string): string {
+    switch (channel) {
+      case 'Direct':
+        return 'No referring site. They typed the address, used a bookmark, or the browser hid the previous page.';
+      case 'Referral':
+        return 'Another website linked here. The name on this row is that site.';
+      case 'Social Media':
+        return 'A social app, such as Facebook, WhatsApp, X, Instagram, LinkedIn, YouTube, Reddit, or TikTok.';
+      case 'Organic Search':
+        return 'A search engine, without a paid tag.';
+      case 'Paid Search':
+        return 'A paid search ad.';
+      case 'Email':
+        return 'A link in an email.';
+      default:
+        return channel;
+    }
+  }
+
+  private applySourceBreakdown(): void {
+    const detailed = this.referrers.length
+      ? this.referrers
+      : this.trafficSources.map(source => ({
+          name: source.source,
+          channel: source.source,
+          host: '',
+          visits: source.visits || 0,
+          percentage: source.percentage || 0,
+        }));
+    this.sourceRows = detailed.map((row, index) => ({
+      ...row,
+      color: this.sourceColors[index % this.sourceColors.length],
+    }));
+    const pie = this.sourceRows.length > 8
+      ? [
+          ...this.sourceRows.slice(0, 7),
+          {
+            name: 'Other',
+            channel: '',
+            host: '',
+            visits: this.sourceRows.slice(7).reduce((sum, row) => sum + (row.visits || 0), 0),
+            percentage: this.sourceRows.slice(7).reduce((sum, row) => sum + (row.percentage || 0), 0),
+            color: '#94a3b8',
+          },
+        ]
+      : this.sourceRows;
+    this.sourcePieData = {
+      labels: pie.map(row => row.name),
+      datasets: [{
+        data: pie.map(row => row.visits),
+        backgroundColor: pie.map(row => row.color),
+        borderWidth: 0,
+        hoverOffset: 4,
+      }],
+    };
+  }
+
+  /** Page-view series as an SVG polyline. Empty until at least two points exist. */
+  get pageViewSparkline(): string {
+    const values = this.pageViewsTrend.map(point => point.pageViews || 0);
+    if (values.length < 2) return '';
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const span = Math.max(max - min, 1);
+    const width = 100;
+    const height = 28;
+    return values.map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - 2 - ((value - min) / span) * (height - 4);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  /** Compact delta for KPI chips. Full sentence stays on the tooltip. */
+  formatTrendChip(value: number | null, invertPositive = false): { label: string; cssClass: string; title: string } {
+    const trend = this.formatTrend(value, invertPositive);
+    if (value === null) {
+      return { label: '—', cssClass: 'neutral', title: 'Not enough data in the previous period.' };
+    }
+    const sign = value > 0 ? '+' : '';
+    return {
+      label: `${sign}${value.toFixed(1)}%`,
+      cssClass: trend.cssClass,
+      title: trend.label
     };
   }
 }

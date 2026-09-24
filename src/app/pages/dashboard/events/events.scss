@@ -1,7 +1,7 @@
 :host {
   display: block;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 50%, #fef3f9 100%);
+  padding: 0;
+  background: transparent;
   min-height: 100%;
   color: #1e293b;
 }
@@ -28,10 +28,18 @@
 
   .toolbar-title {
     h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1e293b;
+      font-size: 1.05rem;
+      font-weight: 650;
+      color: #0f172a;
       margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .toolbar-context {
+      margin: 0.2rem 0 0;
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 500;
     }
   }
 

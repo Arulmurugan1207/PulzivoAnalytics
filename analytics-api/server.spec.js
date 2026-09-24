@@ -400,6 +400,7 @@ test('GET /analytics/device-breakdown and traffic-sources derive from event payl
 
     const traffic = await (await fetch(`${url}/analytics/traffic-sources?apiKey=PULZ-PRD-TTT`)).json();
     assert.ok(traffic.sources.some((s) => s.source === 'Organic Search'));
+    assert.ok(traffic.referrers.some((r) => r.name === 'Google' && r.channel === 'Organic Search' && r.host === 'google.com'));
     assert.ok(traffic.utmSources.some((u) => u.source === 'google' && u.campaign === 'brand'));
   });
 });

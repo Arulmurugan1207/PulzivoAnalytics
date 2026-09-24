@@ -23,7 +23,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
-        console.warn('Authentication failed - token invalid or expired');
+        const url = error.url || authReq.url;
+        if (url.includes('/analytics/')) {
+          console.warn(
+            `Analytics request returned 401 for ${url}. Metric reads use the selected API key, not the login token.`
+          );
+        } else {
+          console.warn('Authentication failed - token invalid or expired');
+        }
       } else if (error.status === 403) {
         console.warn('Access forbidden - insufficient permissions');
       } else if (error.status >= 500) {

@@ -4,6 +4,7 @@
   <div class="events-toolbar">
     <div class="toolbar-title">
       <h2>Events</h2>
+      <p class="toolbar-context">{{ siteContextLabel }} · {{ rangeContextLabel }}</p>
     </div>
     <div class="toolbar-actions">
       <button pButton icon="pi pi-calendar" [label]="activePreset" class="p-button-outlined date-btn" (click)="datePopover.toggle($event)"></button>
@@ -119,7 +120,7 @@
             </div>
           }
           @if (events.length === 0) {
-            <div class="no-data">No events recorded yet</div>
+            <div class="no-data">No events in this range for {{ siteContextLabel }}.</div>
           }
         </div>
       }
@@ -153,7 +154,7 @@
               </div>
             }
             @if (topClicks.length === 0) {
-              <div class="no-data">No click data yet</div>
+              <div class="no-data">No clicks in this range for {{ siteContextLabel }}.</div>
             }
           </div>
         }
