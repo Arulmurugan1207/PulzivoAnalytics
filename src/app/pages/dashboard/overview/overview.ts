@@ -110,12 +110,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
   topPages: PageData[] = [];
   topPagesTotal = 0;
   topPagesPage = 1;
-  topPagesRows = 10;
+  topPagesRows = 5;
   entryPages: PageData[] = [];
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
   geoDataPage = 1;
-  geoDataRows = 10;
+  geoDataRows = 5;
   mapOptions: any = null;
   mapReady = false;
   private worldGeoJson: any = null;
@@ -1893,8 +1893,12 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   formatDuration(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    if (!Number.isFinite(seconds) || seconds < 0) return '—';
+    const total = Math.round(seconds);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}h ${m}m`;
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
@@ -2380,6 +2384,21 @@ export class DashboardOverview implements OnInit, OnDestroy {
     if (!key) return '';
     if (key.length <= 12) return key;
     return `${key.slice(0, 4)}…${key.slice(-4)}`;
+  }
+
+  get sessionDurationSeconds(): number {
+    return this.sessionStats?.avgSessionDuration || this.metrics.avgSessionDuration || 0;
+  }
+
+  get pagesPerSession(): number {
+    return this.sessionStats?.avgPagesPerSession || this.metrics.avgPagesPerSession || 0;
+  }
+
+  get newVisitorPercent(): number | null {
+    const split = this.metrics.newVsReturning;
+    const total = (split?.new || 0) + (split?.returning || 0);
+    if (!total) return null;
+    return (split.new / total) * 100;
   }
 
   get showSetupEmpty(): boolean {

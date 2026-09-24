@@ -104,7 +104,7 @@
 
       @if (!metricsSettled) {
         <div class="kpi-grid" aria-busy="true">
-          @for (item of [1,2,3,4,5]; track item) {
+          @for (item of [1,2,3,4,5,6,7,8]; track item) {
             <div class="kpi-card kpi-card-loading">
               <p-skeleton width="40%" height="0.75rem" styleClass="mb-3"></p-skeleton>
               <p-skeleton width="70%" height="2rem" styleClass="mb-2"></p-skeleton>
@@ -168,7 +168,6 @@
               <p-skeleton width="60%" height="2rem"></p-skeleton>
             } @else {
               <div class="kpi-value">{{ metrics.totalPageViews | number }}</div>
-              <p class="kpi-hint">All page loads in this range.</p>
               @if (showComparison) {
                 <span class="kpi-trend {{ formatTrendChip(trends.totalPageViews).cssClass }}"
                   [attr.title]="formatTrendChip(trends.totalPageViews).title">
@@ -188,13 +187,10 @@
             </div>
             @if (!hasFeature('unique_visitors')) {
               <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-              <p class="kpi-hint">Unique visitors start on the Starter plan.</p>
-              <a routerLink="/dashboard/plans" class="kpi-upgrade">View plans</a>
             } @else if (loadingStates.metrics) {
               <p-skeleton width="55%" height="2rem"></p-skeleton>
             } @else {
               <div class="kpi-value">{{ (metrics.uniqueVisitors ?? 0) | number }}</div>
-              <p class="kpi-hint">Distinct people in this range.</p>
               @if (showComparison) {
                 <span class="kpi-trend {{ formatTrendChip(trends.uniqueVisitors).cssClass }}"
                   [attr.title]="formatTrendChip(trends.uniqueVisitors).title">
@@ -214,8 +210,6 @@
             </div>
             @if (!hasFeature('sessions')) {
               <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-              <p class="kpi-hint">Session counts start on the Starter plan.</p>
-              <a routerLink="/dashboard/plans" class="kpi-upgrade">View plans</a>
             } @else if (loadingStates.sessionStats) {
               <p-skeleton width="55%" height="2rem"></p-skeleton>
             } @else if (loadErrors.sessions) {
@@ -223,19 +217,6 @@
               <button type="button" class="kpi-upgrade" (click)="manualRefresh()">Try again</button>
             } @else {
               <div class="kpi-value">{{ sessionStats.totalSessions | number }}</div>
-              <p class="kpi-hint">
-                Visits in this range.
-                @if (sessionStats.avgSessionDuration) {
-                  Average {{ formatDuration(sessionStats.avgSessionDuration || metrics.avgSessionDuration) }}.
-                }
-              </p>
-              @if (showComparison) {
-                <span class="kpi-trend {{ formatTrendChip(trends.avgSessionDuration).cssClass }}"
-                  [attr.title]="'Average session length. ' + formatTrendChip(trends.avgSessionDuration).title">
-                  {{ formatTrendChip(trends.avgSessionDuration).label }}
-                  <span>duration</span>
-                </span>
-              }
             }
           </article>
 
@@ -248,13 +229,10 @@
             </div>
             @if (!hasFeature('sessions')) {
               <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
-              <p class="kpi-hint">Bounce rate needs session tracking on Starter.</p>
-              <a routerLink="/dashboard/plans" class="kpi-upgrade">View plans</a>
             } @else if (loadingStates.metrics) {
               <p-skeleton width="45%" height="2rem"></p-skeleton>
             } @else {
               <div class="kpi-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
-              <p class="kpi-hint">Left after one page. Lower is better.</p>
               @if (showComparison) {
                 <span class="kpi-trend {{ formatTrendChip(trends.bounceRate, true).cssClass }}"
                   [attr.title]="formatTrendChip(trends.bounceRate, true).title">
@@ -262,6 +240,62 @@
                   <span>vs previous</span>
                 </span>
               }
+            }
+          </article>
+
+          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
+            <div class="kpi-top">
+              <span class="kpi-label">Avg. time</span>
+              <button type="button" class="pi pi-info-circle section-info-icon"
+                pTooltip="Average length of a visit in this date range."
+                tooltipPosition="top"></button>
+            </div>
+            @if (!hasFeature('sessions')) {
+              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
+            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+              <p-skeleton width="55%" height="1.4rem"></p-skeleton>
+            } @else {
+              <div class="kpi-value">{{ sessionDurationSeconds ? formatDuration(sessionDurationSeconds) : '—' }}</div>
+              @if (showComparison) {
+                <span class="kpi-trend {{ formatTrendChip(trends.avgSessionDuration).cssClass }}"
+                  [attr.title]="formatTrendChip(trends.avgSessionDuration).title">
+                  {{ formatTrendChip(trends.avgSessionDuration).label }}
+                </span>
+              }
+            }
+          </article>
+
+          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
+            <div class="kpi-top">
+              <span class="kpi-label">Pages / visit</span>
+              <button type="button" class="pi pi-info-circle section-info-icon"
+                pTooltip="Average number of pages opened in one visit."
+                tooltipPosition="top"></button>
+            </div>
+            @if (!hasFeature('sessions')) {
+              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
+            } @else if (loadingStates.metrics || loadingStates.sessionStats) {
+              <p-skeleton width="40%" height="1.4rem"></p-skeleton>
+            } @else {
+              <div class="kpi-value">{{ pagesPerSession ? (pagesPerSession | number:'1.1-1') : '—' }}</div>
+            }
+          </article>
+
+          <article class="kpi-card" [class.kpi-locked]="!hasFeature('sessions')">
+            <div class="kpi-top">
+              <span class="kpi-label">New visitors</span>
+              <button type="button" class="pi pi-info-circle section-info-icon"
+                pTooltip="Share of people in this range who had not been seen before. The rest are returning."
+                tooltipPosition="top"></button>
+            </div>
+            @if (!hasFeature('sessions')) {
+              <div class="kpi-lock"><i class="pi pi-lock"></i> Starter</div>
+            } @else if (loadingStates.metrics) {
+              <p-skeleton width="45%" height="1.4rem"></p-skeleton>
+            } @else if (newVisitorPercent === null) {
+              <div class="kpi-value">—</div>
+            } @else {
+              <div class="kpi-value">{{ newVisitorPercent | number:'1.0-0' }}%</div>
             }
           </article>
 
@@ -276,16 +310,6 @@
               <p-skeleton width="40%" height="2rem"></p-skeleton>
             } @else {
               <div class="kpi-value">{{ metrics.liveVisitors | number }}</div>
-              <p class="kpi-hint">On the site right now. Not filtered by the date range.</p>
-              @if (liveCountries.length) {
-                <div class="live-geo-strip">
-                  @for (c of liveCountries; track c.country) {
-                    <span class="live-geo-pill" [pTooltip]="c.country + ': ' + c.count + ' recent'" tooltipPosition="top">
-                      {{ c.flag }} <span class="geo-count">{{ c.count }}</span>
-                    </span>
-                  }
-                </div>
-              }
             }
           </article>
         </div>
@@ -294,7 +318,7 @@
         <div class="charts-row">
 
           <!-- Page Views Trend -->
-          <div class="chart-card theme-blue" data-section="page-views-trend">
+          <div class="chart-card theme-blue hero-chart" data-section="page-views-trend">
             <div class="card-header">
               <div class="panel-title">
                 <h3>Page views over time
