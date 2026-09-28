@@ -4,6 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { createApp, DEFAULT_ORIGINS, parseOrigins, normalizeEvents, buildDateFilter } = require('./server');
 const { createMemoryDb, matches } = require('./memory-db');
+const { extractUtm, classifySource } = require('./query');
 
 function listen(app) {
   return new Promise((resolve, reject) => {
@@ -506,6 +507,206 @@ test('POST /analytics/events aliases ingest and is readable via metrics', async 
     assert.equal(posted.status, 200);
     const metrics = await (await fetch(`${url}/analytics/metrics?apiKey=PULZ-PRD-TTT`)).json();
     assert.equal(metrics.totalPageViews, 1);
+  });
+});
+
+test('extractUtm prefers attribution, then page query, then top-level fields', () => {
+  const fromAttribution = extractUtm({
+    attribution: { utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'brand', utm_content: 'ad' },
+    page: '/x?utm_source=copy&utm_medium=share&utm_campaign=share_link',
+    utm_source: 'top',
+  });
+  assert.equal(fromAttribution.utm_source, 'google');
+  assert.equal(fromAttribution.utm_medium, 'cpc');
+  assert.equal(fromAttribution.utm_campaign, 'brand');
+  assert.equal(fromAttribution.utm_content, 'ad');
+
+  const fromPage = extractUtm({
+    attribution: {},
+    page: '/scoreboard?utm_source=copy&utm_medium=share&utm_campaign=share_link&utm_term=final',
+  });
+  assert.deepEqual(fromPage, {
+    utm_source: 'copy',
+    utm_medium: 'share',
+    utm_campaign: 'share_link',
+    utm_term: 'final',
+  });
+
+  const mixed = extractUtm({
+    attribution: { utm_source: 'rallyto' },
+    page: '/?utm_source=ignored&utm_medium=partner_banner&utm_campaign=rallyto_partner',
+    utm_content: 'banner',
+  });
+  assert.equal(mixed.utm_source, 'rallyto');
+  assert.equal(mixed.utm_medium, 'partner_banner');
+  assert.equal(mixed.utm_campaign, 'rallyto_partner');
+  assert.equal(mixed.utm_content, 'banner');
+
+  const none = extractUtm({ page: '/about', attribution: {} });
+  assert.deepEqual(none, {});
+  assert.equal(classifySource({ page: '/?utm_source=facebook&utm_medium=social&utm_campaign=tournament_share' }), 'Social Media');
+  assert.equal(classifySource({ page: '/about' }), 'Direct');
+});
+
+test('normalizeEvents copies UTMs from the page query onto attribution', () => {
+  const [fromQuery] = normalizeEvents({
+    body: [{
+      event_name: 'navigation',
+      service: 'K',
+      data: {
+        page: '/scoreboard?utm_source=copy&utm_medium=share&utm_campaign=share_link&utm_content=btn&utm_term=final',
+        attribution: {},
+      },
+    }],
+    query: {},
+  });
+  assert.equal(fromQuery.data.attribution.utm_source, 'copy');
+  assert.equal(fromQuery.data.attribution.utm_medium, 'share');
+  assert.equal(fromQuery.data.attribution.utm_campaign, 'share_link');
+  assert.equal(fromQuery.data.attribution.utm_content, 'btn');
+  assert.equal(fromQuery.data.attribution.utm_term, 'final');
+
+  const [kept] = normalizeEvents({
+    body: [{
+      event_name: 'page_view',
+      service: 'K',
+      data: {
+        page: '/x?utm_source=copy&utm_medium=share&utm_campaign=share_link',
+        attribution: { utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'brand', referrer_domain: 'google.com' },
+      },
+    }],
+    query: {},
+  });
+  assert.equal(kept.data.attribution.utm_source, 'google');
+  assert.equal(kept.data.attribution.utm_campaign, 'brand');
+  assert.equal(kept.data.attribution.referrer_domain, 'google.com');
+
+  const [bare] = normalizeEvents({
+    body: [{ event_name: 'page_view', service: 'K', data: { page: '/about', attribution: {} } }],
+    query: {},
+  });
+  assert.deepEqual(bare.data.attribution, {});
+});
+
+test('GET /analytics/traffic-sources counts UTMs from attribution, page query, or navigation URL', async () => {
+  const now = Date.now();
+  const db = createMemoryDb({
+    events: [
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-attr',
+        timestamp: now,
+        data: {
+          page: '/',
+          session_id: 's-attr',
+          attribution: { utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'brand' },
+        },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-query',
+        timestamp: now,
+        page: '/scoreboard?utm_source=copy&utm_medium=share&utm_campaign=share_link',
+        data: {
+          page: '/scoreboard?utm_source=copy&utm_medium=share&utm_campaign=share_link',
+          session_id: 's-query',
+          attribution: {},
+        },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-mixed',
+        timestamp: now,
+        data: {
+          page: '/news?utm_source=copy&utm_medium=share&utm_campaign=share_link',
+          session_id: 's-mixed',
+          utm_source: 'ignored-top',
+          attribution: { utm_source: 'newsletter', utm_medium: 'email', utm_campaign: 'spring' },
+        },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-gap',
+        timestamp: now,
+        data: {
+          page: '/?utm_medium=partner_banner&utm_campaign=rallyto_partner',
+          session_id: 's-gap',
+          attribution: { utm_source: 'rallyto' },
+          utm_content: 'banner',
+        },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-none',
+        timestamp: now,
+        data: { page: '/about', session_id: 's-none', attribution: {} },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-nav',
+        timestamp: now,
+        data: { page: '/scoreboard', session_id: 's-nav', attribution: {} },
+      },
+      {
+        event_name: 'navigation',
+        apiKey: 'K',
+        session_id: 's-nav',
+        timestamp: now,
+        data: {
+          page: '/scoreboard?utm_source=facebook&utm_medium=social&utm_campaign=tournament_share&utm_content=abc',
+          route: '/scoreboard?utm_source=facebook&utm_medium=social&utm_campaign=tournament_share&utm_content=abc',
+          session_id: 's-nav',
+          attribution: {},
+        },
+      },
+      {
+        event_name: 'page_view',
+        apiKey: 'K',
+        session_id: 's-once',
+        timestamp: now,
+        data: {
+          page: '/clubs',
+          session_id: 's-once',
+          attribution: { utm_source: 'youtube', utm_medium: 'social', utm_campaign: 'tournament_share' },
+        },
+      },
+      {
+        event_name: 'navigation',
+        apiKey: 'K',
+        session_id: 's-once',
+        timestamp: now,
+        data: {
+          page: '/clubs?utm_source=youtube&utm_medium=social&utm_campaign=tournament_share',
+          session_id: 's-once',
+          attribution: {},
+        },
+      },
+    ],
+  });
+  await withServer(createApp({ db }), async (url) => {
+    const traffic = await (await fetch(`${url}/analytics/traffic-sources?apiKey=K`)).json();
+    const row = (source, campaign) => traffic.utmSources.find((u) => u.source === source && u.campaign === campaign);
+    assert.equal(row('google', 'brand').medium, 'cpc');
+    assert.equal(row('google', 'brand').visits, 1);
+    assert.equal(row('copy', 'share_link').medium, 'share');
+    assert.equal(row('copy', 'share_link').visits, 1);
+    assert.equal(row('newsletter', 'spring').medium, 'email');
+    assert.equal(row('newsletter', 'spring').visits, 1);
+    assert.equal(row('rallyto', 'rallyto_partner').medium, 'partner_banner');
+    assert.equal(row('facebook', 'tournament_share').medium, 'social');
+    assert.equal(row('facebook', 'tournament_share').visits, 1);
+    assert.equal(row('youtube', 'tournament_share').visits, 1);
+    assert.equal(traffic.utmSources.some((u) => u.source === 'ignored-top'), false);
+    assert.equal(traffic.utmSources.length, 6);
+
+    const attribution = await (await fetch(`${url}/analytics/attribution?apiKey=K`)).json();
+    assert.ok(attribution.firstTouch.some((entry) => entry.source === 'Social Media'));
   });
 });
 

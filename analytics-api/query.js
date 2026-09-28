@@ -340,10 +340,157 @@ function avg(nums) {
   return list.reduce((a, b) => a + b, 0) / list.length;
 }
 
-function classifySource(data = {}) {
-  const attr = data.attribution && typeof data.attribution === 'object' ? data.attribution : {};
-  const utmSource = attr.utm_source || data.utm_source;
-  const utmMedium = String(attr.utm_medium || data.utm_medium || '').toLowerCase();
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+
+function cleanUtmValue(value) {
+  if (value == null) return '';
+  const text = String(value).trim();
+  if (!text || text === 'null' || text === 'undefined') return '';
+  return text;
+}
+
+function pickUtmFields(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return {};
+  const out = {};
+  for (const key of UTM_KEYS) {
+    const value = cleanUtmValue(obj[key]);
+    if (value) out[key] = value;
+  }
+  return out;
+}
+
+function utmFromUrlString(value) {
+  if (typeof value !== 'string' || !value.includes('utm_')) return {};
+  let query = '';
+  const q = value.indexOf('?');
+  if (q !== -1) {
+    query = value.slice(q + 1);
+    const hash = query.indexOf('#');
+    if (hash !== -1) query = query.slice(0, hash);
+  } else {
+    try {
+      query = new URL(value).search.replace(/^\?/, '');
+    } catch {
+      return {};
+    }
+  }
+  if (!query) return {};
+  let params;
+  try {
+    params = new URLSearchParams(query);
+  } catch {
+    return {};
+  }
+  const out = {};
+  for (const key of UTM_KEYS) {
+    const parsed = cleanUtmValue(params.get(key));
+    if (parsed) out[key] = parsed;
+  }
+  return out;
+}
+
+function utmUrlCandidates(data, doc) {
+  const attr = data.attribution && typeof data.attribution === 'object' && !Array.isArray(data.attribution)
+    ? data.attribution
+    : {};
+  const utmAttr = data.utm_attribution && typeof data.utm_attribution === 'object' && !Array.isArray(data.utm_attribution)
+    ? data.utm_attribution
+    : {};
+  return [
+    data.page,
+    data.url,
+    data.href,
+    data.location,
+    data.route,
+    data.previousUrl,
+    data.previous_url,
+    data.document_url,
+    data.documentUrl,
+    data.landing_page,
+    attr.landing_page,
+    utmAttr.landing_page,
+    doc && doc.page,
+    doc && doc.url,
+    doc && doc.href,
+  ];
+}
+
+/**
+ * UTMs for one event.
+ * Precedence: attribution / utm_attribution, then page/url query, then top-level utm_*.
+ * A set field wins; missing fields are filled from the next source.
+ */
+function extractUtm(data = {}, doc = {}) {
+  const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  const attr = payload.attribution && typeof payload.attribution === 'object' && !Array.isArray(payload.attribution)
+    ? payload.attribution
+    : {};
+  const utmAttr = payload.utm_attribution && typeof payload.utm_attribution === 'object' && !Array.isArray(payload.utm_attribution)
+    ? payload.utm_attribution
+    : {};
+  const custom = payload.custom_parameters && typeof payload.custom_parameters === 'object' && !Array.isArray(payload.custom_parameters)
+    ? payload.custom_parameters
+    : {};
+  const customAlt = payload.custom && typeof payload.custom === 'object' && !Array.isArray(payload.custom)
+    ? payload.custom
+    : {};
+  const fromUrl = {};
+  for (const candidate of utmUrlCandidates(payload, doc)) {
+    const parsed = utmFromUrlString(candidate);
+    for (const key of UTM_KEYS) {
+      if (!fromUrl[key] && parsed[key]) fromUrl[key] = parsed[key];
+    }
+  }
+  const layers = [
+    pickUtmFields(attr),
+    pickUtmFields(utmAttr),
+    fromUrl,
+    pickUtmFields(payload),
+    pickUtmFields(custom),
+    pickUtmFields(customAlt),
+    pickUtmFields(doc),
+  ];
+  const out = {};
+  for (const layer of layers) {
+    for (const key of UTM_KEYS) {
+      if (!out[key] && layer[key]) out[key] = layer[key];
+    }
+  }
+  return out;
+}
+
+function attributionHasSignal(attr) {
+  if (!attr || typeof attr !== 'object' || Array.isArray(attr)) return false;
+  if (UTM_KEYS.some((key) => cleanUtmValue(attr[key]))) return true;
+  return Boolean(cleanUtmValue(attr.referrer) || cleanUtmValue(attr.referrer_domain));
+}
+
+/** Copy extracted UTMs onto data.attribution without overwriting fields already set. */
+function mergeUtmAttribution(data = {}, doc = {}) {
+  const base = data && typeof data === 'object' && !Array.isArray(data) ? { ...data } : {};
+  const utm = extractUtm(base, doc);
+  if (!Object.keys(utm).length) return base;
+  const current = base.attribution && typeof base.attribution === 'object' && !Array.isArray(base.attribution)
+    ? base.attribution
+    : null;
+  const attr = current ? { ...current } : {};
+  let changed = !current;
+  for (const key of UTM_KEYS) {
+    if (!cleanUtmValue(attr[key]) && utm[key]) {
+      attr[key] = utm[key];
+      changed = true;
+    }
+  }
+  if (changed) base.attribution = attr;
+  return base;
+}
+
+function classifySource(data = {}, doc = {}) {
+  const payload = data && typeof data === 'object' ? data : {};
+  const attr = payload.attribution && typeof payload.attribution === 'object' ? payload.attribution : {};
+  const utm = extractUtm(payload, doc);
+  const utmSource = utm.utm_source;
+  const utmMedium = String(utm.utm_medium || '').toLowerCase();
   if (utmMedium === 'cpc' || utmMedium === 'ppc' || utmMedium === 'paid') return 'Paid Search';
   if (utmMedium === 'email') return 'Email';
   if (utmMedium === 'social') return 'Social Media';
@@ -355,7 +502,7 @@ function classifySource(data = {}) {
     if (SOCIAL_HOST.test(s)) return 'Social Media';
     return 'Referral';
   }
-  const ref = attr.referrer_domain || hostnameOf(attr.referrer || data.referrer);
+  const ref = attr.referrer_domain || hostnameOf(attr.referrer || payload.referrer);
   if (!ref) return 'Direct';
   if (/google|bing|duckduckgo|yahoo|baidu/.test(ref)) return 'Organic Search';
   if (SOCIAL_HOST.test(ref)) return 'Social Media';
@@ -396,11 +543,12 @@ function namedReferrer(value) {
 }
 
 /** The actual place a visit came from, plus the bucket that place belongs to. */
-function referrerIdentity(data = {}) {
-  const attr = data.attribution && typeof data.attribution === 'object' ? data.attribution : {};
-  const channel = classifySource(data);
-  const host = String(attr.referrer_domain || hostnameOf(attr.referrer || data.referrer) || '').replace(/^www\./, '');
-  const utm = String(attr.utm_source || data.utm_source || '').trim();
+function referrerIdentity(data = {}, doc = {}) {
+  const payload = data && typeof data === 'object' ? data : {};
+  const attr = payload.attribution && typeof payload.attribution === 'object' ? payload.attribution : {};
+  const channel = classifySource(payload, doc);
+  const host = String(attr.referrer_domain || hostnameOf(attr.referrer || payload.referrer) || '').replace(/^www\./, '');
+  const utm = String(extractUtm(payload, doc).utm_source || '').trim();
   if (channel === 'Direct' && !host && !utm) {
     return { name: 'Direct', channel: 'Direct', host: '' };
   }
@@ -495,6 +643,10 @@ module.exports = {
   vitalRating,
   percentile,
   avg,
+  UTM_KEYS,
+  extractUtm,
+  attributionHasSignal,
+  mergeUtmAttribution,
   classifySource,
   referrerIdentity,
   hostnameOf,
