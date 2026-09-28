@@ -20,6 +20,8 @@ const {
   vitalRating,
   percentile,
   avg,
+  extractUtm,
+  attributionHasSignal,
   classifySource,
   referrerIdentity,
   formatHistoryEvent,
@@ -81,8 +83,18 @@ function groupSessions(docs) {
     }
     const visit = Number(doc.data?.visit_count);
     if (Number.isFinite(visit)) session.visitCount = Math.max(session.visitCount, visit);
-    if (doc.data?.attribution && !session.attribution) session.attribution = doc.data.attribution;
-    session.source = classifySource(doc.data || {});
+    const rawAttr = doc.data?.attribution && typeof doc.data.attribution === 'object' ? doc.data.attribution : {};
+    const extracted = extractUtm(doc.data || {}, doc);
+    const mergedAttr = { ...rawAttr };
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']) {
+      if (!mergedAttr[key] && extracted[key]) mergedAttr[key] = extracted[key];
+    }
+    // Skip empty attribution objects so a later event that actually carries
+    // UTMs (often only on the page query) can still become the session source.
+    if (!attributionHasSignal(session.attribution) && attributionHasSignal(mergedAttr)) {
+      session.attribution = mergedAttr;
+    }
+    session.source = classifySource(doc.data || {}, doc);
     if (!session.userId) session.userId = userIdOf(doc);
   }
   for (const session of sessions.values()) {
@@ -346,11 +358,11 @@ function registerMetricRoutes(app, { db }) {
 
   app.get('/analytics/traffic-sources', guarded(async (req, res, apiKey, col) => {
     const docs = await loadScopedEvents(col, apiKey, req, { event_name: { $in: PAGE_VIEW_EVENTS } });
-    const sources = withPercentage(topCounts(docs, (d) => classifySource(d.data || {})), docs.length, 'source')
+    const sources = withPercentage(topCounts(docs, (d) => classifySource(d.data || {}, d)), docs.length, 'source')
       .map((row) => ({ source: row.source, visits: row.count, percentage: row.percentage }));
     const refMap = new Map();
     for (const doc of docs) {
-      const id = referrerIdentity(doc.data || {});
+      const id = referrerIdentity(doc.data || {}, doc);
       const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: id.host, visits: 0 };
       prev.visits += 1;
       if (!prev.host && id.host) prev.host = id.host;
@@ -360,17 +372,29 @@ function registerMetricRoutes(app, { db }) {
       .sort((a, b) => b.visits - a.visits)
       .map((row) => ({ ...row, percentage: percent(row.visits, docs.length || 1) }));
     const utmMap = new Map();
-    for (const doc of docs) {
-      const attr = doc.data?.attribution || {};
-      const source = attr.utm_source || doc.data?.utm_source;
-      const medium = attr.utm_medium || doc.data?.utm_medium;
-      const campaign = attr.utm_campaign || doc.data?.utm_campaign;
-      if (!source || !medium || !campaign) continue;
+    const pageViewCampaigns = new Set();
+    const addUtmVisit = (doc, { skipIfPageViewCounted = false, recordPageView = false } = {}) => {
+      const utm = extractUtm(doc.data || {}, doc);
+      const source = utm.utm_source;
+      const medium = utm.utm_medium;
+      const campaign = utm.utm_campaign;
+      if (!source || !medium || !campaign) return;
       const key = `${source}|${medium}|${campaign}`;
+      const sid = sessionIdOf(doc);
+      const dedupeKey = sid ? `${sid}|${key}` : '';
+      if (skipIfPageViewCounted && dedupeKey && pageViewCampaigns.has(dedupeKey)) return;
       const prev = utmMap.get(key) || { source, medium, campaign, visits: 0 };
       prev.visits += 1;
       utmMap.set(key, prev);
-    }
+      if (recordPageView && dedupeKey) pageViewCampaigns.add(dedupeKey);
+    };
+    for (const doc of docs) addUtmVisit(doc, { recordPageView: true });
+    // Share links often land as navigation/route events whose page path still
+    // contains ?utm_* while the paired page_view stored only the pathname.
+    const utmCarrierDocs = await loadScopedEvents(col, apiKey, req, {
+      event_name: { $in: ['navigation', 'route_change'] },
+    });
+    for (const doc of utmCarrierDocs) addUtmVisit(doc, { skipIfPageViewCounted: true });
     return res.json({
       sources,
       referrers,
@@ -715,12 +739,19 @@ function registerMetricRoutes(app, { db }) {
     const sessions = [...groupSessions(docs).values()];
     const firstTouch = topCounts(sessions, (s) => {
       const first = s.events[0];
-      return classifySource(first?.data || s.attribution || {});
+      const fromFirst = classifySource(first?.data || {}, first);
+      if (fromFirst !== 'Direct') return fromFirst;
+      return classifySource(s.attribution || {});
     });
-    const lastTouch = topCounts(sessions, (s) => classifySource(s.attribution || s.events.at(-1)?.data || {}));
+    const lastTouch = topCounts(sessions, (s) => {
+      const last = s.events.at(-1);
+      const fromLast = classifySource(last?.data || {}, last);
+      if (fromLast !== 'Direct') return fromLast;
+      return classifySource(s.attribution || {});
+    });
     const linearMap = new Map();
     for (const session of sessions) {
-      const sources = [...new Set(session.events.map((e) => classifySource(e.data || {})))];
+      const sources = [...new Set(session.events.map((e) => classifySource(e.data || {}, e)))];
       const share = sources.length ? 1 / sources.length : 0;
       for (const source of sources) {
         linearMap.set(source, (linearMap.get(source) || 0) + share);

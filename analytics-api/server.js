@@ -15,7 +15,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { MongoClient } = require('mongodb');
-const { buildDateFilter, toDate } = require('./query');
+const { buildDateFilter, toDate, mergeUtmAttribution } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
 
 const DEFAULT_ORIGINS = [
@@ -453,16 +453,29 @@ function normalizeEvents(req) {
     .filter((event) => event && typeof event === 'object')
     .map((event) => {
       const service = event.service || event.apiKey || envelopeKey || null;
+      const rawData = event.data && typeof event.data === 'object' && !Array.isArray(event.data) ? event.data : event;
+      const page = event.page || rawData.page || null;
+      const data = mergeUtmAttribution(rawData, {
+        page,
+        url: event.url || event.href || rawData.url || rawData.href || null,
+        href: event.href || null,
+        route: event.route || null,
+        utm_source: event.utm_source,
+        utm_medium: event.utm_medium,
+        utm_campaign: event.utm_campaign,
+        utm_content: event.utm_content,
+        utm_term: event.utm_term,
+      });
       return {
         event_name: event.event_name || event.eventType || event.name || 'unknown',
         user_id: event.user_id || event.userId || null,
         user_email: event.user_email || event.userEmail || null,
-        data: event.data && typeof event.data === 'object' ? event.data : event,
+        data,
         service,
         apiKey: service,
-        page: event.page || event.data?.page || null,
-        session_id: event.session_id || event.data?.session_id || null,
-        timestamp: toDate(event.timestamp || event.data?.timestamp) || new Date(),
+        page,
+        session_id: event.session_id || data.session_id || null,
+        timestamp: toDate(event.timestamp || data.timestamp) || new Date(),
       };
     });
 }

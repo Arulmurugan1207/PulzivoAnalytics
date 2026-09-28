@@ -220,22 +220,99 @@
     });
   }
 
+  const UTM_PARAM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  // Captured as soon as the script runs, before an SPA can strip ?utm_* during boot.
+  let landingUtm = {};
+  let landingUtmApplied = false;
+
+  function readUtmSearch(search) {
+    const out = {};
+    if (!search || typeof search !== 'string' || search.indexOf('utm_') === -1) return out;
+    try {
+      const raw = search.charAt(0) === '?' ? search.slice(1) : search;
+      const params = new URLSearchParams(raw);
+      UTM_PARAM_KEYS.forEach((key) => {
+        const value = params.get(key);
+        if (value && String(value).trim()) out[key] = String(value).trim();
+      });
+    } catch (e) {}
+    return out;
+  }
+
+  function utmFromUrlLike(value) {
+    if (!value || typeof value !== 'string' || value.indexOf('utm_') === -1) return {};
+    const q = value.indexOf('?');
+    if (q === -1) return {};
+    let query = value.slice(q + 1);
+    const hash = query.indexOf('#');
+    if (hash !== -1) query = query.slice(0, hash);
+    return readUtmSearch(query);
+  }
+
+  function utmFromLocation() {
+    if (typeof window === 'undefined' || !window.location) return {};
+    const fromSearch = readUtmSearch(window.location.search || '');
+    let fromHash = {};
+    const hash = window.location.hash || '';
+    const q = hash.indexOf('?');
+    if (q !== -1) fromHash = readUtmSearch(hash.slice(q + 1));
+    return { ...fromHash, ...fromSearch };
+  }
+
+  function captureLandingUtm() {
+    const found = utmFromLocation();
+    UTM_PARAM_KEYS.forEach((key) => {
+      if (!landingUtm[key] && found[key]) landingUtm[key] = found[key];
+    });
+  }
+
+  function mergeAttribution(existing, extras) {
+    const out = existing && typeof existing === 'object' ? { ...existing } : {};
+    const sources = Array.isArray(extras) ? extras : [extras];
+    sources.forEach((src) => {
+      if (!src || typeof src !== 'object') return;
+      UTM_PARAM_KEYS.forEach((key) => {
+        const current = out[key];
+        const hasCurrent = current != null && String(current).trim() !== '';
+        if (!hasCurrent && src[key] != null && String(src[key]).trim() !== '') {
+          out[key] = String(src[key]).trim();
+        }
+      });
+      ['landing_page', 'landing_domain', 'referrer', 'referrer_domain'].forEach((key) => {
+        if ((out[key] == null || out[key] === '') && src[key]) out[key] = src[key];
+      });
+    });
+    return out;
+  }
+
   function getAttributionData() {
     if (typeof window === 'undefined' || !window.location) return {};
 
     const urlParams = new URLSearchParams(window.location.search);
-
-    return {
-      utm_source: urlParams.get('utm_source'),
-      utm_medium: urlParams.get('utm_medium'),
-      utm_campaign: urlParams.get('utm_campaign'),
-      utm_term: urlParams.get('utm_term'),
-      utm_content: urlParams.get('utm_content'),
+    const attribution = {
       landing_page: window.location.pathname + window.location.search,
       landing_domain: window.location.hostname,
       referrer: document.referrer || null,
-      referrer_domain: document.referrer ? new URL(document.referrer).hostname : null,
+      referrer_domain: null,
     };
+    if (document.referrer) {
+      try {
+        attribution.referrer_domain = new URL(document.referrer).hostname;
+      } catch (e) {
+        attribution.referrer_domain = null;
+      }
+    }
+    UTM_PARAM_KEYS.forEach((key) => {
+      const value = urlParams.get(key);
+      if (value && String(value).trim()) attribution[key] = String(value).trim();
+    });
+    return mergeAttribution(attribution, utmFromLocation());
+  }
+
+  // Always include UTMs from the live URL. Referrer fields stay plan-gated.
+  function captureAttributionNow() {
+    const base = hasFeature('utm_attribution') ? getAttributionData() : {};
+    return mergeAttribution(base, utmFromLocation());
   }
 
   function getBrowserInfo() {
@@ -376,8 +453,26 @@
       return;
     }
 
-    // Use pre-captured attribution if provided, otherwise capture now
-    const attribution = data.attribution || (hasFeature('utm_attribution') ? getAttributionData() : {});
+    // Explicit attribution wins. Fill gaps from the live URL and from page/route
+    // strings (SPA navigations pass router.url with ?utm_*). The landing snapshot
+    // is applied once, on the first page view, in case the router already removed
+    // the query before that event was queued.
+    let attribution = mergeAttribution(
+      data.attribution && typeof data.attribution === 'object' ? data.attribution : {},
+      [
+        hasFeature('utm_attribution') ? getAttributionData() : {},
+        utmFromLocation(),
+        utmFromUrlLike(data.page),
+        utmFromUrlLike(data.route),
+        utmFromUrlLike(data.url),
+        utmFromUrlLike(data.href),
+        utmFromUrlLike(data.previousUrl),
+      ]
+    );
+    if (eventName === 'page_view' && !landingUtmApplied) {
+      attribution = mergeAttribution(attribution, landingUtm);
+      landingUtmApplied = true;
+    }
     const browserInfo = getBrowserInfo();
 
     const eventData = {
@@ -1228,7 +1323,7 @@
           maxScroll = 0; // Reset scroll tracking
           // Capture UTMs immediately before router strips query params,
           // then delay so TitleStrategy can update document.title first
-          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          const capturedAttribution = captureAttributionNow();
           setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
           if (config.debug) console.log('[Analytics] Page view tracked (popstate):', lastPath);
         }
@@ -1242,7 +1337,7 @@
           lastPath = window.location.pathname;
           startTime = Date.now();
           maxScroll = 0;
-          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          const capturedAttribution = captureAttributionNow();
           setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
           if (config.debug) console.log('[Analytics] Page view tracked (pushState):', lastPath);
         }
@@ -1256,7 +1351,7 @@
           lastPath = window.location.pathname;
           startTime = Date.now();
           maxScroll = 0;
-          const capturedAttribution = hasFeature('utm_attribution') ? getAttributionData() : {};
+          const capturedAttribution = captureAttributionNow();
           setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
           if (config.debug) console.log('[Analytics] Page view tracked (replaceState):', lastPath);
         }
@@ -1651,6 +1746,7 @@
 
   // Apply ?pulz_owner= as early as possible (before any auto-init tracking).
   applyOwnerFlagFromUrl();
+  captureLandingUtm();
 
   // Auto-initialize from script tag data attributes or window config
   const scriptConfig = getConfigFromScriptTag();
