@@ -17,6 +17,7 @@ const rateLimit = require('express-rate-limit');
 const { MongoClient } = require('mongodb');
 const { buildDateFilter, toDate, mergeUtmAttribution } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
+const { isCrawlerUserAgent } = require('./bots');
 
 const DEFAULT_ORIGINS = [
   'https://tabletennistube.com',
@@ -379,7 +380,8 @@ function createApp(options = {}) {
   registerMetricRoutes(app, { db });
 
   const persistIngest = async (req, res) => {
-    const events = normalizeEvents(req);
+    const { kept: events, dropped } = dropCrawlerEvents(normalizeEvents(req), req.get('user-agent'));
+    if (dropped) console.log(`[analytics-api] dropped ${dropped} crawler event(s)`);
     if (db && events.length) {
       try {
         const now = new Date();
@@ -480,6 +482,19 @@ function normalizeEvents(req) {
     });
 }
 
+/**
+ * Known crawlers never count in stats. If the request itself comes from a
+ * crawler every event is dropped; otherwise drop events whose tracked
+ * data.userAgent is a crawler. The caller still answers 200 so trackers
+ * do not retry.
+ */
+function dropCrawlerEvents(events, requestUserAgent) {
+  const list = Array.isArray(events) ? events : [];
+  if (isCrawlerUserAgent(requestUserAgent)) return { kept: [], dropped: list.length };
+  const kept = list.filter((event) => !isCrawlerUserAgent(event?.data?.userAgent));
+  return { kept, dropped: list.length - kept.length };
+}
+
 async function connectMongo() {
   const uri = mongoUri();
   if (!uri) {
@@ -531,6 +546,7 @@ module.exports = {
   originAllowed,
   DEFAULT_ORIGINS,
   normalizeEvents,
+  dropCrawlerEvents,
   buildDateFilter,
   toDate,
 };

@@ -220,6 +220,26 @@
     });
   }
 
+  // Known crawlers / headless agents never count in stats. KEEP IN SYNC with
+  // analytics-api/bots.js (bots.spec.js fails on drift). In-app browsers such as
+  // FBAN/FBAV, Instagram, Twitter or LinkedInApp are real people and do not match.
+  const CRAWLER_UA_PATTERN =
+    'bot\\b|crawl|spider|slurp|mediapartners-google|adsbot|googlebot|google-inspectiontool|' +
+    'storebot-google|feedfetcher|google-read-aloud|apis-google|bingpreview|facebookexternalhit|' +
+    'facebookcatalog|meta-externalagent|headlesschrome|phantomjs|lighthouse|pagespeed|ptst\\/|' +
+    'gtmetrix|pingdom|uptimerobot|' +
+    'scrapy|bytespider|petalbot|baiduspider|semrush|ahrefs|mj12bot|dotbot|gptbot|claudebot|' +
+    'ccbot|amazonbot|applebot|duckduckbot';
+  const CRAWLER_UA = new RegExp(CRAWLER_UA_PATTERN, 'i');
+  let crawlerCache = null;
+
+  function isKnownCrawler() {
+    if (crawlerCache !== null) return crawlerCache;
+    const ua = typeof navigator !== 'undefined' && navigator.userAgent ? String(navigator.userAgent) : '';
+    crawlerCache = Boolean(ua) && CRAWLER_UA.test(ua.replace(/cubot/gi, ''));
+    return crawlerCache;
+  }
+
   const UTM_PARAM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
   // Captured as soon as the script runs, before an SPA can strip ?utm_* during boot.
   let landingUtm = {};
@@ -309,9 +329,15 @@
     return mergeAttribution(attribution, utmFromLocation());
   }
 
-  // Always include UTMs from the live URL. Referrer fields stay plan-gated.
+  // Referrer + landing fields and UTMs are recorded on every plan ("how they got
+  // here" is basic analytics). Only an explicit site opt-out via
+  // setPreferences({ utm_attribution: false }) turns them off.
+  function referrerAttributionEnabled() {
+    return !(userPreferences && userPreferences.utm_attribution === false);
+  }
+
   function captureAttributionNow() {
-    const base = hasFeature('utm_attribution') ? getAttributionData() : {};
+    const base = referrerAttributionEnabled() ? getAttributionData() : {};
     return mergeAttribution(base, utmFromLocation());
   }
 
@@ -445,6 +471,12 @@
       return;
     }
 
+    // Never send events for known crawlers (e.g. Mediapartners-Google, Googlebot)
+    if (isKnownCrawler()) {
+      if (config.debug) console.log('[Analytics] Crawler user agent - event suppressed:', eventName);
+      return;
+    }
+
     // Stop logging if no API key is configured or API key is invalid
     if (!config.apiKey || config.apiKey.trim() === '' || config.apiKey === 'unknown' || isApiKeyInvalid) {
       if (config.debug) {
@@ -460,7 +492,7 @@
     let attribution = mergeAttribution(
       data.attribution && typeof data.attribution === 'object' ? data.attribution : {},
       [
-        hasFeature('utm_attribution') ? getAttributionData() : {},
+        referrerAttributionEnabled() ? getAttributionData() : {},
         utmFromLocation(),
         utmFromUrlLike(data.page),
         utmFromUrlLike(data.route),
@@ -1415,6 +1447,12 @@
       // Skip tracking for headless browsers / automated tools
       if (typeof navigator !== 'undefined' && navigator.webdriver === true) {
         if (config.debug) console.log('[Analytics] Headless browser detected — tracking suppressed.');
+        return;
+      }
+
+      // Skip tracking for known crawlers (AdSense Mediapartners-Google, Googlebot, bingbot, ...)
+      if (isKnownCrawler()) {
+        if (config.debug) console.log('[Analytics] Crawler user agent detected — tracking suppressed.');
         return;
       }
 
