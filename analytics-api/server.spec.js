@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createApp, DEFAULT_ORIGINS, parseOrigins, normalizeEvents, buildDateFilter } = require('./server');
+const { createApp, DEFAULT_ORIGINS, parseOrigins, normalizeEvents, dropCrawlerEvents, buildDateFilter } = require('./server');
 const { createMemoryDb, matches } = require('./memory-db');
 const { extractUtm, classifySource } = require('./query');
 
@@ -192,6 +192,53 @@ test('POST /analytics/log accepts {apiKey,events} envelope', async () => {
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { status: 'ok' });
   });
+});
+
+const BROWSER_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+
+test('POST /analytics/log drops crawler events but still answers 200', async () => {
+  const db = createMemoryDb({ events: [] });
+  await withServer(createApp({ db }), async (url) => {
+    // Tracked navigator.userAgent is the AdSense crawler, browser-like header.
+    const res = await fetch(`${url}/analytics/log?apiKey=PULZ-PRD-TEST`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': BROWSER_UA, Origin: 'https://tabletennistube.com' },
+      body: JSON.stringify([
+        { event_name: 'page_view', data: { page: '/news/a', userAgent: 'Mediapartners-Google' } },
+        { event_name: 'page_view', data: { page: '/news/b', userAgent: BROWSER_UA } },
+      ]),
+    });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { status: 'ok' });
+    const stored = await db.collection('events').find({}).toArray();
+    assert.deepEqual(stored.map((d) => d.page), ['/news/b']);
+
+    // Request header itself is a crawler: drop the whole batch, still 200.
+    const botHeader = await fetch(`${url}/analytics/log?apiKey=PULZ-PRD-TEST`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (compatible; Mediapartners-Google/2.1; +http://www.google.com/bot.html)',
+      },
+      body: JSON.stringify([{ event_name: 'page_view', data: { page: '/news/c', userAgent: BROWSER_UA } }]),
+    });
+    assert.equal(botHeader.status, 200);
+    assert.deepEqual(await botHeader.json(), { status: 'ok' });
+    assert.equal((await db.collection('events').find({}).toArray()).length, 1);
+  });
+});
+
+test('dropCrawlerEvents keeps in-app browsers and events without a userAgent', () => {
+  const events = [
+    { event_name: 'page_view', data: { userAgent: 'Mozilla/5.0 (iPhone) Mobile/15E148 [FBAN/FBIOS;FBAV/530.0]' } },
+    { event_name: 'page_view', data: { userAgent: 'Mozilla/5.0 (iPhone) Mobile/15E148 Instagram 400.0.0.21.88' } },
+    { event_name: 'page_view', data: {} },
+    { event_name: 'page_view', data: { userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1)' } },
+  ];
+  const { kept, dropped } = dropCrawlerEvents(events, BROWSER_UA);
+  assert.equal(kept.length, 3);
+  assert.equal(dropped, 1);
+  assert.deepEqual(dropCrawlerEvents(events, 'Mediapartners-Google'), { kept: [], dropped: 4 });
 });
 
 test('GET /analytics/log is 404', async () => {

@@ -11,6 +11,7 @@
     "test:server": "node --test server.spec.js",
     "test:copy": "node --test copy-honesty.spec.js",
     "test:analytics-api": "npm test --prefix analytics-api",
+    "test:units": "node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts src/app/pages/dashboard/events/visit-source.test.ts",
     "minify:analytics": "terser public/pulzivo-analytics.js -o public/pulzivo-analytics.min.js --compress --mangle"
   },
   "prettier": {

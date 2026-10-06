@@ -22,6 +22,7 @@ import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
+import { describeVisitSource } from './visit-source';
 
 interface UserColor { bg: string; text: string; border: string; }
 
@@ -731,6 +732,13 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.sessionSummary = null;
     this.showTimelineSummary = false;
     this.showEventDetail = true;
+    // Load the session up front so "How they got here" can use its first touch.
+    if (event.session_id) this.loadSessionTimeline();
+  }
+
+  /** "How they got here": crawler, referrer host + UTMs, Direct, or Not recorded. */
+  getVisitSource(): string {
+    return describeVisitSource(this.selectedEvent, this.sessionEvents);
   }
 
   closeEventDetail(): void {
@@ -740,23 +748,25 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.sessionEvents = [];
     this.sessionSummary = null;
     this.showTimelineSummary = false;
+    this.loadingTimeline = false;
     this.modalTab = 'details';
   }
 
   switchModalTab(tab: 'details' | 'timeline'): void {
     this.modalTab = tab;
-    if (tab === 'timeline' && this.selectedEvent && !this.sessionEvents.length) {
+    if (tab === 'timeline' && this.selectedEvent && !this.sessionEvents.length && !this.loadingTimeline) {
       this.loadSessionTimeline();
     }
   }
 
   private loadSessionTimeline(): void {
-    if (!this.selectedEvent?.session_id) return;
+    const sessionId = this.selectedEvent?.session_id;
+    if (!sessionId) return;
     this.loadingTimeline = true;
     this.cdr.markForCheck();
 
     if (this.demoService.isDemoMode()) {
-      const events = this.demoService.getSessionEvents(this.selectedEvent.session_id);
+      const events = this.demoService.getSessionEvents(sessionId);
       this.sessionEvents = events as any;
       this.buildSessionSummary();
       this.loadingTimeline = false;
@@ -764,14 +774,17 @@ export class DashboardEvents implements OnInit, OnDestroy {
       return;
     }
 
-    this.analyticsAPI.getSessionEvents(this.selectedEvent.session_id).subscribe({
+    this.analyticsAPI.getSessionEvents(sessionId).subscribe({
       next: (events: any[]) => {
+        // Ignore a late response for an event the user already closed or replaced.
+        if (this.selectedEvent?.session_id !== sessionId) return;
         this.sessionEvents = events;
         this.buildSessionSummary();
         this.loadingTimeline = false;
         this.cdr.markForCheck();
       },
       error: () => {
+        if (this.selectedEvent?.session_id !== sessionId) return;
         this.loadingTimeline = false;
         this.cdr.markForCheck();
       }

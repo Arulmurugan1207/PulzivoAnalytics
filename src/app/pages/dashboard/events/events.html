@@ -497,6 +497,10 @@
             <div class="detail-value">{{ selectedEvent.page || '—' }}</div>
           </div>
           <div class="detail-item">
+            <div class="detail-label">How they got here</div>
+            <div class="detail-value">{{ getVisitSource() }}</div>
+          </div>
+          <div class="detail-item">
             <div class="detail-label">Country</div>
             <div class="detail-value">{{ selectedEvent.country || '—' }}</div>
           </div>
