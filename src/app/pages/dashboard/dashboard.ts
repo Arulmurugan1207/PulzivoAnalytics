@@ -50,6 +50,9 @@ export class Dashboard implements OnInit, OnDestroy {
   /** Shared across all dashboard pages; last selection is restored from localStorage. */
   availableApiKeys: ApiKey[] = [];
   selectedApiKey = '';
+  readonly FREE_MONTHLY_EVENT_LIMIT = 10000;
+  usageWarning: { used: number; limit: number; pct: number } | null = null;
+  usageWarningDismissed = false;
   private subscriptions = new Subscription();
 
   readonly lockedNavItems = [
@@ -140,6 +143,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.apiKeysService.selectedApiKey$.subscribe(key => {
         this.selectedApiKey = key || '';
+        this.checkUsageWarning();
       })
     );
     this.subscriptions.add(
@@ -329,5 +333,26 @@ export class Dashboard implements OnInit, OnDestroy {
 
   dismissWelcomeBanner() {
     this.showWelcomeBanner = false;
+  }
+
+  /** Show an upgrade banner when a free site reaches >= 80% of its monthly event limit. */
+  checkUsageWarning(): void {
+    this.usageWarning = null;
+    const key = this.selectedApiKey;
+    if (!key || key === 'DEMO-KEY' || this.userPlan !== 'free') return;
+    this.apiKeysService.getApiKeyUsage(key).subscribe({
+      next: (u) => {
+        if (key !== this.selectedApiKey) return;
+        const limit = u?.limits?.monthly || this.FREE_MONTHLY_EVENT_LIMIT;
+        const used = u?.usage?.monthly || 0;
+        const pct = Math.round((used / limit) * 100);
+        this.usageWarning = pct >= 80 ? { used, limit, pct } : null;
+      },
+      error: () => { this.usageWarning = null; }
+    });
+  }
+
+  goToUpgrade(): void {
+    this.router.navigate(['/dashboard/plans']);
   }
 }
