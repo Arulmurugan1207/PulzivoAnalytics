@@ -238,6 +238,17 @@
 
     <!-- Content Area -->
     <main class="content-area">
+      @if (usageWarning && !usageWarningDismissed) {
+        <div class="usage-upgrade-banner" role="alert" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:16px;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412">
+          <i class="pi pi-exclamation-triangle"></i>
+          <span style="flex:1">
+            This site has used <strong>{{ usageWarning.used | number }}</strong> of <strong>{{ usageWarning.limit | number }}</strong> free events this month ({{ usageWarning.pct }}%).
+            Upgrade to keep tracking without interruption.
+          </span>
+          <button type="button" class="p-button p-button-sm" (click)="goToUpgrade()">Upgrade</button>
+          <button type="button" class="p-button p-button-sm p-button-text" aria-label="Dismiss" (click)="usageWarningDismissed = true"><i class="pi pi-times"></i></button>
+        </div>
+      }
       <router-outlet></router-outlet>
     </main>
   </div>
