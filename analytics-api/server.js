@@ -18,6 +18,7 @@ const { MongoClient } = require('mongodb');
 const { buildDateFilter, toDate, mergeUtmAttribution } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
 const { isCrawlerUserAgent } = require('./bots');
+const { loadExclusionRules, isExcludedEvent } = require('./owner-exclusion');
 
 const DEFAULT_ORIGINS = [
   'https://tabletennistube.com',
@@ -380,8 +381,9 @@ function createApp(options = {}) {
   registerMetricRoutes(app, { db });
 
   const persistIngest = async (req, res) => {
-    const { kept: events, dropped } = dropCrawlerEvents(normalizeEvents(req), req.get('user-agent'));
+    const { kept: botFree, dropped } = dropCrawlerEvents(normalizeEvents(req), req.get('user-agent'));
     if (dropped) console.log(`[analytics-api] dropped ${dropped} crawler event(s)`);
+    const events = await dropExcludedEvents(db, botFree);
     if (db && events.length) {
       try {
         const now = new Date();
@@ -488,6 +490,24 @@ function normalizeEvents(req) {
  * data.userAgent is a crawler. The caller still answers 200 so trackers
  * do not retry.
  */
+/** Drop owner/internal events (by email or user_id) before they are stored. */
+async function dropExcludedEvents(db, events) {
+  const list = Array.isArray(events) ? events : [];
+  if (!list.length) return list;
+  const rulesByKey = new Map();
+  const kept = [];
+  for (const event of list) {
+    const key = event.apiKey || '';
+    if (!rulesByKey.has(key)) {
+      rulesByKey.set(key, await loadExclusionRules(db, key, { keysCollection: apiKeysCollectionName() }));
+    }
+    if (!isExcludedEvent(event, rulesByKey.get(key))) kept.push(event);
+  }
+  const excluded = list.length - kept.length;
+  if (excluded) console.log(`[analytics-api] dropped ${excluded} owner-excluded event(s)`);
+  return kept;
+}
+
 function dropCrawlerEvents(events, requestUserAgent) {
   const list = Array.isArray(events) ? events : [];
   if (isCrawlerUserAgent(requestUserAgent)) return { kept: [], dropped: list.length };
@@ -547,6 +567,7 @@ module.exports = {
   DEFAULT_ORIGINS,
   normalizeEvents,
   dropCrawlerEvents,
+  dropExcludedEvents,
   buildDateFilter,
   toDate,
 };
