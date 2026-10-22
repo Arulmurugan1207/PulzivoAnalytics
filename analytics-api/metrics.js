@@ -32,6 +32,17 @@ const {
   previousRange,
   reqWithRange,
 } = require('./query');
+const { loadExclusionRules, exclusionMatch } = require('./owner-exclusion');
+
+/** Report-time filter: hide owner-excluded rows without deleting them. */
+function withExclusion(col, exclusion) {
+  if (!exclusion || !Object.keys(exclusion).length) return col;
+  const scope = (filter) => (filter && Object.keys(filter).length ? { $and: [filter, exclusion] } : exclusion);
+  return {
+    find: (filter, ...rest) => col.find(scope(filter), ...rest),
+    countDocuments: (filter, ...rest) => col.countDocuments(scope(filter), ...rest),
+  };
+}
 
 async function findEvents(col, filter, options = {}) {
   let cursor = col.find(filter);
@@ -248,7 +259,9 @@ function registerMetricRoutes(app, { db }) {
       if (!db) return res.status(503).json({ error: 'stats unavailable' });
       const apiKey = requireApiKey(req, res);
       if (!apiKey) return;
-      const col = db.collection(process.env.EVENTS_COLLECTION || 'events');
+      const rawCol = db.collection(process.env.EVENTS_COLLECTION || 'events');
+      const rules = await loadExclusionRules(db, apiKey, { keysCollection: process.env.API_KEYS_COLLECTION || 'api_keys' });
+      const col = withExclusion(rawCol, exclusionMatch(rules));
       await handler(req, res, apiKey, col);
     } catch (err) {
       console.error('[analytics-api] metrics failed', req.method, req.path, err);
