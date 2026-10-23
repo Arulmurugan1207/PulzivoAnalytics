@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, OnDestroy, ViewChild, HostListener, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, HostListener, signal } from '@angular/core';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
@@ -9,6 +9,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { Menu, MenuModule } from 'primeng/menu';
 import type { MenuItem } from 'primeng/api';
 
+import { safeReturnUrl } from '../../auth/session.logic';
 import { SignIn } from '../../components/modals/sign-in/sign-in';
 import { SignUp } from '../../components/modals/sign-up/sign-up';
 import { Success } from '../../components/modals/success/success';
@@ -27,7 +28,7 @@ interface NavItem {
   templateUrl: './header.html',
   styleUrls: ['./header.scss'],
 })
-export class Header implements OnInit, OnDestroy {
+export class Header implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(SignIn) signInModal!: SignIn;
   @ViewChild(SignUp) signUpModal!: SignUp;
   @ViewChild(Success) successModal!: Success;
@@ -73,11 +74,30 @@ export class Header implements OnInit, OnDestroy {
       if (userData) this.setLoggedInUser(`${userData.firstname} ${userData.lastname}`);
     }
     this.authService.openSignUp$.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      if (!this.isLoggedIn) this.openSignUp();
+      if (!this.signUpModal) return; // before view init: handled in ngAfterViewInit
+      this.authService.pendingAuthModal = null;
+      if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
+      this.openSignUp();
     });
     this.authService.openSignIn$.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      if (!this.isLoggedIn) this.openSignIn();
+      if (!this.signInModal) return;
+      this.authService.pendingAuthModal = null;
+      if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
+      this.openSignIn();
     });
+  }
+
+  ngAfterViewInit() {
+    const pending = this.authService.pendingAuthModal;
+    if (!pending) return;
+    this.authService.pendingAuthModal = null;
+    setTimeout(() => (pending === 'signup' ? this.openSignUp() : this.openSignIn()));
+  }
+
+  /** Already signed in (or just signed in): go to returnUrl or /dashboard. */
+  goToDashboard() {
+    const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
+    this.router.navigateByUrl(safeReturnUrl(returnUrl));
   }
 
   private normalizePath(url: string): string {
@@ -101,7 +121,10 @@ export class Header implements OnInit, OnDestroy {
     }
   }
 
-  openSignIn() { this.signInModal.show(); }
+  openSignIn() {
+    if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
+    this.signInModal.show();
+  }
   openSignUp() { if (this.isLoggedIn) return; this.signUpCompleted = false; this.signUpModal.show(); }
   onSignUpClosed() { if (!this.signUpCompleted) this.authService.notifySignUpDismissed(); }
 
@@ -113,7 +136,8 @@ export class Header implements OnInit, OnDestroy {
   onSignInSuccess(user: any) {
     this.signInModal.hide();
     this.setLoggedInUser(`${user.firstname} ${user.lastname}`);
-    this.successModal.show('Welcome Back!', 'You have successfully signed in.');
+    // As soon as the user signs in, take them to the dashboard (or returnUrl).
+    this.goToDashboard();
   }
 
   onSignUpSuccess(user: any) {
@@ -123,6 +147,7 @@ export class Header implements OnInit, OnDestroy {
     this.signUpModal.hide();
     const name = user?.firstname ? `${user.firstname} ${user.lastname || ''}`.trim() : 'New User';
     this.setLoggedInUser(name);
+    this.goToDashboard();
     this.successModal.show('Account Created!', 'Your account has been created successfully. Head to the dashboard to set up tracking.');
   }
 
