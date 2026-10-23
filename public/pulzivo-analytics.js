@@ -18,6 +18,8 @@
 
 (function(window) {
   'use strict';
+  // Loaded twice (e.g. two script tags)? Keep the first copy so listeners never double up.
+  if (window.PulzivoAnalytics && window.PulzivoAnalytics.__pz) return;
 
   // Configuration
   let config = {
@@ -60,6 +62,17 @@
   let retryCount = 0;
   let rateLimitBackoff = 0;
   let lastRateLimitTime = 0;
+  // Per page view: engaged (visible) time, a view id shared by its page_exit events,
+  // and what the last page_exit reported so a hidden-then-closed tab is not double counted.
+  let viewId = '';
+  let engagedMs = 0;
+  let visibleSince = Date.now();
+  let lastExitKey = '';
+  let currentPage = '';
+  let newSessionPending = false;
+  let planLoaded = false;
+  const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+  const BEACON_MAX_BYTES = 60000;
 
   // Owner exclusion flag — set via:
   // - init({ excludeOwner: true })
@@ -184,29 +197,9 @@
 
   // Check if a feature is allowed by current plan AND user preferences
   function hasFeature(feature) {
-    // Check if plan includes this feature
-    const planAllows = planFeatures.includes(feature);
-    
-    // If plan doesn't allow it, user can't enable it
-    if (!planAllows) {
-      if (config.debug) {
-        console.log(`[Analytics] Feature '${feature}' blocked by plan (${currentPlan})`);
-      }
-      return false;
-    }
-    
-    // If user has preferences set, check if they've disabled this feature
-    if (userPreferences && userPreferences.hasOwnProperty(feature)) {
-      const userChoice = userPreferences[feature] === true;
-      if (config.debug) {
-        console.log(`[Analytics] Feature '${feature}' user preference: ${userChoice}`);
-      }
-      return userChoice;
-    }
-    
-    // Default: if plan allows it and user hasn't set preference, it's enabled
-    if (config.debug) {
-      console.log(`[Analytics] Feature '${feature}' enabled by default (plan allows, no user preference)`);
+    if (!planFeatures.includes(feature)) return false;
+    if (userPreferences && Object.prototype.hasOwnProperty.call(userPreferences, feature)) {
+      return userPreferences[feature] === true;
     }
     return true;
   }
@@ -218,6 +211,29 @@
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
+  }
+
+  // Privacy: emails never leave the page, and URLs are sent without query string or
+  // fragment (password-reset tokens, session ids, signed links live there).
+  const EMAIL_RE = /[^\s\/?#&=:@]+@[^\s\/?#&=:@]+\.[a-z]{2,}/gi;
+  function redact(v) {
+    return v == null ? v : String(v).replace(EMAIL_RE, '[email]');
+  }
+  function cleanUrl(u) {
+    if (!u) return null;
+    try {
+      const x = new URL(u, window.location.href);
+      return redact(/^https?:$/.test(x.protocol) ? x.origin + x.pathname : x.protocol);
+    } catch (e) {
+      return null;
+    }
+  }
+  // Path used for reports. Hash routers (#/route or #!/route) count as distinct pages.
+  function pagePath() {
+    const l = window.location;
+    if (!l) return '';
+    const h = l.hash || '';
+    return l.pathname + (/^#!?\//.test(h) ? h.replace(/\?.*$/, '') : '');
   }
 
   // Known crawlers / headless agents never count in stats. KEEP IN SYNC with
@@ -309,10 +325,14 @@
     if (typeof window === 'undefined' || !window.location) return {};
 
     const urlParams = new URLSearchParams(window.location.search);
+    // Landing page keeps only utm_* from the query; anything else may be a token.
+    const utmQuery = new URLSearchParams();
+    UTM_PARAM_KEYS.forEach((key) => { if (urlParams.get(key)) utmQuery.set(key, urlParams.get(key)); });
+    const q = utmQuery.toString();
     const attribution = {
-      landing_page: window.location.pathname + window.location.search,
+      landing_page: redact(window.location.pathname) + (q ? '?' + q : ''),
       landing_domain: window.location.hostname,
-      referrer: document.referrer || null,
+      referrer: cleanUrl(document.referrer),
       referrer_domain: null,
     };
     if (document.referrer) {
@@ -346,7 +366,8 @@
 
     const info = {
       language: navigator.language,
-      screenResolution: `${screen.width}x${screen.height}`,
+      screenResolution: window.screen ? `${screen.width}x${screen.height}` : null,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       cookieEnabled: navigator.cookieEnabled,
       online: navigator.onLine,
@@ -356,7 +377,7 @@
     if (navigator.userAgentData && hasFeature('client_hints')) {
       info.platform = navigator.userAgentData.platform;
       info.mobile = navigator.userAgentData.mobile;
-      info.brands = navigator.userAgentData.brands.map(b => `${b.brand}/${b.version}`).join(', ');
+      info.brands = (navigator.userAgentData.brands || []).map(b => `${b.brand}/${b.version}`).join(', ');
     } else {
       info.userAgent = navigator.userAgent;
       info.platform = navigator.platform;
@@ -365,26 +386,26 @@
     return info;
   }
 
-  function isLocalStorageAvailable() {
+  // Storage probes are cached: they run on every event.
+  let lsOk = null;
+  let ssOk = null;
+  function probe(store) {
     try {
       const test = '__analytics_test__';
-      localStorage.setItem(test, test);
-      localStorage.removeItem(test);
+      store.setItem(test, test);
+      store.removeItem(test);
       return true;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
-
+  function isLocalStorageAvailable() {
+    if (lsOk === null) lsOk = probe(window.localStorage);
+    return lsOk;
+  }
   function isSessionStorageAvailable() {
-    try {
-      const test = '__analytics_test__';
-      sessionStorage.setItem(test, test);
-      sessionStorage.removeItem(test);
-      return true;
-    } catch {
-      return false;
-    }
+    if (ssOk === null) ssOk = probe(window.sessionStorage);
+    return ssOk;
   }
 
   // Storage helpers
@@ -404,19 +425,32 @@
     }
   }
 
-  // Initialize session and user data
-  function initializeSession() {
-    if (isSessionStorageAvailable()) {
-      sessionId = getStorageItem('analytics_session_id', sessionStorage) || generateUUID();
-      setStorageItem('analytics_session_id', sessionId, sessionStorage);
-    } else {
-      sessionId = generateUUID();
+  // Sessions end after 30 minutes without activity (GA4 / Plausible style) and are shared
+  // across tabs. visit_count goes up once per new session, which drives new vs returning.
+  let memSessionTs = 0;
+  function touchSession() {
+    const now = Date.now();
+    const ls = isLocalStorageAvailable();
+    let sid = ls ? getStorageItem('analytics_session_id') : sessionId;
+    const last = ls ? parseInt(getStorageItem('analytics_session_ts') || '0', 10) : memSessionTs;
+    if (!sid || !last || now - last > SESSION_TIMEOUT_MS) {
+      sid = generateUUID();
+      newSessionPending = true;
+      if (ls) {
+        setStorageItem('analytics_session_id', sid);
+        setStorageItem('analytics_visit_count', String(parseInt(getStorageItem('analytics_visit_count') || '0', 10) + 1));
+      }
     }
+    if (ls) setStorageItem('analytics_session_ts', String(now));
+    memSessionTs = now;
+    sessionId = sid;
+  }
 
+  function initializeSession() {
+    touchSession();
     if (isLocalStorageAvailable()) {
       userId = getStorageItem('analytics_user_id') || generateUUID();
       setStorageItem('analytics_user_id', userId);
-
       userEmail = getStorageItem('userEmail');
     } else {
       userId = generateUUID();
@@ -425,36 +459,19 @@
 
   // Track unique visitor (both per session and per day)
   function trackUniqueVisitor() {
-    const currentSessionId = getStorageItem('analytics_session_id', sessionStorage);
-
-    // Track per session (more granular)
-    if (isSessionStorageAvailable()) {
-      const lastTrackedSession = getStorageItem('analytics_unique_visitor_session', sessionStorage);
-      if (lastTrackedSession !== currentSessionId) {
+    if (isLocalStorageAvailable()) {
+      if (getStorageItem('analytics_unique_visitor_session') !== sessionId) {
         queueEvent('unique_visitor_session', {
           category: 'visitor',
-          custom: {
-            first_visit_session: true,
-            visitor_type: 'unique',
-            tracking_type: 'per_session'
-          }
+          custom: { first_visit_session: true, visitor_type: 'unique', tracking_type: 'per_session' }
         });
-        setStorageItem('analytics_unique_visitor_session', currentSessionId, sessionStorage);
+        setStorageItem('analytics_unique_visitor_session', sessionId);
       }
-    }
-
-    // Track per day (traditional daily uniques)
-    if (isLocalStorageAvailable()) {
       const today = new Date().toDateString();
-      const lastTrackedDay = getStorageItem('analytics_unique_visitor_day');
-      if (lastTrackedDay !== today) {
+      if (getStorageItem('analytics_unique_visitor_day') !== today) {
         queueEvent('unique_visitor_daily', {
           category: 'visitor',
-          custom: {
-            first_visit_day: true,
-            visitor_type: 'unique',
-            tracking_type: 'per_day'
-          }
+          custom: { first_visit_day: true, visitor_type: 'unique', tracking_type: 'per_day' }
         });
         setStorageItem('analytics_unique_visitor_day', today);
       }
@@ -505,6 +522,11 @@
       attribution = mergeAttribution(attribution, landingUtm);
       landingUtmApplied = true;
     }
+    touchSession();
+    if (newSessionPending && planLoaded) {
+      newSessionPending = false;
+      if (hasFeature('sessions')) queueEvent('session_start', { category: 'session', custom: { session_type: 'new' } });
+    }
     const browserInfo = getBrowserInfo();
 
     const eventData = {
@@ -513,16 +535,15 @@
       value: data.value || null,
       custom_parameters: data.custom || {},
       user_id: userId,
-      user_email: userEmail,
       session_id: sessionId,
+      view_id: viewId,
       user_type: userEmail ? 'authenticated' : 'anonymous',
       first_visit: getStorageItem('analytics_first_visit') || new Date().toISOString(),
       visit_count: parseInt(getStorageItem('analytics_visit_count') || '0'),
-      page: window.location ? window.location.pathname : '',
+      page: pagePath(),
       page_title: document.title || '',
       page_load_time: pageLoadTime,
       scroll_depth: maxScroll,
-      time_on_page: 0,
       attribution: attribution,
       ...browserInfo,
       ...Object.fromEntries(Object.entries(data).filter(([key]) => key !== 'attribution'))  // Spread data but exclude attribution (already handled above)
@@ -542,8 +563,18 @@
       }
       page = page.trim();
       if (page.length > 1) page = page.replace(/\/+$/, '');
-      eventData.page = page || '/';
+      eventData.page = redact(page) || '/';
     }
+    // Redact emails from every string field (and custom params); identify() is the only
+    // way to attach an email, and that travels as user_email.
+    [eventData, eventData.custom_parameters].forEach((obj) => {
+      if (obj) Object.keys(obj).forEach((k) => {
+        if (typeof obj[k] === 'string' && obj[k].indexOf('@') !== -1) obj[k] = redact(obj[k]);
+      });
+    });
+    ['href', 'url', 'form_action'].forEach((k) => {
+      if (eventData[k]) eventData[k] = cleanUrl(eventData[k]);
+    });
 
     // Store first visit
     if (isLocalStorageAvailable()) {
@@ -571,100 +602,101 @@
     }
   }
 
+  function postEvents(events, keepalive) {
+    const body = JSON.stringify(events);
+    return fetch(config.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      // keepalive lets the request outlive the page; browsers cap it at 64KB.
+      keepalive: keepalive && body.length < BEACON_MAX_BYTES
+    });
+  }
+
   // Send batch
   async function sendBatch() {
     syncOwnerMode();
-
-    if (config.debug) {
-      console.log('[Analytics] Batch timer check - Events in queue:', eventQueue.length);
-    }
-    
-    if (eventQueue.length === 0 || !config.apiUrl || !config.apiKey || isApiKeyInvalid) {
-      if (config.debug) {
-        if (!config.apiKey) {
-          console.log('[Analytics] No API key configured - not sending logs');
-        }
-        if (!config.apiUrl) {
-          console.log('[Analytics] No API URL configured - not sending logs');
-        }
-        if (isApiKeyInvalid) {
-          console.log('[Analytics] API key is invalid - not sending logs');
-        }
-      }
-      return;
-    }
-
-    // Check if we're in rate limit backoff period
+    if (eventQueue.length === 0 || !config.apiUrl || !config.apiKey || isApiKeyInvalid) return;
     const now = Date.now();
-    if (rateLimitBackoff > 0 && (now - lastRateLimitTime) < rateLimitBackoff) {
-      if (config.debug) {
-        console.log('[Analytics] Rate limit backoff active, skipping batch. Retry in', Math.round((rateLimitBackoff - (now - lastRateLimitTime)) / 1000), 'seconds');
-      }
-      return;
-    }
-
-    // In debug mode, don't send to backend - only log to console
+    if (rateLimitBackoff > 0 && (now - lastRateLimitTime) < rateLimitBackoff) return;
     if (config.debug) {
-      console.log('[Analytics] Debug mode: Not sending batch to backend. Events in queue:', eventQueue.length);
+      console.log('[Analytics] Debug mode: not sending', eventQueue.length, 'events');
       eventQueue = [];
       return;
     }
 
-    const eventsToSend = [...eventQueue];
+    const eventsToSend = eventQueue;
     eventQueue = [];
 
     try {
-      const response = await fetch(config.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventsToSend)
-      });
-
+      const response = await postEvents(eventsToSend, true);
       if (response.ok) {
-        retryCount = 0; // Reset retry count on success
-        rateLimitBackoff = 0; // Reset rate limit backoff on success
+        retryCount = 0;
+        rateLimitBackoff = 0;
         lastRateLimitTime = 0;
-      } else {
-        // Handle 401 Unauthorized - API key is invalid
-        if (response.status === 401) {
-          isApiKeyInvalid = true;
-          console.error('[Analytics] API key is invalid (401 Unauthorized) - stopping all logging');
-          // Clear the batch timer to stop sending requests
-          if (batchTimer) {
-            clearInterval(batchTimer);
-            batchTimer = null;
-          }
-          // Clear any queued events since API key is invalid
-          eventQueue = [];
-          return;
-        }
-        
-        // Handle 429 Rate Limiting with exponential backoff
-        if (response.status === 429) {
-          lastRateLimitTime = Date.now();
-          rateLimitBackoff = Math.min(rateLimitBackoff === 0 ? 30000 : rateLimitBackoff * 2, 300000); // Start at 30s, double up to max 5 minutes
-          console.warn(`[Analytics] Rate limited (429). Backing off for ${rateLimitBackoff / 1000} seconds`);
-          
-          // Re-queue events for later retry
-          eventQueue.unshift(...eventsToSend);
-          return;
-        }
-        
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        return;
       }
+      if (response.status === 401) {
+        stopInvalidKey();
+        return;
+      }
+      if (response.status === 429) {
+        lastRateLimitTime = Date.now();
+        rateLimitBackoff = Math.min(rateLimitBackoff === 0 ? 30000 : rateLimitBackoff * 2, 300000);
+        eventQueue.unshift(...eventsToSend);
+        return;
+      }
+      throw new Error('HTTP ' + response.status);
     } catch (error) {
-      console.error('[Analytics] Batch send failed:', error);
-      // Re-queue events on failure with retry limit
+      // Network errors are normal (offline, ad blockers); stay quiet unless debugging.
+      if (config.debug) console.warn('[Analytics] Batch send failed:', error);
       if (!isApiKeyInvalid && retryCount < MAX_RETRY_COUNT) {
         retryCount++;
         eventQueue.unshift(...eventsToSend);
-      } else if (retryCount >= MAX_RETRY_COUNT) {
-        console.warn('[Analytics] Max retries reached, dropping', eventsToSend.length, 'events');
+      } else {
         retryCount = 0;
       }
     }
+  }
+
+  function stopInvalidKey() {
+    isApiKeyInvalid = true;
+    console.warn('[Analytics] API key is invalid (401) - tracking stopped');
+    if (batchTimer) { clearInterval(batchTimer); batchTimer = null; }
+    eventQueue = [];
+  }
+
+  // Unload-safe flush (tab hidden / closed): sendBeacon in chunks under the 64KB limit,
+  // as text/plain so no CORS preflight is needed; fetch keepalive if the beacon is refused.
+  function flushNow() {
+    syncOwnerMode();
+    if (isOwner) { eventQueue = []; return; }
+    if (!eventQueue.length || !config.apiUrl || isApiKeyInvalid || config.debug) return;
+    const events = eventQueue;
+    eventQueue = [];
+    let chunk = [];
+    let size = 2;
+    const send = () => {
+      if (!chunk.length) return;
+      const body = JSON.stringify(chunk);
+      let ok = false;
+      try {
+        ok = !!(navigator.sendBeacon && navigator.sendBeacon(config.apiUrl, new Blob([body], { type: 'text/plain' })));
+      } catch (e) {}
+      if (!ok) {
+        try { postEvents(chunk, true).catch(() => {}); } catch (e) {}
+      }
+      chunk = [];
+      size = 2;
+    };
+    events.forEach((ev) => {
+      const n = JSON.stringify(ev).length + 1;
+      if (n > BEACON_MAX_BYTES) return;
+      if (size + n > BEACON_MAX_BYTES) send();
+      chunk.push(ev);
+      size += n;
+    });
+    send();
   }
 
   // Start batch timer
@@ -675,61 +707,6 @@
         if (config.debug) console.error('[Analytics] Batch timer error:', error);
       });
     }, config.batchIntervalMs);
-  }
-
-  // Human-readable labels for each feature
-  const FEATURE_LABELS = {
-    page_views:      'Page Views',
-    clicks:          'Manual Click Tracking (data-click)',
-    auto_clicks:     'Auto Click Tracking (all buttons & links)',
-    scroll_depth:    'Scroll Depth',
-    page_exit:       'Page Exit Time',
-    visibility:      'Page Visibility Changes',
-    unique_visitors: 'Unique Visitors',
-    sessions:        'Session Tracking',
-    performance:     'Page Load Performance',
-    utm_attribution: 'UTM / Referrer Attribution',
-    user_identity:   'User Identity (identify())',
-    custom_events:   'Custom Events',
-    client_hints:    'Client Hints (Browser Details)',
-    form_tracking:   'Form Tracking',
-    tooltip_tracking:'Tooltip & Help Icon Tracking',
-    error_tracking:  'JavaScript Error Tracking',
-    rage_clicks:     'Rage Click Detection',
-    web_vitals:      'Core Web Vitals (LCP / FID / CLS)'
-  };
-
-  // Log a one-time summary of active tracking features to the browser console
-  function logTrackingCapabilities() {
-    const planColors = { free: '#6b7280', starter: '#f59e0b', pro: '#7c3aed', enterprise: '#0ea5e9' };
-    const planColor = planColors[currentPlan] || '#6b7280';
-    const allFeatures = Object.keys(FEATURE_LABELS);
-    const active   = allFeatures.filter(f => planFeatures.includes(f));
-    const inactive = allFeatures.filter(f => !planFeatures.includes(f));
-
-    console.groupCollapsed(
-      `%c Pulzivo Analytics %c ${currentPlan.toUpperCase()} plan %c — ${active.length} features active`,
-      'background:#1a1a2e;color:#fff;padding:2px 6px;border-radius:3px 0 0 3px;font-weight:bold',
-      `background:${planColor};color:#fff;padding:2px 6px;border-radius:0 3px 3px 0;font-weight:bold`,
-      'color:#6b7280;font-weight:normal'
-    );
-
-    console.log('%cTracking ON', 'color:#16a34a;font-weight:bold');
-    active.forEach(f => console.log(`  ✓ ${FEATURE_LABELS[f] || f}`));
-
-    if (inactive.length) {
-      console.log('%cNot on this plan', 'color:#9ca3af;font-weight:bold');
-      inactive.forEach(f => console.log(`  ✗ ${FEATURE_LABELS[f] || f}`));
-    }
-
-    if (currentPlan !== 'enterprise') {
-      console.log(
-        `%cUpgrade at pulzivo.com/pricing to unlock more features.`,
-        'color:#7c3aed;font-style:italic'
-      );
-    }
-
-    console.groupEnd();
   }
 
   // Fetch plan from API based on API key
@@ -756,10 +733,7 @@
           }
         }
       } else if (response.status === 401) {
-        isApiKeyInvalid = true;
-        console.error('[Analytics] API key is invalid (401) - stopping all logging');
-        if (batchTimer) { clearInterval(batchTimer); batchTimer = null; }
-        eventQueue = [];
+        stopInvalidKey();
       }
     } catch (error) {
       if (config.debug) {
@@ -769,25 +743,79 @@
     }
   }
 
+  function scrollPercent() {
+    const el = document.documentElement;
+    const max = Math.max(document.body ? document.body.scrollHeight : 0, el.scrollHeight) - window.innerHeight;
+    if (max <= 0) return 100;
+    return Math.min(100, Math.round(((window.pageYOffset || el.scrollTop) / max) * 100));
+  }
+
+  function engagedTime() {
+    return engagedMs + (document.visibilityState === 'hidden' ? 0 : Date.now() - visibleSince);
+  }
+
+  // page_exit carries time on page (visible time only, ms) and scroll depth for the current
+  // view. Repeats with unchanged values (hidden, then closed) are skipped.
+  function emitExit() {
+    if (!viewId || !hasFeature('page_exit')) return;
+    const t = engagedTime();
+    const key = viewId + ':' + Math.round(t / 1000) + ':' + maxScroll;
+    if (key === lastExitKey) return;
+    lastExitKey = key;
+    queueEvent('page_exit', { page: currentPage, time_on_page: t, scroll_depth: maxScroll });
+  }
+
+  function newView() {
+    viewId = generateUUID();
+    engagedMs = 0;
+    visibleSince = Date.now();
+    lastExitKey = '';
+    maxScroll = 0;
+    currentPage = pagePath();
+  }
+
+  // Unload hooks (form abandon, final web vitals) run before the flush.
+  const hideHooks = [];
+  function runHide(unloading) {
+    emitExit();
+    hideHooks.forEach((fn) => {
+      try { fn(unloading); } catch (e) {}
+    });
+    flushNow();
+  }
+
+  let navKey = '';
+  function navKeyNow() {
+    return pagePath();
+  }
+  // Called for history pushState/replaceState, popstate, hashchange and bfcache restores.
+  function onNav() {
+    const k = navKeyNow();
+    if (k === navKey) return;
+    navKey = k;
+    // Capture UTMs before the router strips them; wait a tick for document.title.
+    const attribution = captureAttributionNow();
+    emitExit();
+    newView();
+    setTimeout(() => queueEvent('page_view', { attribution: attribution }), 50);
+  }
+
   // Setup automatic tracking
   function setupAutomaticTracking() {
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
     // Track page load time
     if (hasFeature('performance')) {
-      window.addEventListener('load', () => {
+      const onLoad = () => {
         pageLoadTime = performance.now();
+        const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
         queueEvent('page_load_complete', {
           category: 'performance',
-          custom: {
-            load_time: pageLoadTime,
-            dom_ready: performance.getEntriesByType &&
-              performance.getEntriesByType('navigation')[0] &&
-              performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd || 0,
-            fully_loaded: true
-          }
+          custom: { load_time: pageLoadTime, dom_ready: (nav && nav.domContentLoadedEventEnd) || 0, fully_loaded: true }
         });
-      });
+      };
+      if (document.readyState === 'complete') onLoad();
+      else window.addEventListener('load', onLoad);
     }
 
     // Track scroll depth (throttled to avoid performance issues)
@@ -795,56 +823,31 @@
       window.addEventListener('scroll', () => {
         if (scrollThrottleTimer) return;
         scrollThrottleTimer = setTimeout(() => {
-          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-          const docHeight = document.body.offsetHeight || document.documentElement.offsetHeight;
-          const winHeight = window.innerHeight;
-          const scrollPercent = Math.round((scrollTop / (docHeight - winHeight)) * 100);
-          maxScroll = Math.max(maxScroll, scrollPercent);
           scrollThrottleTimer = null;
+          maxScroll = Math.max(maxScroll, scrollPercent());
         }, 200);
       }, { passive: true });
     }
 
-    // Track page exit - use sendBeacon for reliability
-    if (hasFeature('page_exit')) {
-      window.addEventListener('pagehide', () => {
-      syncOwnerMode();
-      if (isOwner) {
-        clearQueuedEvents('owner mode active during pagehide');
-        return;
-      }
-      const timeOnPage = Date.now() - startTime;
-      queueEvent('page_exit', {
-        time_on_page: timeOnPage,
-        scroll_depth: maxScroll,
-        page: window.location ? window.location.pathname : ''
-      });
-      // Use sendBeacon for reliable delivery during page unload
-      if (eventQueue.length > 0 && config.apiUrl && !isApiKeyInvalid && !config.debug) {
-        const payload = JSON.stringify(eventQueue);
-        const sent = navigator.sendBeacon(config.apiUrl, new Blob([payload], { type: 'application/json' }));
-        if (sent) {
-          eventQueue = [];
-        }
-      }
-      });
-    }
-
-    // Track visibility changes
-    if (hasFeature('visibility')) {
+    // Tab hidden: record engagement so far and flush (mobile browsers often never fire
+    // pagehide). Tab closed / navigated away: same, plus unload-only hooks.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        const timeOnPage = Date.now() - startTime;
-        queueEvent('page_hidden', {
-          time_on_page: timeOnPage,
-          scroll_depth: maxScroll,
-          page: window.location ? window.location.pathname : ''
-        });
+      if (document.visibilityState === 'hidden') {
+        engagedMs += Date.now() - visibleSince;
+        runHide(false);
       } else {
-        startTime = Date.now(); // Reset timer
+        visibleSince = Date.now();
       }
     });
-    }
+    window.addEventListener('pagehide', () => runHide(true));
+    // bfcache restore: the page comes back without reloading the script.
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        visibleSince = Date.now();
+        navKey = '';
+        onNav();
+      }
+    });
 
     // Track clicks on elements with data-click attribute
   // Human-readable element name for click reports: aria-label, visible text, title, or image alt.
@@ -852,12 +855,14 @@
     if (!el || !el.getAttribute) return '';
     const img = el.querySelector && el.querySelector('img[alt]');
     const raw = el.getAttribute('aria-label') || el.innerText || el.textContent ||
-      el.getAttribute('title') || (img && img.getAttribute('alt')) || el.value || '';
+      el.getAttribute('title') || (img && img.getAttribute('alt')) ||
+      (/^(submit|button|reset)$/.test(el.type) ? el.value : '') || '';
     return String(raw).replace(/\s+/g, ' ').trim().substring(0, max);
   }
 
     if (config.autoTrackClicks) {
       document.addEventListener('click', (event) => {
+        if (!event.target || !event.target.closest) return;
         const target = event.target.closest('[data-click]');
         
         // Always track elements with data-click attribute (all plans)
@@ -956,6 +961,7 @@
 
       // Track clicks on impression-tracked elements (Pro+ only)
       document.addEventListener('click', (event) => {
+        if (!event.target || !event.target.closest) return;
         const impressionElement = event.target.closest('[data-track-impression]');
         if (impressionElement) {
           const impressionId = impressionElement.getAttribute('data-track-impression');
@@ -970,7 +976,7 @@
             location: window.location.pathname,
             element: impressionElement.tagName.toLowerCase(),
             clicked_element: clickTarget.tagName.toLowerCase(),
-            label: (clickTarget.textContent || clickTarget.innerText || '').trim().substring(0, 100),
+            label: elLabel(clickTarget, 100),
             custom: {
               x: event.clientX,
               y: event.clientY
@@ -986,7 +992,7 @@
       
       // Track form start and field interactions
       document.addEventListener('focus', (event) => {
-        if (event.target.matches('input, textarea, select')) {
+        if (event.target && event.target.matches && event.target.matches('input, textarea, select')) {
           const form = event.target.form;
           const formId = form?.id || form?.name || 'unknown-form';
           const fieldName = event.target.name || event.target.id || event.target.type;
@@ -1021,7 +1027,7 @@
 
       // Track form submission
       document.addEventListener('submit', (event) => {
-        if (event.target.matches('form')) {
+        if (event.target && event.target.matches && event.target.matches('form')) {
           const formId = event.target.id || event.target.name || 'unknown-form';
           const interaction = formInteractions.get(formId);
           const timeToComplete = interaction ? Date.now() - interaction.startTime : 0;
@@ -1039,8 +1045,8 @@
       }, true);
 
       // Track form abandonment on page exit
-      window.addEventListener('pagehide', () => {
-        formInteractions.forEach((interaction, formId) => {
+      hideHooks.push((unloading) => {
+        if (unloading) formInteractions.forEach((interaction, formId) => {
           if (interaction.started && interaction.fields.size > 0) {
             queueEvent('form_abandon', {
               formId: formId,
@@ -1144,33 +1150,32 @@
       }, true);
     }
 
-    // Track JavaScript errors (Enterprise only)
+    // Track JavaScript errors (Enterprise only). Capped per page load so a looping error
+    // cannot flood the queue; URLs in messages/stacks lose their query strings.
     if (hasFeature('error_tracking')) {
-      window.addEventListener('error', (event) => {
-        queueEvent('javascript_error', {
+      let errorCount = 0;
+      const scrub = (v, max) => redact(String(v || '').replace(/(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g, '$1')).substring(0, max);
+      const reportError = (name, message, stack, extra) => {
+        if (++errorCount > 20) return;
+        const msg = scrub(message, 300);
+        queueEvent(name, {
           category: 'error',
-          label: event.message,
-          custom: {
-            error_message: event.message,
-            error_stack: event.error?.stack || 'N/A',
-            filename: event.filename,
-            line: event.lineno,
-            column: event.colno,
-            page: window.location.pathname
-          }
+          label: msg,
+          message: msg,
+          custom: Object.assign({ error_message: msg, error_stack: scrub(stack, 1000), page: pagePath() }, extra)
+        });
+      };
+      window.addEventListener('error', (event) => {
+        if (!event || !event.message) return; // resource load errors have no message
+        reportError('javascript_error', event.message, event.error && event.error.stack, {
+          filename: cleanUrl(event.filename),
+          line: event.lineno,
+          column: event.colno
         });
       });
-
       window.addEventListener('unhandledrejection', (event) => {
-        queueEvent('promise_rejection', {
-          category: 'error',
-          label: event.reason?.message || 'Promise rejected',
-          custom: {
-            reason: event.reason?.message || String(event.reason),
-            stack: event.reason?.stack || 'N/A',
-            page: window.location.pathname
-          }
-        });
+        const r = event && event.reason;
+        reportError('promise_rejection', (r && r.message) || String(r || 'Promise rejected'), r && r.stack, {});
       });
     }
 
@@ -1239,164 +1244,72 @@
       }, true);
     }
 
-    // Track Web Vitals (Enterprise only)
+    // Core Web Vitals (Enterprise only): LCP, INP, CLS (largest 5s session window, as
+    // Google defines it), FCP and TTFB. Reported when the tab is hidden, and again only if
+    // a value changed afterwards.
     if (hasFeature('web_vitals') && 'PerformanceObserver' in window) {
-      // Largest Contentful Paint (LCP)
-      try {
-        const lcpObserver = new PerformanceObserver((list) => {
-          const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1];
-          queueEvent('web_vital_lcp', {
-            category: 'performance',
-            value: Math.round(lastEntry.renderTime || lastEntry.loadTime),
-            custom: {
-              metric: 'LCP',
-              value: Math.round(lastEntry.renderTime || lastEntry.loadTime),
-              element: lastEntry.element?.tagName || 'unknown',
-              page: window.location.pathname
-            }
-          });
-        });
-        lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-      } catch (e) {}
-
-      // First Input Delay (FID)
-      try {
-        const fidObserver = new PerformanceObserver((list) => {
-          list.getEntries().forEach((entry) => {
-            queueEvent('web_vital_fid', {
-              category: 'performance',
-              value: Math.round(entry.processingStart - entry.startTime),
-              custom: {
-                metric: 'FID',
-                value: Math.round(entry.processingStart - entry.startTime),
-                event_type: entry.name,
-                page: window.location.pathname
-              }
-            });
-          });
-        });
-        fidObserver.observe({ type: 'first-input', buffered: true });
-      } catch (e) {}
-
-      // Cumulative Layout Shift (CLS)
-      try {
-        let clsValue = 0;
-        const clsObserver = new PerformanceObserver((list) => {
-          list.getEntries().forEach((entry) => {
-            if (!entry.hadRecentInput) {
-              clsValue += entry.value;
-            }
-          });
-        });
-        clsObserver.observe({ type: 'layout-shift', buffered: true });
-        
-        // Report CLS on page hide
-        window.addEventListener('pagehide', () => {
-          queueEvent('web_vital_cls', {
-            category: 'performance',
-            value: Math.round(clsValue * 1000),
-            custom: {
-              metric: 'CLS',
-              value: clsValue,
-              page: window.location.pathname
-            }
-          });
-        });
-      } catch (e) {}
-    }
-
-    // Track resource timing (Enterprise only)
-    if (hasFeature('resource_timing') && 'PerformanceObserver' in window) {
-      try {
-        const resourceObserver = new PerformanceObserver((list) => {
-          list.getEntries().forEach((entry) => {
-            // Only track significant resources (> 100ms)
-            if (entry.duration > 100) {
-              queueEvent('resource_timing', {
-                category: 'performance',
-                label: entry.name,
-                value: Math.round(entry.duration),
-                custom: {
-                  resource_name: entry.name,
-                  resource_type: entry.initiatorType,
-                  duration: Math.round(entry.duration),
-                  size: entry.transferSize || 0,
-                  page: window.location.pathname
-                }
-              });
-            }
-          });
-        });
-        resourceObserver.observe({ type: 'resource', buffered: true });
-      } catch (e) {}
-    }
-
-    // Track initial page view
-    if (config.autoTrackPageViews) {
-      queueEvent('page_view');
-
-      // Track unique visitor
-      if (hasFeature('unique_visitors')) {
-        trackUniqueVisitor();
-      }
-
-      // Track session start
-      if (hasFeature('sessions')) {
-        setTimeout(() => {
-          queueEvent('session_start', {
-            category: 'session',
-            custom: {
-              session_type: 'new'
-            }
-          });
-        }, 100);
-      }
-
-      // Track SPA route changes (Angular, React, Vue, etc.)
-      let lastPath = window.location.pathname;
-      
-      // Listen for popstate (browser back/forward)
-      window.addEventListener('popstate', () => {
-        if (window.location.pathname !== lastPath) {
-          lastPath = window.location.pathname;
-          startTime = Date.now(); // Reset time on page
-          maxScroll = 0; // Reset scroll tracking
-          // Capture UTMs immediately before router strips query params,
-          // then delay so TitleStrategy can update document.title first
-          const capturedAttribution = captureAttributionNow();
-          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
-          if (config.debug) console.log('[Analytics] Page view tracked (popstate):', lastPath);
+      const vitals = {};
+      const sent = {};
+      const observe = (type, cb, opts) => {
+        try {
+          new PerformanceObserver((list) => list.getEntries().forEach(cb)).observe(Object.assign({ type: type, buffered: true }, opts));
+        } catch (e) {}
+      };
+      observe('largest-contentful-paint', (e) => { vitals.LCP = Math.round(e.renderTime || e.loadTime || e.startTime); });
+      observe('paint', (e) => { if (e.name === 'first-contentful-paint') vitals.FCP = Math.round(e.startTime); });
+      // INP: slowest interaction (an approximation of the 98th percentile for typical pages).
+      observe('event', (e) => {
+        if (e.interactionId) vitals.INP = Math.max(vitals.INP || 0, Math.round(e.duration));
+      }, { durationThreshold: 40 });
+      observe('first-input', (e) => { vitals.INP = Math.max(vitals.INP || 0, Math.round(e.duration)); });
+      let clsWin = 0;
+      let clsFirst = 0;
+      let clsLast = 0;
+      observe('layout-shift', (e) => {
+        if (e.hadRecentInput) return;
+        if (clsWin && e.startTime - clsLast < 1000 && e.startTime - clsFirst < 5000) {
+          clsWin += e.value;
+        } else {
+          clsWin = e.value;
+          clsFirst = e.startTime;
         }
+        clsLast = e.startTime;
+        vitals.CLS = Math.max(vitals.CLS || 0, Math.round(clsWin * 10000) / 10000);
       });
+      try {
+        const nav = performance.getEntriesByType('navigation')[0];
+        if (nav && nav.responseStart > 0) vitals.TTFB = Math.round(nav.responseStart);
+      } catch (e) {}
+      hideHooks.push(() => {
+        Object.keys(vitals).forEach((name) => {
+          if (sent[name] === vitals[name]) return;
+          sent[name] = vitals[name];
+          queueEvent('web_vital_' + name.toLowerCase(), {
+            category: 'performance',
+            value: vitals[name],
+            custom: { metric: name, value: vitals[name], page: pagePath() }
+          });
+        });
+      });
+    }
 
-      // Override pushState to catch Angular Router navigation
-      const originalPushState = history.pushState;
-      history.pushState = function(...args) {
-        originalPushState.apply(this, args);
-        if (window.location.pathname !== lastPath) {
-          lastPath = window.location.pathname;
-          startTime = Date.now();
-          maxScroll = 0;
-          const capturedAttribution = captureAttributionNow();
-          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
-          if (config.debug) console.log('[Analytics] Page view tracked (pushState):', lastPath);
-        }
-      };
-
-      // Override replaceState as well
-      const originalReplaceState = history.replaceState;
-      history.replaceState = function(...args) {
-        originalReplaceState.apply(this, args);
-        if (window.location.pathname !== lastPath) {
-          lastPath = window.location.pathname;
-          startTime = Date.now();
-          maxScroll = 0;
-          const capturedAttribution = captureAttributionNow();
-          setTimeout(() => queueEvent('page_view', { attribution: capturedAttribution }), 50);
-          if (config.debug) console.log('[Analytics] Page view tracked (replaceState):', lastPath);
-        }
-      };
+    // Track initial page view, then SPA route changes (Angular, React, Vue, ...),
+    // hash routes, back/forward and bfcache restores.
+    if (config.autoTrackPageViews) {
+      onNav();
+      if (hasFeature('unique_visitors')) trackUniqueVisitor();
+      window.addEventListener('popstate', onNav);
+      window.addEventListener('hashchange', onNav);
+      ['pushState', 'replaceState'].forEach((method) => {
+        const original = history[method];
+        history[method] = function() {
+          const result = original.apply(this, arguments);
+          try { onNav(); } catch (e) {}
+          return result;
+        };
+      });
+    } else {
+      newView();
     }
   }
 
@@ -1447,12 +1360,6 @@
         return;
       }
 
-      // Increment visit count once per init
-      if (isLocalStorageAvailable()) {
-        const count = parseInt(getStorageItem('analytics_visit_count') || '0') + 1;
-        setStorageItem('analytics_visit_count', count.toString());
-      }
-
       // Skip tracking for headless browsers / automated tools
       if (typeof navigator !== 'undefined' && navigator.webdriver === true) {
         if (config.debug) console.log('[Analytics] Headless browser detected — tracking suppressed.');
@@ -1482,7 +1389,7 @@
 
       // Fetch plan from API, then setup auto-tracking based on plan
       fetchPlanFromApi().then(() => {
-        if (config.debug) logTrackingCapabilities();
+        planLoaded = true;
         setupAutomaticTracking();
       });
     },
@@ -1555,8 +1462,11 @@
 
     // Track page view manually (use when autoTrackPageViews is disabled)
     trackPageView: function(title, path) {
+      emitExit();
+      newView();
+      if (path) currentPage = path;
       queueEvent('page_view', {
-        page: path || (window.location ? window.location.pathname : ''),
+        page: path || pagePath(),
         page_title: (title || '').replace(/\s*\|.*$/, '').trim()
       });
     },
@@ -1638,8 +1548,6 @@
         if (config.debug) {
           console.log('[Analytics] Plan updated to:', plan, '- Features:', planFeatures);
         }
-      } else {
-        console.warn('[Analytics] Unknown plan:', plan);
       }
     },
 
@@ -1721,6 +1629,7 @@
   Object.keys(originalAnalytics).forEach(key => {
     window.PulzivoAnalytics[key] = originalAnalytics[key];
   });
+  window.PulzivoAnalytics.__pz = 1;
 
   // Get configuration from script tag data attributes
   function getConfigFromScriptTag() {
