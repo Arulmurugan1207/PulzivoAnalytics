@@ -5,6 +5,8 @@ set -euo pipefail
 PROJECT="${PROJECT:-node-server-apis}"
 REGION="${REGION:-us-east1}"
 SERVICE="${SERVICE:-pulzivo-analytics-api}"
+# Prod settings (keep in sync with the live revision): project node-server-apis, region us-east1,
+# --cpu 2 --memory 1Gi --min-instances 1 --max-instances 5 --concurrency 80 --cpu-boost
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [[ "${SERVICE}" == "analytics" ]]; then
