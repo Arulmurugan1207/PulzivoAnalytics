@@ -221,6 +221,8 @@ const {
   errorPipeline,
   shapeErrors,
   ragePipeline,
+  eventsTrendPipeline,
+  shapeEventsTrend,
   shapeRageRows,
   attributionPipeline,
   shapeAttribution,
@@ -505,6 +507,18 @@ function registerMetricRoutes(app, { db }) {
     const limit = clampInt(req.query.limit, 10, 1, 100);
     const rows = await aggregate(col, exitPagesPipeline(composeMatch(apiKey, req)));
     return res.json(shapeRankedPages(rows, limit, 'exits'));
+  }));
+
+  app.get('/analytics/events-trend', guarded(async (req, res, apiKey, col) => {
+    // Default to the last 7 days; previous period is the same length immediately before.
+    const end = req.query.endDate ? new Date(req.query.endDate) : new Date();
+    const start = req.query.startDate ? new Date(req.query.startDate) : new Date(end.getTime() - 7 * 86400000);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+      return res.status(400).json({ error: 'invalid date range' });
+    }
+    const prevStart = new Date(start.getTime() - (end.getTime() - start.getTime()));
+    const rows = await aggregate(col, eventsTrendPipeline(composeMatch(apiKey, reqWithRange(prevStart, end)), start));
+    return res.json(shapeEventsTrend(rows[0] || {}, { start, end }));
   }));
 
   app.get('/analytics/events-breakdown', guarded(async (req, res, apiKey, col) => {

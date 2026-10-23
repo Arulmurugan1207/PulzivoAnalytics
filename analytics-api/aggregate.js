@@ -957,6 +957,132 @@ function eventsBreakdownPipeline(match) {
   ];
 }
 
+/**
+ * Events page KPI strip: one aggregation over [previous start, current end].
+ * Each row is tagged current/previous and bucketed by UTC day, so the API returns
+ * totals, % change, and a daily sparkline without loading raw events into Node.
+ */
+const FRUSTRATION_EVENTS = ['rage_click', 'dead_click'];
+
+function eventsTrendPipeline(match, currentStart) {
+  return [
+    { $match: match },
+    { $addFields: { _t: eventTimeExpr(), _sid: sessionIdExpr() } },
+    { $match: { _t: { $type: 'date' } } },
+    {
+      $project: {
+        _sid: 1,
+        _name: { $ifNull: ['$event_name', 'unknown'] },
+        _cur: { $cond: [{ $gte: ['$_t', currentStart] }, 1, 0] },
+        _d: { $dateToString: { format: '%Y-%m-%d', date: '$_t' } },
+        _pv: { $cond: [{ $in: ['$event_name', PAGE_VIEWS] }, 1, 0] },
+        _click: { $cond: [{ $in: ['$event_name', CLICKS] }, 1, 0] },
+        _frus: { $cond: [{ $in: ['$event_name', FRUSTRATION_EVENTS] }, 1, 0] },
+      },
+    },
+    {
+      $facet: {
+        counts: [
+          {
+            $group: {
+              _id: { c: '$_cur', d: '$_d' },
+              events: { $sum: 1 },
+              pageViews: { $sum: '$_pv' },
+              clicks: { $sum: '$_click' },
+              frustrated: { $sum: '$_frus' },
+            },
+          },
+        ],
+        byName: [
+          { $group: { _id: { c: '$_cur', d: '$_d', n: '$_name' }, count: { $sum: 1 } } },
+        ],
+        sessions: [
+          { $match: { _sid: { $nin: [null, ''] } } },
+          { $group: { _id: { c: '$_cur', s: '$_sid' }, d: { $min: '$_d' } } },
+          { $group: { _id: { c: '$_id.c', d: '$d' }, sessions: { $sum: 1 } } },
+        ],
+      },
+    },
+  ];
+}
+
+const TREND_METRICS = ['events', 'pageViews', 'sessions', 'clicks', 'frustrated'];
+
+function dayKeys(start, end) {
+  const keys = [];
+  const day = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+  while (day <= end && keys.length < 400) {
+    keys.push(day.toISOString().slice(0, 10));
+    day.setUTCDate(day.getUTCDate() + 1);
+  }
+  return keys;
+}
+
+/** null change means "no previous data" so the UI can say "New" instead of +100%. */
+function changePct(current, previous) {
+  if (!previous) return current ? null : 0;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function shapeEventsTrend(facet, { start, end }) {
+  const rows = new Map();
+  const bump = (c, d, key, n) => {
+    const id = `${c}|${d}`;
+    const row = rows.get(id) || { c, d };
+    row[key] = (row[key] || 0) + (n || 0);
+    rows.set(id, row);
+  };
+  for (const r of (facet && facet.counts) || []) {
+    for (const key of ['events', 'pageViews', 'clicks', 'frustrated']) bump(r._id.c, r._id.d, key, r[key]);
+  }
+  for (const r of (facet && facet.sessions) || []) bump(r._id.c, r._id.d, 'sessions', r.sessions);
+  const days = dayKeys(start, end);
+  const out = { days, metrics: {} };
+  for (const key of TREND_METRICS) {
+    let current = 0;
+    let previous = 0;
+    const byDay = new Map();
+    for (const row of rows.values()) {
+      if (row.c === 1) {
+        current += row[key] || 0;
+        byDay.set(row.d, (byDay.get(row.d) || 0) + (row[key] || 0));
+      } else {
+        previous += row[key] || 0;
+      }
+    }
+    out.metrics[key] = {
+      current,
+      previous,
+      change: changePct(current, previous),
+      series: days.map((d) => byDay.get(d) || 0),
+    };
+  }
+  // Per event name: totals, % change and daily series, for the All events table and the
+  // per-category stacked chart. Capped to the 200 busiest names to bound payload size.
+  const names = new Map();
+  for (const r of (facet && facet.byName) || []) {
+    const row = names.get(r._id.n) || { name: r._id.n, current: 0, previous: 0, byDay: new Map() };
+    if (r._id.c === 1) {
+      row.current += r.count;
+      row.byDay.set(r._id.d, (row.byDay.get(r._id.d) || 0) + r.count);
+    } else {
+      row.previous += r.count;
+    }
+    names.set(r._id.n, row);
+  }
+  out.events = [...names.values()]
+    .sort((a, b) => b.current - a.current || b.previous - a.previous)
+    .slice(0, 200)
+    .map((row) => ({
+      name: row.name,
+      current: row.current,
+      previous: row.previous,
+      change: changePct(row.current, row.previous),
+      series: days.map((d) => row.byDay.get(d) || 0),
+    }));
+  return out;
+}
+
 function isoOrNull(value) {
   if (!value) return null;
   const date = value instanceof Date ? value : new Date(value);
@@ -1530,6 +1656,9 @@ module.exports = {
   trafficPipeline,
   shapeTraffic,
   eventsBreakdownPipeline,
+  eventsTrendPipeline,
+  shapeEventsTrend,
+  changePct,
   shapeEventsBreakdown,
   eventHistoryOptionsPipeline,
   eventHistoryPagePipeline,

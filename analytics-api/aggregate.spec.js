@@ -302,3 +302,59 @@ test('geographic maps timezone-only visits to countries via tzdb (report time)',
     assert.equal(by.Russia.flag, '🇷🇺');
   });
 });
+
+test('events-trend returns current vs previous totals, % change, and daily sparkline in one aggregation', async () => {
+  const day = 86400000;
+  const end = new Date(Date.UTC(2026, 9, 22, 23, 0, 0));
+  const start = new Date(end.getTime() - 7 * day);
+  const docs = [];
+  const add = (t, name, sid) => docs.push({ apiKey: 'K', event_name: name, session_id: sid, timestamp: new Date(t), data: { session_id: sid, page: '/' } });
+  // current period: 4 page views over two days, 2 sessions, 1 rage click
+  add(end.getTime() - 1 * day, 'page_view', 'a');
+  add(end.getTime() - 1 * day + 1000, 'page_view', 'a');
+  add(end.getTime() - 2 * day, 'page_view', 'b');
+  add(end.getTime() - 2 * day + 1000, 'page_view', 'b');
+  add(end.getTime() - 2 * day + 2000, 'rage_click', 'b');
+  // previous period: 2 page views, 1 session
+  add(start.getTime() - 2 * day, 'page_view', 'p');
+  add(start.getTime() - 2 * day + 1000, 'page_view', 'p');
+  // outside both periods
+  add(start.getTime() - 30 * day, 'page_view', 'old');
+  const db = createMemoryDb({ events: docs });
+  await withServer(createApp({ db }), async (url) => {
+    const res = await fetch(`${url}/analytics/events-trend?apiKey=K&startDate=${start.toISOString()}&endDate=${end.toISOString()}`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.days.length, 8);
+    assert.deepEqual(
+      { cur: body.metrics.pageViews.current, prev: body.metrics.pageViews.previous, change: body.metrics.pageViews.change },
+      { cur: 4, prev: 2, change: 100 },
+    );
+    assert.equal(body.metrics.sessions.current, 2);
+    assert.equal(body.metrics.sessions.previous, 1);
+    assert.equal(body.metrics.frustrated.current, 1);
+    assert.equal(body.metrics.frustrated.change, null, 'no previous data reads as New, not +100%');
+    assert.equal(body.metrics.pageViews.series.reduce((a, b) => a + b, 0), 4);
+    assert.equal(body.metrics.events.current, 5);
+  });
+});
+
+test('events-trend returns per-event current/previous/change/series', async () => {
+  const day = 86400000;
+  const end = new Date(Date.UTC(2026, 9, 22, 23, 0, 0));
+  const start = new Date(end.getTime() - 7 * day);
+  const docs = [
+    { apiKey: 'K', event_name: 'form_submit', timestamp: new Date(end.getTime() - day), data: {} },
+    { apiKey: 'K', event_name: 'form_submit', timestamp: new Date(end.getTime() - 2 * day), data: {} },
+    { apiKey: 'K', event_name: 'form_submit', timestamp: new Date(start.getTime() - day), data: {} },
+    { apiKey: 'K', event_name: 'javascript_error', timestamp: new Date(start.getTime() - day), data: {} },
+  ];
+  await withServer(createApp({ db: createMemoryDb({ events: docs }) }), async (url) => {
+    const body = await (await fetch(`${url}/analytics/events-trend?apiKey=K&startDate=${start.toISOString()}&endDate=${end.toISOString()}`)).json();
+const form = body.events.find((e) => e.name === 'form_submit');
+    assert.deepEqual([form.current, form.previous, form.change], [2, 1, 100]);
+    assert.equal(form.series.length, body.days.length);
+    const err = body.events.find((e) => e.name === 'javascript_error');
+    assert.deepEqual([err.current, err.change], [0, -100]);
+  });
+});
