@@ -2,6 +2,7 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { clearStoredSession, isInvalidTokenError } from '../auth/session.logic';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
@@ -28,8 +29,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           console.warn(
             `Analytics request returned 401 for ${url}. Metric reads use the selected API key, not the login token.`
           );
-        } else {
-          console.warn('Authentication failed - token invalid or expired');
+        } else if (isInvalidTokenError(error.status, error.error, url, !!token)) {
+          // Real invalid/expired token -> log out. Any other failure keeps the session.
+          console.warn('Authentication failed - token invalid or expired; signing out');
+          if (localStorage.getItem('authToken') === token) {
+            clearStoredSession(localStorage);
+            router.navigate(['/login']);
+          }
         }
       } else if (error.status === 403) {
         console.warn('Access forbidden - insufficient permissions');

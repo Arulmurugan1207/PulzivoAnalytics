@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { AuthGuard } from './guards/auth.guard';
+import { AuthGuard, guestGuard } from './guards/auth.guard';
 
 // Public pages — eagerly loaded for fast navigation and better SEO
 import { Home } from './pages/home/home';
@@ -74,6 +74,34 @@ export const routes: Routes = [
     title: 'Terms of Service | Pulzivo Analytics',
     data: { description: 'The terms of service governing use of the Pulzivo Analytics website, tracking SDK, dashboard and paid plans.' },
     component: Terms
+  },
+  {
+    path: 'login',
+    title: 'Sign In | Pulzivo Analytics',
+    data: { authModal: 'signin', robots: 'noindex, follow' },
+    canActivate: [guestGuard],
+    component: Home
+  },
+  {
+    path: 'signin',
+    title: 'Sign In | Pulzivo Analytics',
+    data: { authModal: 'signin', robots: 'noindex, follow' },
+    canActivate: [guestGuard],
+    component: Home
+  },
+  {
+    path: 'signup',
+    title: 'Sign Up | Pulzivo Analytics',
+    data: { authModal: 'signup', robots: 'noindex, follow' },
+    canActivate: [guestGuard],
+    component: Home
+  },
+  {
+    path: 'register',
+    title: 'Sign Up | Pulzivo Analytics',
+    data: { authModal: 'signup', robots: 'noindex, follow' },
+    canActivate: [guestGuard],
+    component: Home
   },
   {
     path: 'reset-password/:token',
