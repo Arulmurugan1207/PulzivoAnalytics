@@ -49,6 +49,8 @@ interface SearchResult {
 export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   script = `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
   copied = signal(false);
+  copiedKey = signal<string | null>(null);
+  isCopied(key: string): boolean { return this.copiedKey() === key; }
   activeSection = signal('getting-started');
   anchorCopied = signal<string | null>(null);
   faqSearch = '';
@@ -122,20 +124,28 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       description: 'Add this attribute to disable automatic scroll depth tracking' 
     },
     {
-      attribute: 'data-disable-rage-clicks',
-      type: 'Flag',
+      attribute: 'data-ignore-dnt',
+      type: 'Boolean',
       required: false,
-      description: 'Add this attribute to disable automatic rage click detection'
+      description: 'Set to "true" to keep tracking visitors who send Do Not Track or Global Privacy Control (default: those visitors are not tracked)'
     },
     {
-      attribute: 'data-disable-web-vitals',
-      type: 'Flag',
+      attribute: 'data-search-params',
+      type: 'String',
       required: false,
-      description: 'Add this attribute to disable automatic Web Vitals (LCP, INP, CLS, FCP, TTFB) reporting'
+      description: 'Comma-separated URL parameters that hold site-search terms (default: q,s,query,search)'
     }
   ];
 
   faqItems = [
+    {
+      question: 'Does Pulzivo respect Do Not Track and Global Privacy Control?',
+      answer: 'Yes. Visitors whose browser sends DNT or GPC are not tracked by default. Visitors can also opt out with PulzivoAnalytics.optOut(). Sites that have a different policy can set data-ignore-dnt="true".'
+    },
+    {
+      question: 'How do I track sign-ups or purchases?',
+      answer: 'Use PulzivoAnalytics.trackGoal(\'signup\') for conversions and PulzivoAnalytics.trackRevenue(49.99, \'USD\', { goal: \'purchase\' }) for payments. Both work on every plan, including Free.'
+    },
     {
       question: 'How small is Pulzivo?',
       answer: 'About 9KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
@@ -246,6 +256,22 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     {
       id: 'custom-events', label: 'Custom Events', icon: 'pi-bolt', plan: 'free',
       keywords: ['track', 'event', 'custom', 'click', 'ecommerce', 'purchase', 'cart', 'identify', 'send', 'batch', 'trackevent', 'pulzivoanalytics', 'button', 'form']
+    },
+    {
+      id: 'goals-revenue', label: 'Goals & Revenue', icon: 'pi-flag', plan: 'free',
+      keywords: ['goal', 'goals', 'conversion', 'revenue', 'purchase', 'order', 'trackgoal', 'trackrevenue', 'currency', 'ecommerce', 'checkout']
+    },
+    {
+      id: 'not-found-search', label: '404s & Site Search', icon: 'pi-search', plan: 'free',
+      keywords: ['404', 'not found', 'broken', 'tracknotfound', 'pulzivo:404', 'meta', 'search', 'site search', 'query', 'data-search-params']
+    },
+    {
+      id: 'privacy-opt-out', label: 'Privacy & Opt-out', icon: 'pi-lock', plan: 'free',
+      keywords: ['privacy', 'opt out', 'optout', 'optin', 'dnt', 'do not track', 'gpc', 'global privacy control', 'gdpr', 'consent', 'cookie', 'data-ignore-dnt']
+    },
+    {
+      id: 'api-reference', label: 'JavaScript API', icon: 'pi-book', plan: 'free',
+      keywords: ['api', 'reference', 'methods', 'functions', 'trackevent', 'sendbatch', 'setuseremail', 'commands']
     },
     {
       id: 'user-management', label: 'User Management', icon: 'pi-user', plan: 'pro',
@@ -481,6 +507,55 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
 
 
   codeBlocks: { [key: string]: string } = {
+
+    // ── Goals, revenue, 404, site search, privacy ───────────
+    'goals-basic': `// A goal is any conversion you care about (all plans)
+PulzivoAnalytics.trackGoal('signup');
+PulzivoAnalytics.trackGoal('newsletter', { source: 'footer' });
+
+// Same thing with the command API
+PulzivoAnalytics('goal', 'signup');`,
+    'revenue-basic': `// Revenue: amount, ISO currency code, optional data (all plans)
+PulzivoAnalytics.trackRevenue(49.99, 'USD', {
+  goal: 'purchase',     // links the revenue to a goal
+  order_id: 'A-1042'
+});
+
+// Command API
+PulzivoAnalytics('revenue', 49.99, 'USD', { goal: 'purchase' });`,
+    'notfound-meta': `<!-- Static sites: add this to your 404 page template -->
+<meta name="pulzivo:404">`,
+    'notfound-spa': `// SPAs: call this from your not-found route/component
+PulzivoAnalytics.trackNotFound();            // uses the current path
+PulzivoAnalytics.trackNotFound('/old-url');  // or pass a path
+
+// Command API
+PulzivoAnalytics('404');`,
+    'site-search': `<!-- Default: ?q=, ?s=, ?query= and ?search= are read automatically -->
+<!-- /search?q=pricing  ->  site_search event with term "pricing" -->
+
+<!-- Custom parameter names: -->
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"
+        data-search-params="term,keyword"></script>`,
+    'opt-out': `// Let visitors opt out (e.g. from your privacy page). Persists in this browser.
+PulzivoAnalytics.optOut();
+
+// Opt back in
+PulzivoAnalytics.optIn();
+
+// Check the current state (also true when DNT / GPC is on)
+if (PulzivoAnalytics.isOptedOut()) {
+  console.log('Not tracking this visitor');
+}`,
+    'opt-out-button': `<button onclick="PulzivoAnalytics.optOut(); this.textContent='You are opted out'">
+  Don't track me
+</button>`,
+    'ignore-dnt': `<!-- Pulzivo respects Do Not Track and Global Privacy Control by default. -->
+<!-- Only if your own policy says otherwise, you can opt into ignoring them: -->
+<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY"
+        data-ignore-dnt="true"></script>`,
     'script-tag': `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`,
     'dynamic-key-setup': `<script>
   // Auto-selects dev or production key based on hostname
@@ -787,10 +862,12 @@ class ErrorBoundary extends React.Component {
   clicks:    5,                   // how many times they clicked
   interval:  320                  // ms between first and last click
 }`,
-    'rage-click-disable': `<!-- Opt-out of rage click detection -->
+    'rage-click-disable': `<!-- Rage click detection runs on plans that include it (Enterprise). -->
+<!-- There is no separate script attribute to turn it off today; disable all -->
+<!-- automatic click tracking with data-disable-clicks if you need to. -->
 <script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
         data-api-key="YOUR_API_KEY"
-        data-disable-rage-clicks></script>`,
+        data-disable-clicks></script>`,
     'web-vitals-auto': `<!-- Web Vitals are captured automatically via PerformanceObserver -->
 <!-- No extra code needed — data flows into your Events dashboard -->
 
@@ -805,10 +882,8 @@ class ErrorBoundary extends React.Component {
 // LCP  — Largest Contentful Paint   (< 2.5s = good)
 // CLS  — Cumulative Layout Shift    (< 0.1  = good)
 // INP  — Interaction to Next Paint  (< 200ms = good)`,
-    'web-vitals-disable': `<!-- Opt-out of Web Vitals collection -->
-<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
-        data-api-key="YOUR_API_KEY"
-        data-disable-web-vitals></script>`,
+    'web-vitals-disable': `// Web Vitals are collected only on plans that include them (Enterprise).
+// There is no per-feature script attribute to switch them off today.`,
 
     // ── No-Code Platforms ─────────────────────────────────────
     'nocode-wordpress': `<!-- Option A: Use a plugin (no code at all) -->
@@ -1048,6 +1123,8 @@ waitForSDK(timeoutMs = 3000): Promise<void> {
     try {
       await navigator.clipboard.writeText(code);
       const section = Object.entries(this.codeBlocks).find(([, v]) => v === code)?.[0] ?? 'unknown';
+      this.copiedKey.set(section);
+      setTimeout(() => { if (this.copiedKey() === section) this.copiedKey.set(null); }, 2000);
       this.trackCodeCopy(section);
       return true;
     } catch (e) {

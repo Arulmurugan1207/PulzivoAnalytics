@@ -1,131 +1,164 @@
+<!-- Hero -->
 <section class="why-hero">
   <div class="container">
-    <div class="why-badge fade-in">⚡ The Pulzivo Difference</div>
-    <h1 class="fade-in">Why developers choose<br><span class="highlight">Pulzivo Analytics</span></h1>
-    <p class="why-subtitle fade-in" style="animation-delay: 0.15s">One SDK. Web analytics + product analytics. No cookie banners. No complexity.</p>
+    <div class="why-badge fade-in">Privacy-friendly Google Analytics alternative</div>
+    <h1 class="fade-in">Analytics you can read<br><span class="highlight">in 30 seconds</span></h1>
+    <p class="why-subtitle fade-in" style="animation-delay: 0.15s">Pulzivo shows you who visits, where they come from and what they do, without cookies, consent-banner headaches or a 40-tab dashboard.</p>
     <div class="hero-actions slide-up" style="animation-delay: 0.3s">
-      <button pButton type="button" label="Get Started Free" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'start-free'}" class="glow-button"></button>
-      <button pButton type="button" label="View Pricing" icon="pi pi-tag" class="p-button-outlined" routerLink="/pricing" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'pricing'}"></button>
+      <button pButton type="button" label="Get started free" icon="pi pi-arrow-right" iconPos="right" routerLink="/signup" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'start-free'}" class="glow-button"></button>
+      <button pButton type="button" label="View docs" icon="pi pi-book" class="p-button-outlined hero-secondary" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'docs'}"></button>
     </div>
+    <p class="hero-note">Free plan: 10K events/month. No credit card.</p>
   </div>
 </section>
 
-<p-divider></p-divider>
-
-<!-- Web vs Product Analytics -->
-<section class="analytics-types-section">
+<!-- Value story -->
+<section class="value-section">
   <div class="container">
-    <h2 class="fade-in">One Tool. Two Powerful Analytics.</h2>
-    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">Whether you run a website or a SaaS product — Pulzivo has you covered.</p>
-
-    <div class="analytics-types-grid">
-      <div class="analytics-type-card zoom-in" style="animation-delay: 0.1s">
-        <div class="type-icon-wrap">
-          <i class="pi pi-globe"></i>
-        </div>
-        <h3>Web Analytics</h3>
-        <p class="type-tagline">Who came to your site?</p>
-        <ul class="type-list">
-          <li><i class="pi pi-check"></i> Page views &amp; sessions</li>
-          <li><i class="pi pi-check"></i> Bounce rate &amp; time on page</li>
-          <li><i class="pi pi-check"></i> Traffic sources &amp; referrers</li>
-          <li><i class="pi pi-check"></i> Geography &amp; device breakdown</li>
-        </ul>
-        <p class="type-audience">Perfect for: <strong>bloggers, content sites, agencies</strong></p>
+    <h2>Why teams switch to Pulzivo</h2>
+    <p class="section-subtitle">Four things we refuse to compromise on.</p>
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="value-icon"><i class="pi pi-shield"></i></div>
+        <h3>Privacy first</h3>
+        <p>No cookies and no cross-site tracking. Do Not Track and Global Privacy Control are respected by default, and visitors can opt out with one call.</p>
       </div>
-
-      <div class="analytics-type-divider">
-        <span>+</span>
+      <div class="value-card">
+        <div class="value-icon"><i class="pi pi-bolt"></i></div>
+        <h3>~9KB gzip script</h3>
+        <p>One async script tag. Page views, clicks, SPA route changes, outbound links and downloads are tracked automatically.</p>
       </div>
-
-      <div class="analytics-type-card zoom-in" style="animation-delay: 0.2s">
-        <div class="type-icon-wrap accent">
-          <i class="pi pi-chart-line"></i>
-        </div>
-        <h3>Product Analytics</h3>
-        <p class="type-tagline">What are users doing inside your app?</p>
-        <ul class="type-list">
-          <li><i class="pi pi-check"></i> Feature usage &amp; click events</li>
-          <li><i class="pi pi-check"></i> Onboarding funnels &amp; drop-offs</li>
-          <li><i class="pi pi-check"></i> Retention &amp; returning users</li>
-          <li><i class="pi pi-check"></i> Custom events &amp; conversions</li>
-        </ul>
-        <p class="type-audience">Perfect for: <strong>SaaS founders, developers, product teams</strong></p>
+      <div class="value-card">
+        <div class="value-icon"><i class="pi pi-chart-bar"></i></div>
+        <h3>A simple dashboard</h3>
+        <p>Visitors, sources, top pages, goals and revenue on one screen. No report builder to learn before you get an answer.</p>
       </div>
-    </div>
-
-    <div class="analytics-types-note slide-up" style="animation-delay: 0.4s">
-      <i class="pi pi-info-circle"></i>
-      <span>Most tools make you choose. Pulzivo gives you both — from a single script tag.</span>
+      <div class="value-card">
+        <div class="value-icon"><i class="pi pi-comment"></i></div>
+        <h3>Plain-language insights</h3>
+        <p>Pulzivo explains what changed in everyday words, so the whole team understands the numbers, not just the analyst.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<p-divider></p-divider>
+<!-- Setup strip -->
+<section class="setup-section">
+  <div class="container setup-inner">
+    <div class="setup-copy">
+      <h2>Set up in about a minute</h2>
+      <p>Paste one line into your <code>&lt;head&gt;</code>. Works with plain HTML, WordPress, Shopify, Webflow, React, Next.js, Vue and Angular.</p>
+      <ul class="setup-list">
+        <li><i class="pi pi-check"></i> Goals and revenue with <code>trackGoal()</code> and <code>trackRevenue()</code></li>
+        <li><i class="pi pi-check"></i> 404 tracking and site-search terms, no extra setup</li>
+        <li><i class="pi pi-check"></i> Exclude your own visits with owner mode</li>
+      </ul>
+      <a routerLink="/docs" class="text-link">Read the quick start <i class="pi pi-arrow-right"></i></a>
+    </div>
+    <pre class="setup-code"><code>&lt;script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js"
+        data-api-key="YOUR_API_KEY" defer&gt;&lt;/script&gt;</code></pre>
+  </div>
+</section>
 
-<!-- Comparison table -->
+<!-- Comparison -->
 <section class="comparison-section">
   <div class="container">
-    <h2 class="fade-in">Pulzivo vs. The Competition</h2>
-    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">See why developers are switching</p>
+    <h2>How Pulzivo compares</h2>
+    <p class="section-subtitle">An honest, high-level view. Every tool here is a good choice for someone.</p>
 
-    <div class="comparison-table scale-in" style="animation-delay: 0.2s">
-      <div class="comparison-row header">
-        <div class="comparison-cell"></div>
-        <div class="comparison-cell highlight">Pulzivo</div>
-        <div class="comparison-cell">Google Analytics</div>
-        <div class="comparison-cell">Others</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Bundle Size</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> about 9KB gzip</div>
-        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> 45KB+</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> 25–50KB</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Setup Time</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> 60 seconds</div>
-        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> 30+ minutes</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> 15–60 min</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Privacy Compliant</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> Built-in</div>
-        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> Complex</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Varies</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Auto-Tracking</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> Yes</div>
-        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> Manual</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Partial</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Web + Product Analytics</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> Both</div>
-        <div class="comparison-cell"><i class="pi pi-times-circle neg"></i> Web only</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Usually one</div>
-      </div>
-      <div class="comparison-row">
-        <div class="comparison-cell">Free Tier</div>
-        <div class="comparison-cell highlight"><i class="pi pi-check-circle"></i> 10K events/mo</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Limited</div>
-        <div class="comparison-cell"><i class="pi pi-minus-circle neu"></i> Varies</div>
-      </div>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col" class="is-us">Pulzivo</th>
+            <th scope="col">Google Analytics 4</th>
+            <th scope="col">Plausible / Fathom</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Cookies</th>
+            <td class="is-us">None</td>
+            <td>Uses cookies</td>
+            <td>None</td>
+          </tr>
+          <tr>
+            <th scope="row">Script size</th>
+            <td class="is-us">~9KB gzip</td>
+            <td>Larger tag (gtag.js)</td>
+            <td>Very small, a few KB or less</td>
+          </tr>
+          <tr>
+            <th scope="row">Dashboard</th>
+            <td class="is-us">One screen, plain-language insights</td>
+            <td>Very powerful, steep learning curve</td>
+            <td>One simple screen</td>
+          </tr>
+          <tr>
+            <th scope="row">Goals &amp; revenue</th>
+            <td class="is-us">Yes, on every plan</td>
+            <td>Yes (conversions / e-commerce)</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <th scope="row">Product analytics</th>
+            <td class="is-us">Auto clicks, funnels, user identity</td>
+            <td>Yes, via explorations</td>
+            <td>Mostly web analytics</td>
+          </tr>
+          <tr>
+            <th scope="row">Price to start</th>
+            <td class="is-us">Free, 10K events/mo</td>
+            <td>Free</td>
+            <td>Paid plans with a free trial</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+    <p class="compare-note"><i class="pi pi-info-circle"></i> Competitor details are general and based on their public product pages; plans change, so check each vendor for current details. If you need Google Ads integration or BigQuery export, GA4 is still the better fit.</p>
   </div>
 </section>
 
-<p-divider></p-divider>
+<!-- Pricing strip -->
+<section class="pricing-strip">
+  <div class="container">
+    <h2>Simple pricing</h2>
+    <p class="section-subtitle">Start free. Upgrade when your traffic grows.</p>
+    <div class="price-grid">
+      <div class="price-card">
+        <h3>Free</h3>
+        <div class="price">$0</div>
+        <p>10K events/month</p>
+      </div>
+      <div class="price-card featured">
+        <h3>Starter</h3>
+        <div class="price">$9<span>/mo</span></div>
+        <p>Sessions, scroll depth, UTM attribution</p>
+      </div>
+      <div class="price-card">
+        <h3>Pro</h3>
+        <div class="price">$29<span>/mo</span></div>
+        <p>User identity and performance</p>
+      </div>
+      <div class="price-card">
+        <h3>Enterprise</h3>
+        <div class="price">$99<span>/mo</span></div>
+        <p>Errors, rage clicks, Web Vitals</p>
+      </div>
+    </div>
+    <div class="center"><a routerLink="/pricing" [queryParams]="{utm_source: 'why', utm_medium: 'pricing-strip', utm_campaign: 'pricing'}" class="text-link">Compare all plan features <i class="pi pi-arrow-right"></i></a></div>
+  </div>
+</section>
 
 <!-- CTA -->
 <section class="why-cta">
   <div class="container">
-    <h2>Ready to feel the pulse?</h2>
-    <p>Join developers who've already switched. Free forever tier — no credit card needed.</p>
+    <h2>See your first visitors today</h2>
+    <p>Free plan, no credit card. Most sites are live in a few minutes.</p>
     <div class="cta-actions">
-      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'start-free'}" class="glow-button"></button>
-      <button pButton type="button" label="View Pricing" class="p-button-outlined p-button-secondary" size="large" routerLink="/pricing" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'pricing'}"></button>
+      <button pButton type="button" label="Get started free" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/signup" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'start-free'}" class="glow-button"></button>
+      <button pButton type="button" label="View docs" icon="pi pi-book" class="p-button-outlined p-button-secondary" size="large" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'docs'}"></button>
     </div>
   </div>
 </section>
