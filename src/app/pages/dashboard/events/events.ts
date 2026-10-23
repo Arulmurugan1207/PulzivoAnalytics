@@ -186,12 +186,23 @@ export class DashboardEvents implements OnInit, OnDestroy {
     { label: 'Last 7 days', short: '7d' },
     { label: 'Last 30 days', short: '30d' },
   ];
-  activePreset = 'Last 7 days';
+  activePreset = 'Last 30 days';
 
   // Redesigned overview state
   showAdvanced = false;
   tableRows: TableRow[] = [];
   tableSearch = '';
+  showAllEvents = false;
+  readonly kpiIcons: Record<string, string> = {
+    events: 'pi pi-bolt', clicks: 'pi pi-star', forms: 'pi pi-clock', errors: 'pi pi-exclamation-circle'
+  };
+  get visibleTableRows(): TableRow[] {
+    const rows = this.filteredTableRows;
+    return this.showAllEvents ? rows : rows.slice(0, 6);
+  }
+  get tableTotal(): number {
+    return this.tableRows.reduce((s, r) => s + (r.count || 0), 0) || 1;
+  }
   tableCategory: EventCategoryKey | '' = '';
   readonly tableCategories: { key: EventCategoryKey | ''; label: string }[] = [
     { key: '', label: 'All' },
@@ -442,12 +453,12 @@ export class DashboardEvents implements OnInit, OnDestroy {
   }
 
   private initDateRange(): void {
-    // Default to the last 7 days so every number has a comparable previous period.
+    // Default to the last 30 days so every number has a comparable previous period.
     const end = new Date();
     const start = new Date();
-    start.setDate(start.getDate() - 7);
+    start.setDate(start.getDate() - 30);
     this.dateRange = { start, end };
-    this.activePreset = 'Last 7 days';
+    this.activePreset = 'Last 30 days';
   }
 
   applyDatePreset(preset: string): void {
@@ -1300,7 +1311,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
   }
 
   eventIcon(name: string): string {
-    return this.EVENT_ICONS[name] ?? 'pi pi-sparkles';
+    return this.EVENT_ICONS[name] ?? 'pi pi-star';
   }
 
   sessionDuration(events: HistoryEvent[]): string {
