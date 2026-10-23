@@ -302,6 +302,15 @@ export class AnalyticsAPIService {
   /**
    * Get Exit Pages - where users leave
    */
+  /** Outbound clicks, downloads, 404s, site search, goals, revenue, languages, screen sizes. */
+  getInsights(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of(null);
+    return this.http.get(`${this.apiUrl}/analytics/insights?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of(null))
+    );
+  }
+
   getExitPages(dateRange?: DateRange, limit: number = 10): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({ pages: [], total: 0 });

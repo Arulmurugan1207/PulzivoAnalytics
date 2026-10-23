@@ -1702,7 +1702,104 @@ function shapeUserPaths(rows, limit) {
   return { paths, totalSessions: (rows || []).length };
 }
 
+// ── Insights: outbound, downloads, 404s, site search, language, screen, goals, revenue ──
+const INSIGHT_EVENTS = ['outbound_click', 'file_download', 'not_found', 'site_search', 'goal', 'revenue'];
+
+function insightTop(eventName, keyExpr, limit = 10) {
+  return [
+    { $match: { event_name: eventName } },
+    { $group: { _id: keyExpr, count: { $sum: 1 } } },
+    { $match: { _id: { $ne: null } } },
+    { $sort: { count: -1, _id: 1 } },
+    { $limit: limit },
+  ];
+}
+
+/** Visitors (distinct sessions) per key, from page views. */
+function insightSessions(keyExpr, limit = 10) {
+  return [
+    { $match: { event_name: { $in: PAGE_VIEW_EVENTS } } },
+    { $group: { _id: { k: keyExpr, s: { $ifNull: ['$data.session_id', '$session_id'] } } } },
+    { $group: { _id: '$_id.k', count: { $sum: 1 } } },
+    { $match: { _id: { $ne: null } } },
+    { $sort: { count: -1, _id: 1 } },
+    { $limit: limit },
+  ];
+}
+
+const screenWidthExpr = {
+  $convert: {
+    input: { $arrayElemAt: [{ $split: [{ $ifNull: ['$data.screenResolution', ''] }, 'x'] }, 0] },
+    to: 'double', onError: null, onNull: null,
+  },
+};
+
+function insightsPipeline(match) {
+  const str = (path) => ({ $ifNull: [path, null] });
+  return [
+    { $match: match },
+    {
+      $facet: {
+        outbound: insightTop('outbound_click', str('$data.domain')),
+        downloads: insightTop('file_download', str('$data.url')),
+        notFound: insightTop('not_found', { $ifNull: ['$data.page', '$page'] }),
+        searches: insightTop('site_search', { $toLower: { $ifNull: ['$data.term', ''] } }),
+        goals: insightTop('goal', str('$data.goal'), 20),
+        revenue: [
+          { $match: { event_name: 'revenue' } },
+          { $addFields: { _v: { $convert: { input: '$data.value', to: 'double', onError: 0, onNull: 0 } } } },
+          {
+            $group: {
+              _id: { $toUpper: { $ifNull: ['$data.currency', 'USD'] } },
+              total: { $sum: '$_v' },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { total: -1 } },
+        ],
+        languages: insightSessions({
+          $toLower: { $arrayElemAt: [{ $split: [{ $ifNull: ['$data.language', ''] }, '-'] }, 0] },
+        }),
+        screens: insightSessions({
+          $switch: {
+            branches: [
+              { case: { $eq: [screenWidthExpr, null] }, then: null },
+              { case: { $lt: [screenWidthExpr, 768] }, then: 'Mobile (<768px)' },
+              { case: { $lt: [screenWidthExpr, 1280] }, then: 'Tablet / small laptop (768-1279px)' },
+              { case: { $lt: [screenWidthExpr, 1920] }, then: 'Laptop / desktop (1280-1919px)' },
+            ],
+            default: 'Large desktop (1920px+)',
+          },
+        }),
+      },
+    },
+  ];
+}
+
+function shapeInsights(row = {}) {
+  const list = (rows, key) => (rows || [])
+    .filter((r) => r._id !== '' && r._id != null)
+    .map((r) => ({ [key]: r._id, count: r.count }));
+  return {
+    outbound: list(row.outbound, 'domain'),
+    downloads: list(row.downloads, 'url'),
+    notFound: list(row.notFound, 'page'),
+    searches: list(row.searches, 'term'),
+    goals: list(row.goals, 'goal'),
+    languages: list(row.languages, 'language'),
+    screens: list(row.screens, 'screen'),
+    revenue: (row.revenue || []).map((r) => ({
+      currency: r._id,
+      total: Math.round(r.total * 100) / 100,
+      count: r.count,
+    })),
+  };
+}
+
 module.exports = {
+  INSIGHT_EVENTS,
+  insightsPipeline,
+  shapeInsights,
   ENGAGEMENT_EVENTS,
   FORM_EVENTS,
   ERROR_EVENTS,

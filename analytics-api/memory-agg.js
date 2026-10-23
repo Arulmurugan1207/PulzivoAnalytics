@@ -243,6 +243,11 @@ function evalOp(doc, op, arg, vars) {
       return convertValue(evalExpr(doc, arg, vars), 'double', undefined, null);
     case '$toDate':
       return convertValue(evalExpr(doc, arg, vars), 'date', undefined, null);
+    case '$toUpper': {
+      const value = evalExpr(doc, arg, vars);
+      if (isNullish(value)) return null;
+      return String(value).toUpperCase();
+    }
     case '$toLower': {
       const value = evalExpr(doc, arg, vars);
       if (isNullish(value)) return null;

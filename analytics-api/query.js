@@ -8,7 +8,7 @@
 
 const PAGE_VIEW_EVENTS = ['page_view', 'page_views'];
 const CLICK_EVENTS = ['click', 'auto_click'];
-const CONVERSION_EVENTS = ['form_submit', 'signup_completed'];
+const CONVERSION_EVENTS = ['form_submit', 'signup_completed', 'goal', 'revenue'];
 const SYSTEM_EVENTS = new Set([
   'page_view',
   'page_views',

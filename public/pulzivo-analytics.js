@@ -146,7 +146,7 @@
       clearQueuedEvents('owner mode enabled via URL');
     }
     if (config.debug) {
-      console.log('[Analytics] Owner mode from URL query param:', fromUrl ? 'ON' : 'OFF');
+      console.log('[Analytics] Owner mode (URL):', fromUrl);
     }
     return true;
   }
@@ -167,7 +167,7 @@
         clearQueuedEvents('owner mode enabled');
       }
       if (config.debug) {
-        console.log('[Analytics] Owner mode synced from storage:', isOwner ? 'ON' : 'OFF');
+        console.log('[Analytics] Owner mode:', isOwner);
       }
     }
     return isOwner;
@@ -882,7 +882,7 @@
       let u;
       try { u = new URL(a.href, window.location.href); } catch (e) { return; }
       if (!/^https?:$/.test(u.protocol)) return;
-      const ext = (u.pathname.match(/\.(pdf|zip|rar|7z|gz|tgz|dmg|exe|msi|pkg|apk|csv|xlsx?|docx?|pptx?|txt|rtf|mp3|mp4|mov|avi|wav|epub|iso)$/i) || [])[1];
+      const ext = (u.pathname.match(/\.(pdf|zip|rar|7z|gz|tgz|dmg|exe|msi|pkg|apk|csv|xlsx?|docx?|pptx?|txt|mp3|mp4|mov|wav)$/i) || [])[1];
       const label = elLabel(a, 100);
       if (ext || a.hasAttribute('download')) {
         queueEvent('file_download', { category: 'download', url: u.href, file_type: (ext || 'file').toLowerCase(), label: label });

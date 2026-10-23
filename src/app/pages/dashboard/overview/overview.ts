@@ -31,6 +31,7 @@ import {
   BrowserData,
   WebVitals,
   WebVitalMetric,
+  SiteInsights,
   SessionStats,
   AttributionModel,
   AttributionEntry,
@@ -116,6 +117,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   topPagesPage = 1;
   topPagesRows = 5;
   entryPages: PageData[] = [];
+  insights: SiteInsights | null = null;
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
   geoDataPage = 1;
@@ -149,6 +151,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   webVitals: WebVitals = {
     LCP: { avg: null, p75: null, count: 0, rating: 'no-data' },
     FID: { avg: null, p75: null, count: 0, rating: 'no-data' },
+    INP: { avg: null, p75: null, count: 0, rating: 'no-data' },
     CLS: { avg: null, p75: null, count: 0, rating: 'no-data' }
   };
   topClicks: ClickData[] = [];
@@ -245,6 +248,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     geography: false,
     topPages: false,
     entryExit: false,
+    insights: false,
     conversion: false,
     features: false,
     liveEvents: false,
@@ -329,7 +333,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     error_tracking: { label: 'Error Tracking', description: 'Capture JavaScript errors and exceptions', icon: 'pi-exclamation-triangle' },
     rage_clicks: { label: 'Rage Clicks', description: 'Detect frustrated user behavior', icon: 'pi-bolt' },
     dead_clicks: { label: 'Dead Clicks', description: 'Track clicks on non-interactive elements', icon: 'pi-times-circle' },
-    web_vitals: { label: 'Web Vitals', description: 'Monitor Core Web Vitals (LCP, FID, CLS)', icon: 'pi-chart-line' },
+    web_vitals: { label: 'Web Vitals', description: 'Monitor Core Web Vitals (LCP, INP, CLS)', icon: 'pi-chart-line' },
     resource_timing: { label: 'Resource Timing', description: 'Track resource loading performance', icon: 'pi-download' },
     heatmap_data: { label: 'Heatmap Data', description: 'Collect data for click and scroll heatmaps', icon: 'pi-th-large' },
     custom_dimensions: { label: 'Custom Dimensions', description: 'Add custom data to events', icon: 'pi-sliders-h' }
@@ -882,6 +886,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.loadAttributionWithDelay();
       }
       if (this.hasFeature('page_exit')) this.loadEntryExitPagesWithDelay();
+      this.loadInsights();
     }
     if (this.tabLoaded['technical']) {
       if (this.hasFeature('web_vitals')) {
@@ -1009,6 +1014,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.webVitals = {
       LCP: { avg: null, p75: null, count: 0, rating: 'no-data' },
       FID: { avg: null, p75: null, count: 0, rating: 'no-data' },
+      INP: { avg: null, p75: null, count: 0, rating: 'no-data' },
       CLS: { avg: null, p75: null, count: 0, rating: 'no-data' }
     };
     this.topClicks = [];
@@ -1071,6 +1077,27 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       this.loadEntryExitPagesWithDelay();
     }
+    this.loadInsights();
+  }
+
+  /** Outbound/downloads/404/search/goals/revenue/language/screen card (all plans). */
+  private loadInsights(): void {
+    this.loadingStates.insights = true;
+    this.cdr.markForCheck();
+    this.analyticsAPIService.getInsights(this.currentDateRange ?? undefined).subscribe(data => {
+      this.insights = data;
+      this.loadingStates.insights = false;
+      this.cdr.markForCheck();
+    });
+  }
+
+  /** INP replaced FID as a Core Web Vital; show FID only for sites with old data. */
+  get responsivenessVital(): { name: string; desc: string; threshold: string; metric: WebVitalMetric } {
+    const inp = this.webVitals.INP;
+    if (inp && (inp.count > 0 || !this.webVitals.FID?.count)) {
+      return { name: 'INP', desc: 'Interaction to Next Paint', threshold: '< 200ms is good', metric: inp };
+    }
+    return { name: 'FID', desc: 'First Input Delay (legacy)', threshold: '< 100ms is good', metric: this.webVitals.FID };
   }
 
   private loadBehaviourTab(): void {
