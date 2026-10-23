@@ -23,36 +23,6 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 import { describeVisitSource } from './visit-source';
-import {
-  humanEventLabel, clickLabel, routeBreadcrumb, percentChange, isInternalEvent,
-  sparklinePoints, frustrationInsight, formatCompact, FrustrationInsight,
-  CATEGORY_META, EventCategoryKey, eventCategory, eventDescription, eventIconFor,
-  categorySeries, buildStory, buildJourney, busiestDay, StorySentence, JourneyStep,
-} from './events-overview.logic';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-
-interface TableRow {
-  name: string;
-  raw: string[];
-  label: string;
-  description: string;
-  icon: string;
-  category: EventCategoryKey;
-  count: number;
-  change: number | null;
-  spark: string;
-}
-
-interface Kpi {
-  key: string;
-  label: string;
-  display: string;
-  change: number | null;
-  previous: number | null;
-  goodWhenUp: boolean;
-  spark: string;
-}
 
 interface UserColor { bg: string; text: string; border: string; }
 
@@ -175,58 +145,13 @@ export class DashboardEvents implements OnInit, OnDestroy {
   
   // Date Range Presets
   datePresets = [
+    { label: 'All time',    days: -1 },
     { label: 'Today',       days: 0 },
     { label: 'Last 7 days', days: 7 },
     { label: 'Last 30 days', days: 30 },
-    { label: 'Last 90 days', days: 90 },
-    { label: 'All time',    days: -1 }
+    { label: 'Last 90 days', days: 90 }
   ];
-  quickPresets = [
-    { label: 'Today', short: 'Today' },
-    { label: 'Last 7 days', short: '7d' },
-    { label: 'Last 30 days', short: '30d' },
-  ];
-  activePreset = 'Last 30 days';
-
-  // Redesigned overview state
-  showAdvanced = false;
-  tableRows: TableRow[] = [];
-  tableSearch = '';
-  showAllEvents = false;
-  readonly kpiIcons: Record<string, string> = {
-    events: 'pi pi-bolt', clicks: 'pi pi-star', forms: 'pi pi-clock', errors: 'pi pi-exclamation-circle'
-  };
-  get visibleTableRows(): TableRow[] {
-    const rows = this.filteredTableRows;
-    return this.showAllEvents ? rows : rows.slice(0, 6);
-  }
-  get tableTotal(): number {
-    return this.tableRows.reduce((s, r) => s + (r.count || 0), 0) || 1;
-  }
-  tableCategory: EventCategoryKey | '' = '';
-  readonly tableCategories: { key: EventCategoryKey | ''; label: string }[] = [
-    { key: '', label: 'All' },
-    { key: 'clicks', label: 'Clicks' },
-    { key: 'navigation', label: 'Navigation' },
-    { key: 'forms', label: 'Forms' },
-    { key: 'errors', label: 'Errors' },
-    { key: 'performance', label: 'Performance' },
-    { key: 'custom', label: 'Custom' },
-  ];
-  clickRows: { label: string; crumb: string; page: string; count: number; share: number }[] = [];
-  insight: FrustrationInsight | null = null;
-  summaryInsight: { headline: string; detail: string } | null = null;
-  kpis: Kpi[] = [];
-  story: StorySentence[] = [];
-  journey: JourneyStep[] = [];
-  stackChartData: any = null;
-  stackChartOptions: any = {};
-  stackChartTitle = 'Events per day by category';
-  private trend: any = null;
-  private prevBreakdown: any = null;
-  private rageRows: any[] = [];
-  private deadRows: any[] = [];
-  private ctx: any = {};
+  activePreset = 'All time';
   
   // Helper for template
   get maxDate(): Date {
@@ -446,19 +371,15 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.initChart();
     this.barChartData = d.eventsBarChart;
     this.updateDonutChart();
-    this.refreshDerived();
     this.loading.breakdown = false;
     this.loading.history = false;
     this.cdr.markForCheck();
   }
 
   private initDateRange(): void {
-    // Default to the last 30 days so every number has a comparable previous period.
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - 30);
-    this.dateRange = { start, end };
-    this.activePreset = 'Last 30 days';
+    // Default to "All time" — no date filter, show everything
+    this.dateRange = { start: null, end: null };
+    this.activePreset = 'All time';
   }
 
   applyDatePreset(preset: string): void {
@@ -479,7 +400,6 @@ export class DashboardEvents implements OnInit, OnDestroy {
         this.dateRange = { start, end };
       }
       this.onAdvancedFilterChange();
-      if (!this.demoService.isDemoMode()) this.loadBreakdown();
     }
   }
 
@@ -487,7 +407,6 @@ export class DashboardEvents implements OnInit, OnDestroy {
     if (this.dateRange.start && this.dateRange.end) {
       this.activePreset = 'Custom';
       this.onAdvancedFilterChange();
-      this.loadBreakdown();
     }
   }
 
@@ -559,267 +478,23 @@ export class DashboardEvents implements OnInit, OnDestroy {
       endDate: this.dateRange.end
     } : undefined;
 
-    const prevRange = this.previousRange();
-    const safe = <T>(obs: any, fallback: T) => obs.pipe(catchError(() => of(fallback)));
     this.subscriptions.add(
-      forkJoin({
-        data: safe(this.analyticsAPI.getEventsBreakdownWithDateRange(dateRange), {} as any),
-        trend: dateRange ? safe(this.analyticsAPI.getEventsTrend(dateRange), null) : of(null),
-        // Fallbacks for APIs without /events-trend: previous-period breakdown for % change,
-        // daily page views for the chart.
-        prev: prevRange ? safe(this.analyticsAPI.getEventsBreakdownWithDateRange(prevRange), null) : of(null),
-        frustration: safe(this.analyticsAPI.getRageDeadClicks(dateRange), { rageClicks: [], deadClicks: [] }),
-        visitors: dateRange ? safe(this.analyticsAPI.getMetricsComparison(dateRange), null) : of(null),
-        entry: safe(this.analyticsAPI.getEntryPages(dateRange, 3), { pages: [] }),
-        paths: safe(this.analyticsAPI.getUserPaths(dateRange, 5), { paths: [] }),
-        geo: safe(this.analyticsAPI.getGeographic(dateRange), { geographic: [] }),
-        sources: safe(this.analyticsAPI.getTrafficSources(dateRange), { sources: [] }),
-        pv: safe(this.analyticsAPI.getPageViewsTrend(dateRange, 'daily'), { trend: [] }),
-      }).subscribe((r: any) => {
-        const data = r.data || {};
-        this.events = data.events || [];
-        this.customEvents = data.customEvents || [];
-        this.topClicks = data.topClicks || [];
-        this.totalEvents = data.totalEvents || 0;
-        this.categoryCounts = data.categoryCounts || {};
-        this.summary = { ...this.summary, ...(data.summary || {}) };
-        this.rageRows = r.frustration?.rageClicks || [];
-        this.deadRows = r.frustration?.deadClicks || [];
-        this.trend = r.trend && r.trend.metrics ? r.trend : null;
-        this.prevBreakdown = r.prev;
-        this.ctx = r;
-        this.refreshDerived();
-        this.updateChart();
-        this.updateDonutChart();
-        this.loading.breakdown = false;
-        this.cdr.markForCheck();
+      this.analyticsAPI.getEventsBreakdownWithDateRange(dateRange).subscribe({
+        next: (data: any) => {
+          this.events = data.events || [];
+          this.customEvents = data.customEvents || [];
+          this.topClicks = data.topClicks || [];
+          this.totalEvents = data.totalEvents || 0;
+          this.categoryCounts = data.categoryCounts || {};
+          this.summary = data.summary || this.summary;
+          this.updateChart();
+          this.updateDonutChart();
+          this.loading.breakdown = false;
+          this.cdr.markForCheck();
+        },
+        error: () => { this.loading.breakdown = false; this.cdr.markForCheck(); }
       })
     );
-  }
-
-  private previousRange(): { startDate: Date; endDate: Date } | undefined {
-    if (!this.dateRange.start || !this.dateRange.end) return undefined;
-    const span = this.dateRange.end.getTime() - this.dateRange.start.getTime();
-    return {
-      startDate: new Date(this.dateRange.start.getTime() - span),
-      endDate: new Date(this.dateRange.start.getTime() - 1),
-    };
-  }
-
-  /** Per raw event: current, previous and daily series (series only with /events-trend). */
-  private perEvent(): { name: string; current: number; previous: number | null; change: number | null; series: number[] }[] {
-    if (this.trend?.events) return this.trend.events;
-    const prev = new Map<string, number>((this.prevBreakdown?.events || []).map((e: any) => [e.name, e.count]));
-    return this.events.map((e) => {
-      const p = this.prevBreakdown ? (prev.get(e.name) || 0) : null;
-      return { name: e.name, current: e.count, previous: p, change: percentChange(e.count, p), series: [] };
-    });
-  }
-
-  private sumOf(rows: { name: string; current: number; previous: number | null; series: number[] }[], pick: (n: string) => boolean) {
-    const sel = rows.filter((r) => pick(r.name));
-    const len = Math.max(0, ...sel.map((r) => r.series.length));
-    const series = new Array(len).fill(0);
-    let current = 0;
-    let previous: number | null = this.trend || this.prevBreakdown ? 0 : null;
-    for (const r of sel) {
-      current += r.current;
-      if (previous !== null) previous += r.previous || 0;
-      r.series.forEach((v, i) => (series[i] += v));
-    }
-    return { current, previous, change: percentChange(current, previous), series };
-  }
-
-  private buildKpis(): Kpi[] {
-    const rows = this.perEvent();
-    const defs: { key: string; label: string; pick: (n: string) => boolean; good: boolean }[] = [
-      { key: 'events', label: 'Total events', pick: (n) => !isInternalEvent(n), good: true },
-      { key: 'clicks', label: 'Clicks', pick: (n) => n === 'click' || n === 'auto_click', good: true },
-      { key: 'forms', label: 'Form submits', pick: (n) => n === 'form_submit', good: true },
-      { key: 'errors', label: 'Errors', pick: (n) => eventCategory(n) === 'errors', good: false },
-    ];
-    return defs.map((d) => {
-      const m = this.sumOf(rows, d.pick);
-      return {
-        key: d.key, label: d.label, display: formatCompact(m.current), change: m.change,
-        previous: m.previous, goodWhenUp: d.good, spark: sparklinePoints(m.series),
-      };
-    });
-  }
-
-  private buildTable(): void {
-    const merged = new Map<string, TableRow & { _prev: number | null; _series: number[] }>();
-    for (const e of this.perEvent()) {
-      if (!this.showAdvanced && isInternalEvent(e.name)) continue;
-      if (!e.current) continue;
-      const label = humanEventLabel(e.name);
-      const key = this.showAdvanced ? e.name : label;
-      const row = merged.get(key) || {
-        name: e.name, raw: [], label, description: eventDescription(e.name), icon: eventIconFor(e.name),
-        category: eventCategory(e.name), count: 0, change: null, spark: '', _prev: e.previous === null ? null : 0, _series: [],
-      };
-      row.raw.push(e.name);
-      row.count += e.current;
-      if (row._prev !== null) row._prev += e.previous || 0;
-      e.series.forEach((v, i) => (row._series[i] = (row._series[i] || 0) + v));
-      merged.set(key, row);
-    }
-    this.tableRows = [...merged.values()]
-      .map((r) => ({ ...r, change: percentChange(r.count, r._prev), spark: sparklinePoints(r._series, 80, 24) }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  get filteredTableRows(): TableRow[] {
-    const q = this.tableSearch.trim().toLowerCase();
-    return this.tableRows.filter((r) =>
-      (!this.tableCategory || r.category === this.tableCategory) &&
-      (!q || r.label.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) ||
-        (this.showAdvanced && r.raw.some((n) => n.includes(q)))));
-  }
-
-  categoryLabel(key: EventCategoryKey): string {
-    return CATEGORY_META[key].label;
-  }
-
-  onAdvancedToggle(): void {
-    this.buildTable();
-    this.cdr.markForCheck();
-  }
-
-  exportEventsTable(): void {
-    const header = ['Event', 'Category', 'Count', 'Change %'].concat(this.showAdvanced ? ['Raw names'] : []);
-    const lines = this.filteredTableRows.map((r) => [
-      r.label, this.categoryLabel(r.category), String(r.count), r.change === null ? '' : String(r.change),
-      ...(this.showAdvanced ? [r.raw.join(' ')] : []),
-    ].map((v) => `"${v.replace(/"/g, '""')}"`).join(','));
-    this.downloadFile([header.join(','), ...lines].join('\n'), `events-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
-  }
-
-  private buildStackChart(): void {
-    const days: string[] = this.trend?.days || [];
-    const fmt = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-    if (this.trend?.events && days.length) {
-      const series = categorySeries(this.trend.events, days.length);
-      const order: EventCategoryKey[] = ['navigation', 'clicks', 'forms', 'custom', 'performance', 'errors'];
-      this.stackChartTitle = 'Events per day by category';
-      this.stackChartData = {
-        labels: days.map(fmt),
-        datasets: order
-          .filter((k) => series[k].some((v) => v > 0))
-          .map((k) => ({ label: CATEGORY_META[k].label, data: series[k], backgroundColor: CATEGORY_META[k].color, borderRadius: 4, maxBarThickness: 36 })),
-      };
-    } else {
-      // Older API: only daily page views are available per day.
-      const rows = this.ctx?.pv?.trend || [];
-      this.stackChartTitle = 'Page views per day';
-      this.stackChartData = rows.length ? {
-        labels: rows.map((r: any) => fmt(String(r.date).slice(0, 10))),
-        datasets: [{ label: 'Page views', data: rows.map((r: any) => r.pageViews), backgroundColor: CATEGORY_META.clicks.color, borderRadius: 4, maxBarThickness: 36 }],
-      } : null;
-    }
-    this.stackChartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 8, color: '#475569', font: { size: 12 } } },
-        tooltip: { mode: 'index', intersect: false },
-      },
-      scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
-        y: { stacked: true, beginAtZero: true, border: { display: false }, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', precision: 0 } },
-      },
-    };
-  }
-
-  private refreshDerived(): void {
-    this.kpis = this.buildKpis();
-    this.buildTable();
-    this.buildStackChart();
-    const clickTotal = this.topClicks.reduce((s, c) => s + (c.count || 0), 0) || 1;
-    const merged = new Map<string, { label: string; crumb: string; page: string; count: number; share: number }>();
-    for (const c of this.topClicks as any[]) {
-      const label = clickLabel(c);
-      const crumb = routeBreadcrumb(c.page);
-      const key = label + '|' + crumb;
-      const row = merged.get(key) || { label, crumb, page: c.page || '', count: 0, share: 0 };
-      row.count += c.count || 0;
-      merged.set(key, row);
-    }
-    this.clickRows = [...merged.values()]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8)
-      .map((r) => ({ ...r, share: (r.count / clickTotal) * 100 }));
-
-    // Insight cards
-    this.insight = frustrationInsight(this.rageRows, this.deadRows, this.summary);
-    const clicks = this.kpis.find((k) => k.key === 'clicks');
-    const clickCount = this.sumOf(this.perEvent(), (n) => n === 'click' || n === 'auto_click').current;
-    const top = this.clickRows[0];
-    this.summaryInsight = clickCount ? {
-      headline: `${clickCount.toLocaleString('en-US')} clicks ${this.periodNoun}` +
-        (clicks && clicks.change !== null && Math.abs(clicks.change) >= 1 ? `, ${clicks.change > 0 ? 'up' : 'down'} ${Math.round(Math.abs(clicks.change))}%` : ''),
-      detail: top ? `Most on “${top.label}” in ${top.crumb}.` : '',
-    } : null;
-
-    // Story + journey
-    const v = this.ctx?.visitors;
-    const landing = (this.ctx?.entry?.pages || [])[0];
-    const pathRow = (this.ctx?.paths?.paths || []).find((p: any) => !landing || p.from === landing.path) || (this.ctx?.paths?.paths || [])[0];
-    const rageTop = [...this.rageRows, ...this.deadRows].sort((a, b) => b.count - a.count)[0];
-    const busy = this.trend ? busiestDay(this.trend.days, this.trend.metrics.events.series)
-      : busiestDay((this.ctx?.pv?.trend || []).map((r: any) => String(r.date).slice(0, 10)), (this.ctx?.pv?.trend || []).map((r: any) => r.pageViews));
-    this.story = buildStory({
-      visitors: v?.current ? { current: v.current.uniqueVisitors || 0, change: v.previous?.uniqueVisitors ? percentChange(v.current.uniqueVisitors, v.previous.uniqueVisitors) : null } : null,
-      topLanding: landing ? { path: landing.path, count: landing.entrances ?? landing.views } : null,
-      topClick: top ? { label: top.label, page: top.page, count: top.count } : null,
-      busiestDay: busy ? { ...busy, unit: this.trend ? 'interactions' : 'page views' } : null,
-      countries: (this.ctx?.geo?.geographic || []).map((g: any) => ({ country: g.country, share: g.percentage })),
-      sources: (this.ctx?.sources?.sources || []).map((x: any) => ({ source: x.source, visits: x.visits })),
-      frustration: this.insight && rageTop ? { total: this.insight.total, label: clickLabel(rageTop), page: rageTop.page } : null,
-      forms: { submits: this.summary.formSubmits, abandons: this.summary.formAbandons },
-    });
-    this.journey = buildJourney({
-      landing: landing ? { path: landing.path, count: landing.entrances ?? landing.views } : null,
-      action: top ? { label: top.label, count: top.count } : null,
-      next: pathRow ? { from: pathRow.from, to: pathRow.to, count: pathRow.count } : null,
-      formSubmits: this.summary.formSubmits,
-    });
-  }
-
-  get periodNoun(): string {
-    switch (this.activePreset) {
-      case 'Today': return 'today';
-      case 'Last 7 days': return 'this week';
-      case 'Last 30 days': return 'this month';
-      default: return 'in this period';
-    }
-  }
-
-  scrollToSection(id: string): void {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    el.classList.add('flash');
-    setTimeout(() => el.classList.remove('flash'), 1200);
-  }
-
-  showRawInStream(raw: string): void {
-    this.filterEventType = raw;
-    this.onFilterChange();
-    this.scrollToHistory();
-  }
-
-  barWidth(count: number, max: number): number {
-    return max ? Math.max(2, (count / max) * 100) : 0;
-  }
-
-  humanLabel(name: string): string {
-    return humanEventLabel(name);
-  }
-
-  get abandonRate(): number {
-    const started = this.summary.formSubmits + this.summary.formAbandons;
-    return started ? (this.summary.formAbandons / started) * 100 : 0;
   }
 
   private loadHistory(): void {
@@ -1311,7 +986,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
   }
 
   eventIcon(name: string): string {
-    return this.EVENT_ICONS[name] ?? 'pi pi-star';
+    return this.EVENT_ICONS[name] ?? 'pi pi-sparkles';
   }
 
   sessionDuration(events: HistoryEvent[]): string {

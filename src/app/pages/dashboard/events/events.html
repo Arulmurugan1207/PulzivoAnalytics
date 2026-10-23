@@ -1,25 +1,13 @@
-<div class="page-gate-wrapper ev" [class.page-gated]="!isPlanAtLeast('pro')">
+<div class="page-gate-wrapper" [class.page-gated]="!isPlanAtLeast('pro')">
 
-  <!-- ══════════════════ HEADER ══════════════════ -->
-  <header class="ev-header">
-    <div class="ev-title">
+  <!-- ══════════════════ TOOLBAR ══════════════════ -->
+  <div class="events-toolbar">
+    <div class="toolbar-title">
       <h2>Events</h2>
-      <p class="ev-context">{{ siteContextLabel }} · {{ rangeContextLabel }}</p>
+      <p class="toolbar-context">{{ siteContextLabel }} · {{ rangeContextLabel }}</p>
     </div>
-    <div class="ev-actions">
-      <div class="range-seg" role="group" aria-label="Date range">
-        @for (preset of quickPresets; track preset.label) {
-          <button type="button" class="seg-btn" [class.active]="activePreset === preset.label"
-            [attr.aria-pressed]="activePreset === preset.label" (click)="applyDatePreset(preset.label)">
-            {{ preset.short }}
-          </button>
-        }
-        <button type="button" class="seg-btn" [class.active]="activePreset === 'Custom' || activePreset === 'All time' || activePreset === 'Last 90 days'"
-          aria-haspopup="dialog" (click)="datePopover.toggle($event)">
-          <i class="pi pi-calendar" aria-hidden="true"></i>
-          {{ activePreset === 'Custom' || activePreset === 'All time' || activePreset === 'Last 90 days' ? activePreset : 'Custom' }}
-        </button>
-      </div>
+    <div class="toolbar-actions">
+      <button pButton icon="pi pi-calendar" [label]="activePreset" class="p-button-outlined date-btn" (click)="datePopover.toggle($event)"></button>
       <p-popover #datePopover [style]="{ width: '320px' }">
         <div class="date-popover-content">
           <div class="date-presets">
@@ -42,214 +30,206 @@
           </div>
         </div>
       </p-popover>
-      <label class="adv-toggle">
-        <input type="checkbox" [(ngModel)]="showAdvanced" (ngModelChange)="onAdvancedToggle()" />
-        <span>Advanced</span>
-      </label>
-    </div>
-  </header>
 
-  <!-- ══════════════════ 0 · WHAT HAPPENED ══════════════════ -->
-  <section class="story-card" aria-labelledby="story-h">
-    <h3 id="story-h" class="eyebrow">What happened {{ periodNoun }}</h3>
-    @if (loading.breakdown) {
-      <div class="story-skel">
-        <p-skeleton width="70%" height="1.4rem"></p-skeleton>
-        <p-skeleton width="85%" height="1.4rem"></p-skeleton>
-        <p-skeleton width="55%" height="1.4rem"></p-skeleton>
-      </div>
-    } @else if (story.length === 0) {
-      <p class="story-empty">No visits recorded in this range yet. Once the tracker sees traffic on {{ siteContextLabel }}, a plain-English summary appears here.</p>
-    } @else {
-      <ul class="story">
-        @for (line of story; track line.key) {
-          <li><button type="button" (click)="scrollToSection(line.target)">{{ line.text }}</button></li>
-        }
-      </ul>
-      @if (journey.length > 1) {
-        <ol class="journey" id="journey" aria-label="A typical visit">
-          @for (step of journey; track step.label; let last = $last) {
-            <li>
-              <button type="button" class="step" (click)="scrollToSection(step.target === 'journey-detail' ? 'all-events' : step.target)">
-                <i [class]="step.icon" aria-hidden="true"></i>
-                <span class="step-txt"><span class="step-label">{{ step.label }}</span> <strong>{{ step.detail }}</strong></span>
-                <span class="step-count">{{ step.count | number }}</span>
-              </button>
-              @if (!last) { <span class="arrow" aria-hidden="true">→</span> }
-            </li>
+      @if (isPlanAtLeast('enterprise')) {
+        <button pButton icon="pi pi-download" label="Export" class="p-button-outlined p-button-secondary" (click)="exportData('csv')"></button>
+      }
+    </div>
+  </div>
+
+  <!-- ══════════════════ ZONE 1 — OVERVIEW STRIP ══════════════════ -->
+  <div class="overview-strip">
+
+    <!-- Total events hero -->
+    <div class="overview-hero">
+      @if (loading.breakdown) {
+        <p-skeleton width="90px" height="2.8rem" styleClass="mb-2"></p-skeleton>
+        <p-skeleton width="120px" height="1rem"></p-skeleton>
+      } @else {
+        <div class="hero-count">{{ totalEvents | number }}</div>
+        <div class="hero-label">Total Events</div>
+        <div class="hero-period">{{ activePreset }}</div>
+      }
+    </div>
+
+    <!-- Category pills -->
+    <div class="category-pills">
+      @for (cat of eventCategories; track cat.name) {
+        <button
+          class="cat-pill"
+          [class.active]="selectedCategories.includes(cat.name)"
+          [style.--cat-color]="cat.color"
+          (click)="toggleCategory(cat.name)">
+          <span class="cat-dot" [style.background]="cat.color"></span>
+          <span class="cat-pill-label">{{ cat.label }}</span>
+          @if (loading.breakdown) {
+            <span class="cat-pill-count skeleton-inline"></span>
+          } @else {
+            <span class="cat-pill-count">{{ getCategoryCount(cat.name) | number }}</span>
           }
-        </ol>
+        </button>
       }
-    }
-  </section>
-
-  <!-- ══════════════════ 1 · INSIGHT CARDS ══════════════════ -->
-  @if (!loading.breakdown && (summaryInsight || insight || summary.formSubmits || summary.formAbandons)) {
-    <section class="insights" id="insights" aria-label="Insights">
-      @if (summaryInsight) {
-        <div class="ins ins-violet">
-          <i class="pi pi-chart-line" aria-hidden="true"></i>
-          <div>
-            <div class="ins-h">{{ summaryInsight.headline }}</div>
-            @if (summaryInsight.detail) { <p>{{ summaryInsight.detail }}</p> }
-          </div>
-        </div>
-      }
-      @if (insight) {
-        <div class="ins ins-orange">
-          <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
-          <div>
-            <div class="ins-h">{{ insight.headline }}</div>
-            <p>{{ insight.detail }}</p>
-            @if (insight.page && siteContextLabel.includes('.')) {
-              <a class="ins-link" [href]="'https://' + siteContextLabel + insight.page" target="_blank" rel="noopener">View page <i class="pi pi-external-link" aria-hidden="true"></i></a>
-            }
-          </div>
-        </div>
-      }
-      @if (summary.formSubmits || summary.formAbandons) {
-        <div class="ins ins-green">
-          <i class="pi pi-check-circle" aria-hidden="true"></i>
-          <div>
-            <div class="ins-h">{{ summary.formSubmits | number }} {{ summary.formSubmits === 1 ? 'form' : 'forms' }} submitted</div>
-            <p>{{ summary.formAbandons ? (summary.formAbandons | number) + ' abandoned (' + (abandonRate | number:'1.0-0') + '% drop-off)' : 'None abandoned.' }}</p>
-          </div>
-        </div>
-      }
-    </section>
-  }
-
-  <!-- ══════════════════ 2 · KPI CARDS ══════════════════ -->
-  <section class="kpis" id="kpis" aria-label="Key numbers">
-    @for (kpi of (loading.breakdown ? [{key:'a'},{key:'b'},{key:'c'},{key:'d'}] : kpis); track kpi.key) {
-      <div class="kpi">
-        @if (loading.breakdown) {
-          <p-skeleton width="60%" height="0.9rem" styleClass="mb-3"></p-skeleton>
-          <p-skeleton width="70%" height="2.2rem"></p-skeleton>
-        } @else {
-          <div class="kpi-top">
-            <span class="kpi-ico" aria-hidden="true"><i [class]="kpiIcons[$any(kpi).key] || 'pi pi-chart-line'"></i></span>
-            <div class="kpi-label">{{ $any(kpi).label }}</div>
-          </div>
-          <div class="kpi-row">
-            <div class="kpi-value">{{ $any(kpi).display }}</div>
-            @if ($any(kpi).spark) {
-              <svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
-                <polyline [attr.points]="$any(kpi).spark" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round" />
-              </svg>
-            }
-          </div>
-          <div class="kpi-foot">
-            @if ($any(kpi).change === null) {
-              <span class="delta">{{ $any(kpi).previous === null ? '—' : 'New' }}</span>
-            } @else {
-              <span class="delta"
-                [class.good]="$any(kpi).goodWhenUp ? $any(kpi).change > 0 : $any(kpi).change < 0"
-                [class.bad]="$any(kpi).goodWhenUp ? $any(kpi).change < 0 : $any(kpi).change > 0">
-                {{ $any(kpi).change > 0 ? '↑' : $any(kpi).change < 0 ? '↓' : '' }} {{ ($any(kpi).change < 0 ? -$any(kpi).change : $any(kpi).change) | number:'1.0-1' }}%
-              </span>
-              <span class="delta-vs">vs previous {{ activePreset === 'Today' ? 'day' : 'period' }}</span>
-            }
-          </div>
-        }
-      </div>
-    }
-  </section>
-
-  <!-- ══════════════════ 3 · EVENTS PER DAY ══════════════════ -->
-  <section class="ev-card" id="chart" aria-labelledby="chart-h">
-    <div class="ev-card-head"><h3 id="chart-h">{{ stackChartTitle }}</h3></div>
-    @if (loading.breakdown) {
-      <p-skeleton width="100%" height="240px" borderRadius="12px"></p-skeleton>
-    } @else if (stackChartData) {
-      <div class="chart-box">
-        <p-chart type="bar" [data]="stackChartData" [options]="stackChartOptions" height="260px"></p-chart>
-      </div>
-    } @else {
-      <div class="ev-empty"><i class="pi pi-chart-bar" aria-hidden="true"></i><p>No daily activity in this range.</p></div>
-    }
-  </section>
-
-  <div class="ev-pair">
-  <!-- ══════════════════ 4 · WHAT PEOPLE DID (all events) ══════════════════ -->
-  <section class="ev-card" id="all-events" aria-labelledby="all-h">
-    <div class="ev-card-head wrap">
-      <h3 id="all-h">What people did</h3>
-      <div class="tbl-tools">
-        @if (showAllEvents) {
-          <span class="search">
-            <i class="pi pi-search" aria-hidden="true"></i>
-            <input type="search" [(ngModel)]="tableSearch" placeholder="Search events" aria-label="Search events" />
-          </span>
-          <button type="button" class="ghost-btn icon" (click)="exportEventsTable()" aria-label="Export events"><i class="pi pi-download" aria-hidden="true"></i></button>
-        }
-        @if (tableRows.length > 6 || showAllEvents) {
-          <button type="button" class="link-btn" (click)="showAllEvents = !showAllEvents; tableSearch = showAllEvents ? tableSearch : ''; tableCategory = showAllEvents ? tableCategory : ''"
-            [attr.aria-expanded]="showAllEvents">{{ showAllEvents ? 'Show less' : 'View all' }}</button>
-        }
-      </div>
     </div>
-    @if (showAllEvents) {
-      <div class="chips" role="group" aria-label="Filter by category">
-        @for (c of tableCategories; track c.key) {
-          <button type="button" class="chip" [class.active]="tableCategory === c.key" [attr.aria-pressed]="tableCategory === c.key"
-            (click)="tableCategory = c.key">{{ c.label }}</button>
-        }
-      </div>
-    }
-    @if (loading.breakdown) {
-      <div class="list-skeleton">
-        @for (i of [1,2,3,4,5]; track i) { <p-skeleton width="100%" height="2.75rem" borderRadius="8px"></p-skeleton> }
-      </div>
-    } @else if (filteredTableRows.length === 0) {
-      <div class="ev-empty"><i class="pi pi-inbox" aria-hidden="true"></i><p>No matching events.</p>
-        <small>Try another category or a longer date range.</small></div>
-    } @else {
-      <ol class="mk-list" [class.scroll]="showAllEvents" aria-label="Top events">
-        @for (row of visibleTableRows; track row.label + row.name) {
-          <li>
-            <button type="button" class="mk-row" (click)="showRawInStream(row.raw[0])"
-              [attr.aria-label]="row.label + ', ' + row.count + '. Show in event stream'"
-              [title]="row.description || categoryLabel(row.category)">
-              <span class="ico" [attr.data-cat]="row.category"><i [class]="row.icon" aria-hidden="true"></i></span>
-              <span class="mk-name">{{ row.label }}@if (showAdvanced) { <code>{{ row.raw.join(', ') }}</code> }</span>
-              <span class="mk-bar" aria-hidden="true"><span [style.width.%]="barWidth(row.count, tableRows[0].count)"></span></span>
-              <span class="mk-num">{{ row.count | number }}</span>
-              <span class="mk-pct">{{ (row.count / tableTotal) * 100 | number:'1.1-1' }}%</span>
-            </button>
-          </li>
-        }
-      </ol>
-    }
-  </section>
 
-  <!-- ══════════════════ 5 · MOST CLICKED ══════════════════ -->
-  <section class="ev-card" id="clicks" aria-labelledby="clicks-h">
-    <div class="ev-card-head"><h3 id="clicks-h">Most clicked</h3></div>
-    @if (loading.breakdown) {
-      <div class="list-skeleton">
-        @for (i of [1,2,3,4]; track i) { <p-skeleton width="100%" height="2.75rem" borderRadius="8px"></p-skeleton> }
-      </div>
-    } @else if (clickRows.length === 0) {
-      <div class="ev-empty"><i class="pi pi-hand-pointer" aria-hidden="true"></i><p>No clicks recorded yet.</p>
-        <small>Buttons and links are tracked automatically on Pro.</small></div>
-    } @else {
-      <ol class="mk-list" aria-label="Most clicked elements">
-        @for (c of clickRows; track $index) {
-          <li class="mk-row static" [title]="c.page">
-            <span class="ico"><i class="pi pi-hand-pointer" aria-hidden="true"></i></span>
-            <span class="mk-name two">
-              <span class="click-text">{{ c.label }}</span>
-              @if (c.crumb) { <span class="crumb">{{ c.crumb }}</span> }
-            </span>
-            <span class="mk-bar" aria-hidden="true"><span [style.width.%]="barWidth(c.count, clickRows[0].count)"></span></span>
-            <span class="mk-num">{{ c.count | number }}</span>
-            <span class="mk-pct">{{ c.share | number:'1.1-1' }}%</span>
-          </li>
+    <!-- Donut chart -->
+    <div class="overview-donut">
+      @if (loading.breakdown) {
+        <p-skeleton shape="circle" size="120px"></p-skeleton>
+      } @else {
+        <p-chart type="doughnut" [data]="donutChartData" [options]="donutChartOptions" width="130px" height="130px"></p-chart>
+      }
+    </div>
+
+  </div>
+
+  <!-- ══════════════════ ZONE 2 — TOP ACTIVITY ══════════════════ -->
+  <div class="activity-row">
+
+    <!-- Top Event Types (ranked) -->
+    <div class="activity-card ranked-card">
+      <div class="card-header">
+        <h3>Top Event Types</h3>
+        <span class="card-sub">Ranked by frequency</span>
+        @if (loading.breakdown) {
+          <p-progressSpinner [style]="{ width: '16px', height: '16px' }" strokeWidth="4"></p-progressSpinner>
         }
-      </ol>
-    }
-  </section>
+      </div>
+      @if (loading.breakdown) {
+        <div class="list-skeleton">
+          @for (i of [1,2,3,4,5,6,7,8]; track i) {
+            <div class="skeleton-row">
+              <p-skeleton width="55%" height="1rem"></p-skeleton>
+              <p-skeleton width="30%" height="1rem"></p-skeleton>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="ranked-list">
+          @for (evt of events; track evt.name; let idx = $index) {
+            <div class="ranked-row" (click)="filterEventType = evt.name; onFilterChange(); scrollToHistory()">
+              <span class="rank-num">{{ idx + 1 }}</span>
+              <i [class]="eventIcon(evt.name) + ' event-type-icon'" [style.color]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></i>
+              <div class="ranked-info">
+                <span class="ranked-name">{{ eventFriendlyLabel(evt.name) }}</span>
+                <span class="ranked-raw-name">{{ evt.name }}</span>
+              </div>
+              <div class="ranked-bar-wrap">
+                <div class="ranked-bar" [style.width.%]="evt.percentage" [style.background]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></div>
+              </div>
+              <span class="ranked-count">{{ evt.count | number }}</span>
+            </div>
+          }
+          @if (events.length === 0) {
+            <div class="no-data">No events in this range for {{ siteContextLabel }}.</div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Top Clicked Elements -->
+    <div class="activity-card">
+      <div class="card-header">
+        <h3><i class="pi pi-hand-point-right" style="color:#2a6df6"></i> Top Clicks</h3>
+        <span class="card-sub">Most clicked elements</span>
+      </div>
+        @if (loading.breakdown) {
+          <div class="list-skeleton">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="skeleton-row">
+                <p-skeleton width="60%" height="1rem"></p-skeleton>
+                <p-skeleton width="20%" height="1rem"></p-skeleton>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="data-list">
+            @for (click of topClicks; track click.element; let idx = $index) {
+              <div class="data-row">
+                <span class="rank-num sm">{{ idx + 1 }}</span>
+                <div class="click-info">
+                  <span class="element-name">{{ click.element || 'Unknown element' }}</span>
+                  <span class="page-hint">{{ click.page || '' }}</span>
+                </div>
+                <span class="count-badge">{{ click.count | number }}</span>
+              </div>
+            }
+            @if (topClicks.length === 0) {
+              <div class="no-data">No clicks in this range for {{ siteContextLabel }}.</div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Form Signals (enterprise) OR Custom Events (free+) -->
+      @if (isPlanAtLeast('enterprise')) {
+        <div class="activity-card signals-card">
+          <div class="card-header">
+            <h3><i class="pi pi-file-edit" style="color:#f59e0b"></i> Form Signals</h3>
+          </div>
+          @if (loading.breakdown) {
+            <div class="signals-grid">
+              @for (i of [1,2,3,4,5]; track i) {
+                <p-skeleton width="100%" height="56px" borderRadius="10px"></p-skeleton>
+              }
+            </div>
+          } @else {
+            <div class="signals-grid">
+              <div class="signal-item green">
+                <div class="signal-count">{{ summary.formSubmits | number }}</div>
+                <div class="signal-label">Submits</div>
+              </div>
+              <div class="signal-item red">
+                <div class="signal-count">{{ summary.formAbandons | number }}</div>
+                <div class="signal-label">Abandons</div>
+              </div>
+              <div class="signal-item blue">
+                <div class="signal-count">{{ summary.formFocuses | number }}</div>
+                <div class="signal-label">Focuses</div>
+              </div>
+              <div class="signal-item orange">
+                <div class="signal-count">{{ summary.rageClicks | number }}</div>
+                <div class="signal-label">Rage Clicks</div>
+              </div>
+              <div class="signal-item gray">
+                <div class="signal-count">{{ summary.deadClicks | number }}</div>
+                <div class="signal-label">Dead Clicks</div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="activity-card">
+          <div class="card-header">
+            <h3><i class="pi pi-sparkles" style="color:#8b5cf6"></i> Custom Events</h3>
+          </div>
+          @if (loading.breakdown) {
+            <div class="list-skeleton">
+              @for (i of [1,2,3]; track i) {
+                <div class="skeleton-row">
+                  <p-skeleton width="55%" height="1rem"></p-skeleton>
+                  <p-skeleton width="25%" height="1rem"></p-skeleton>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="data-list">
+              @for (evt of customEvents; track evt.name) {
+                <div class="data-row">
+                  <i class="pi pi-star-fill" style="color:#8b5cf6;font-size:0.8rem"></i>
+                  <span class="ranked-name">{{ evt.name }}</span>
+                  <span class="count-badge">{{ evt.count | number }}</span>
+                </div>
+              }
+              @if (customEvents.length === 0) {
+                <div class="no-data">No custom events yet.<br>
+                  <small style="color:#94a3b8">Use <code>PulzivoAnalytics.trackEvent()</code></small>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
   </div>
 
   <!-- ══════════════════ ZONE 3 — EVENT STREAM ══════════════════ -->
