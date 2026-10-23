@@ -86,6 +86,8 @@ export interface PageVital {
   avgLCP: number | null;
   avgFID: number | null;
   avgCLS: number | null;
+  avgINP?: number | null;
+  inpRating?: 'good' | 'needs-improvement' | 'poor' | 'no-data';
   lcpRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
   fidRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
   clsRating: 'good' | 'needs-improvement' | 'poor' | 'no-data';
@@ -193,6 +195,20 @@ export interface WebVitals {
   LCP: WebVitalMetric;
   FID: WebVitalMetric;
   CLS: WebVitalMetric;
+  INP?: WebVitalMetric;
+  FCP?: WebVitalMetric;
+  TTFB?: WebVitalMetric;
+}
+
+export interface SiteInsights {
+  outbound: { domain: string; count: number }[];
+  downloads: { url: string; count: number }[];
+  notFound: { page: string; count: number }[];
+  searches: { term: string; count: number }[];
+  goals: { goal: string; count: number }[];
+  revenue: { currency: string; total: number; count: number }[];
+  languages: { language: string; count: number }[];
+  screens: { screen: string; count: number }[];
 }
 
 @Injectable({

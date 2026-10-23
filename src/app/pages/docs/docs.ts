@@ -131,7 +131,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
       attribute: 'data-disable-web-vitals',
       type: 'Flag',
       required: false,
-      description: 'Add this attribute to disable automatic Web Vitals (LCP, CLS, FID) reporting'
+      description: 'Add this attribute to disable automatic Web Vitals (LCP, INP, CLS, FCP, TTFB) reporting'
     }
   ];
 
@@ -186,7 +186,23 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'What Web Vitals does Pulzivo report?',
-      answer: 'Pulzivo automatically measures LCP (Largest Contentful Paint), CLS (Cumulative Layout Shift), and FID/INP (First Input Delay / Interaction to Next Paint). These appear as web_vital events in your dashboard and help you spot performance regressions before they impact conversions.'
+      answer: 'Pulzivo automatically measures LCP (Largest Contentful Paint), INP (Interaction to Next Paint), CLS (Cumulative Layout Shift), FCP (First Contentful Paint) and TTFB (Time to First Byte). Final values are sent when the visitor leaves or hides the page. FID is no longer collected (Google replaced it with INP); older FID data is still shown.'
+    },
+    {
+      question: 'Does Pulzivo track outbound links, downloads and site search?',
+      answer: 'Yes, automatically on every plan. Clicks on links to other domains send outbound_click, links to files (pdf, zip, csv, docx, dmg, mp4 and similar, or any link with a download attribute) send file_download, and pages with a ?q=, ?s=, ?query= or ?search= parameter send site_search. Use data-search-params="term,k" on the script tag for custom search parameters. Query strings are never stored with link URLs.'
+    },
+    {
+      question: 'How do I report 404 pages?',
+      answer: 'Add <meta name="pulzivo:404"> to the head of your 404 template, or call PulzivoAnalytics.trackNotFound() (or PulzivoAnalytics(\'404\')) from your single-page app\'s not-found route. 404s appear in the Site Insights card on the Overview page.'
+    },
+    {
+      question: 'How do I track goals and revenue?',
+      answer: 'Call PulzivoAnalytics.trackGoal(\'signup\') for a goal, or PulzivoAnalytics.trackRevenue(49.99, \'USD\', { goal: \'purchase\', order_id: \'A-1\' }) for revenue (also PulzivoAnalytics(\'goal\', name) and PulzivoAnalytics(\'revenue\', amount, currency, data)). Goals and revenue count as conversions, and revenue is totalled per currency.'
+    },
+    {
+      question: 'Does Pulzivo respect Do Not Track and opt-out requests?',
+      answer: 'Yes. Visitors with Do Not Track or Global Privacy Control turned on are not tracked. Add a link that calls PulzivoAnalytics.optOut() to let visitors opt out in their browser (optIn() undoes it, isOptedOut() checks it). Sites that must ignore DNT/GPC can set data-ignore-dnt="true" on the script tag.'
     },
     {
       question: 'How does error tracking work?',
@@ -854,6 +870,9 @@ type PulzivoCmd =
   | ['identify', string]
   | ['page', string]
   | ['error', string, Record<string, unknown>]
+  | ['goal', string, Record<string, unknown>?]
+  | ['revenue', number, string, Record<string, unknown>?]
+  | ['404', string?]
   | [() => void];
 
 declare function PulzivoAnalytics(...args: PulzivoCmd[0]): void;
@@ -865,6 +884,12 @@ declare namespace PulzivoAnalytics {
   function enableTracking(): void;
   function setOwner(isOwner: boolean, persist?: boolean): void;
   function sendBatch(): Promise<void>;
+  function trackGoal(name: string, data?: Record<string, unknown>): void;
+  function trackRevenue(amount: number, currency?: string, data?: Record<string, unknown>): void;
+  function trackNotFound(path?: string): void;
+  function optOut(): void;
+  function optIn(): void;
+  function isOptedOut(): boolean;
 }`,
 
     'ts-safe-call': `// Safe wrapper — use this in every component instead of calling directly

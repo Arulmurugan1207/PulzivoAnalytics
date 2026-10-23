@@ -244,6 +244,8 @@ const {
   ENGAGEMENT_EVENTS,
   FORM_EVENTS,
   ERROR_EVENTS,
+  insightsPipeline,
+  shapeInsights,
 } = require('./aggregate');
 
 function pageViewsTrend(docs, period = 'daily') {
@@ -505,6 +507,12 @@ function registerMetricRoutes(app, { db }) {
       event_name: { $in: ['web_vital_lcp', 'web_vital_inp', 'web_vital_fid', 'web_vital_cls'] },
     })));
     return res.json(shapePageVitals(rows, limit));
+  }));
+
+  // Outbound clicks, downloads, 404s, site search, goals, revenue, languages, screen sizes.
+  app.get('/analytics/insights', guarded(async (req, res, apiKey, col) => {
+    const rows = await aggregate(col, insightsPipeline(composeMatch(apiKey, req)));
+    return res.json(shapeInsights(rows[0] || {}));
   }));
 
   app.get('/analytics/session-stats', guarded(async (req, res, apiKey, col) => {

@@ -146,14 +146,14 @@
       clearQueuedEvents('owner mode enabled via URL');
     }
     if (config.debug) {
-      console.log('[Analytics] Owner mode from URL query param:', fromUrl ? 'ON' : 'OFF');
+      console.log('[Analytics] Owner mode (URL):', fromUrl);
     }
     return true;
   }
 
   function clearQueuedEvents(reason) {
     if (eventQueue.length > 0 && config.debug) {
-      console.log('[Analytics] Clearing queued events:', eventQueue.length, reason ? `(${reason})` : '');
+      console.log('[Analytics] Clearing queue:', reason);
     }
     eventQueue = [];
   }
@@ -167,7 +167,7 @@
         clearQueuedEvents('owner mode enabled');
       }
       if (config.debug) {
-        console.log('[Analytics] Owner mode synced from storage:', isOwner ? 'ON' : 'OFF');
+        console.log('[Analytics] Owner mode:', isOwner);
       }
     }
     return isOwner;
@@ -478,27 +478,22 @@
     }
   }
 
+  // Visitor privacy choices: PulzivoAnalytics.optOut(), Do Not Track and Global Privacy
+  // Control all stop tracking. Sites can set data-ignore-dnt="true" to ignore DNT/GPC.
+  function isOptedOut() {
+    if (getStorageItem('pulz_opt_out') === '1') return true;
+    if (config.ignoreDnt) return false;
+    const n = window.navigator || {};
+    return n.doNotTrack === '1' || window.doNotTrack === '1' || n.globalPrivacyControl === true;
+  }
+
   // Queue event
   function queueEvent(eventName, data = {}) {
     syncOwnerMode();
-
-    // Suppress all tracking for the site owner
-    if (isOwner) {
-      if (config.debug) console.log('[Analytics] Owner mode active - event suppressed:', eventName);
-      return;
-    }
-
-    // Never send events for known crawlers (e.g. Mediapartners-Google, Googlebot)
-    if (isKnownCrawler()) {
-      if (config.debug) console.log('[Analytics] Crawler user agent - event suppressed:', eventName);
-      return;
-    }
-
-    // Stop logging if no API key is configured or API key is invalid
-    if (!config.apiKey || config.apiKey.trim() === '' || config.apiKey === 'unknown' || isApiKeyInvalid) {
-      if (config.debug) {
-        console.log('[Analytics] No valid API key configured - stopping log for event:', eventName);
-      }
+    // Opted out / DNT, site owner, known crawler, or no valid API key: send nothing.
+    if (isOptedOut() || isOwner || isKnownCrawler() ||
+        !config.apiKey || config.apiKey.trim() === '' || config.apiKey === 'unknown' || isApiKeyInvalid) {
+      if (config.debug) console.log('[Analytics] Event suppressed:', eventName);
       return;
     }
 
@@ -785,8 +780,36 @@
   }
 
   let navKey = '';
+  const SEARCH_PARAMS = ['q', 's', 'query', 'search'];
+  // Site search term from the URL (?q=, ?s=, ?query=, ?search= or data-search-params).
+  function searchTerm() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const keys = config.searchParams ? String(config.searchParams).split(',') : SEARCH_PARAMS;
+      for (const k of keys) {
+        const v = params.get(k.trim());
+        if (v && v.trim()) return [redact(v.trim().substring(0, 100)), k.trim()];
+      }
+    } catch (e) {}
+    return null;
+  }
   function navKeyNow() {
-    return pagePath();
+    const t = searchTerm();
+    return pagePath() + (t ? '?' + t[0] : '');
+  }
+  // After each page view: site search, and 404 pages marked with <meta name="pulzivo:404">.
+  function afterView() {
+    const t = searchTerm();
+    if (t) queueEvent('site_search', { category: 'search', label: t[0], term: t[0], search_param: t[1] });
+    if (document.querySelector && document.querySelector('meta[name="pulzivo:404"]')) trackNotFound();
+  }
+  function trackNotFound(path) {
+    queueEvent('not_found', {
+      category: 'error',
+      label: 'Not found',
+      page: path || pagePath(),
+      referrer_url: cleanUrl(document.referrer)
+    });
   }
   // Called for history pushState/replaceState, popstate, hashchange and bfcache restores.
   function onNav() {
@@ -797,7 +820,10 @@
     const attribution = captureAttributionNow();
     emitExit();
     newView();
-    setTimeout(() => queueEvent('page_view', { attribution: attribution }), 50);
+    setTimeout(() => {
+      queueEvent('page_view', { attribution: attribution });
+      afterView();
+    }, 50);
   }
 
   // Setup automatic tracking
@@ -848,6 +874,24 @@
         onNav();
       }
     });
+
+    // Outbound links and file downloads (all plans). auxclick covers middle-click.
+    const onLink = (event) => {
+      const a = event.target && event.target.closest && event.target.closest('a[href]');
+      if (!a) return;
+      let u;
+      try { u = new URL(a.href, window.location.href); } catch (e) { return; }
+      if (!/^https?:$/.test(u.protocol)) return;
+      const ext = (u.pathname.match(/\.(pdf|zip|rar|7z|gz|tgz|dmg|exe|msi|pkg|apk|csv|xlsx?|docx?|pptx?|txt|mp3|mp4|mov|wav)$/i) || [])[1];
+      const label = elLabel(a, 100);
+      if (ext || a.hasAttribute('download')) {
+        queueEvent('file_download', { category: 'download', url: u.href, file_type: (ext || 'file').toLowerCase(), label: label });
+      } else if (u.hostname !== window.location.hostname) {
+        queueEvent('outbound_click', { category: 'outbound', url: u.href, domain: u.hostname, label: label });
+      }
+    };
+    document.addEventListener('click', onLink, true);
+    document.addEventListener('auxclick', onLink, true);
 
     // Track clicks on elements with data-click attribute
   // Human-readable element name for click reports: aria-label, visible text, title, or image alt.
@@ -1450,6 +1494,42 @@
       queueEvent(eventName, data);
     },
 
+    // Goals and revenue (all plans). Both count as conversions in the dashboard.
+    //   PulzivoAnalytics.trackGoal('signup')
+    //   PulzivoAnalytics.trackRevenue(49.99, 'USD', { goal: 'purchase', order_id: 'A-1' })
+    trackGoal: function(name, data = {}) {
+      if (!name) return;
+      queueEvent('goal', Object.assign({}, data, { category: 'goal', goal: String(name), label: String(name) }));
+    },
+    trackRevenue: function(amount, currency, data = {}) {
+      const value = Number(amount);
+      if (!isFinite(value)) return;
+      const goal = data.goal ? String(data.goal) : null;
+      queueEvent('revenue', Object.assign({}, data, {
+        category: 'revenue',
+        value: value,
+        revenue: value,
+        currency: String(currency || 'USD').toUpperCase().substring(0, 3),
+        goal: goal,
+        label: goal || 'revenue'
+      }));
+    },
+    // Mark the current view as a 404 (SPAs call this from their not-found route).
+    trackNotFound: function(path) {
+      trackNotFound(path);
+    },
+    // Visitor opt-out (persists in this browser).
+    optOut: function() {
+      setStorageItem('pulz_opt_out', '1');
+      eventQueue = [];
+    },
+    optIn: function() {
+      try { localStorage.removeItem('pulz_opt_out'); } catch (e) {}
+    },
+    isOptedOut: function() {
+      return isOptedOut();
+    },
+
     // Track user interaction
     trackInteraction: function(action, label, data = {}) {
       this.trackEvent('interaction', {
@@ -1469,6 +1549,7 @@
         page: path || pagePath(),
         page_title: (title || '').replace(/\s*\|.*$/, '').trim()
       });
+      afterView();
     },
 
     // Track navigation
@@ -1579,14 +1660,6 @@
           console.warn('[Analytics] Could not save user preferences:', e);
         }
       }
-
-      // Log which features are now enabled/disabled
-      if (config.debug) {
-        console.log('[Analytics] Feature status after preference update:');
-        Object.keys(preferences).forEach(feature => {
-          console.log(`  ${feature}: ${hasFeature(feature) ? 'ENABLED' : 'DISABLED'}`);
-        });
-      }
     }
   };
 
@@ -1612,6 +1685,13 @@
         case 'page':
           // PulzivoAnalytics('page', '/custom-page')
           return originalAnalytics.trackNavigation(args[0], args[1] || {});
+        case 'goal':
+          return originalAnalytics.trackGoal(args[0], args[1] || {});
+        case 'revenue':
+          // PulzivoAnalytics('revenue', 49.99, 'USD', { goal: 'purchase' })
+          return originalAnalytics.trackRevenue(args[0], args[1], args[2] || {});
+        case '404':
+          return originalAnalytics.trackNotFound(args[0]);
         default:
           console.warn('[PulzivoAnalytics] Unknown command:', command);
       }
@@ -1630,6 +1710,7 @@
     window.PulzivoAnalytics[key] = originalAnalytics[key];
   });
   window.PulzivoAnalytics.__pz = 1;
+  if (!window.pulzivo) window.pulzivo = window.PulzivoAnalytics;
 
   // Get configuration from script tag data attributes
   function getConfigFromScriptTag() {
@@ -1696,6 +1777,11 @@
     if (analyticsScript.getAttribute('data-disable-scroll')) {
       config.autoTrackScroll = false;
     }
+
+    // data-ignore-dnt="true": track even when Do Not Track / GPC is on (site's own choice).
+    if (analyticsScript.getAttribute('data-ignore-dnt') === 'true') config.ignoreDnt = true;
+    // data-search-params="term,k": custom site-search query parameters.
+    if (analyticsScript.getAttribute('data-search-params')) config.searchParams = analyticsScript.getAttribute('data-search-params');
 
     return Object.keys(config).length > 0 ? config : null;
   }

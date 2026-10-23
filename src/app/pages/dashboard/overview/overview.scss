@@ -3769,3 +3769,24 @@
     .metric-label { display: block; }
   }
 }
+
+// Site Insights card (outbound, downloads, 404s, search, goals, language, screens)
+.insights-card { margin-top: 1rem; }
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem 1.5rem;
+}
+.insight-col h4 {
+  font-size: 0.8rem; font-weight: 600; margin: 0 0 0.5rem;
+  color: var(--text-color-secondary, #64748b);
+  display: flex; align-items: center; gap: 0.35rem;
+}
+.insight-row {
+  display: flex; justify-content: space-between; gap: 0.5rem;
+  font-size: 0.85rem; padding: 0.2rem 0;
+  border-bottom: 1px solid var(--surface-border, rgba(148, 163, 184, 0.15));
+}
+.insight-key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.insight-val { font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+.insight-empty { font-size: 0.8rem; color: var(--text-color-secondary, #94a3b8); }

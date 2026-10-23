@@ -162,3 +162,86 @@ test('errors carry a message, drop URL queries and are capped', async () => {
   assert.equal(errors[0].data.message, 'boom');
   assert.equal(JSON.stringify(errors).includes('sig=1'), false);
 });
+
+function link(href, attrs = {}) {
+  const a = {
+    href, tagName: 'A', textContent: attrs.text || 'Link', innerText: attrs.text || 'Link',
+    getAttribute: (k) => (k === 'href' ? href : attrs[k] ?? null),
+    hasAttribute: (k) => k in attrs,
+    closest: (sel) => (sel.startsWith('a') ? a : null),
+    classList: [], id: '', parentElement: null,
+  };
+  return a;
+}
+
+test('outbound links and file downloads are tracked without query strings', async () => {
+  const b = createBrowser();
+  await b.load();
+  b.document.dispatch('click', { target: link('https://other.example/page?ref=me') });
+  b.document.dispatch('click', { target: link('https://site.test/files/report.PDF?token=x') });
+  b.document.dispatch('auxclick', { target: link('/files/blob', { download: '' }) });
+  b.document.dispatch('click', { target: link('/internal') });
+  b.document.dispatch('click', { target: link('mailto:a@b.co') });
+  await b.flush();
+  const out = b.sent.filter((e) => e.event_name === 'outbound_click');
+  assert.equal(out.length, 1);
+  assert.equal(out[0].data.domain, 'other.example');
+  assert.equal(out[0].data.url, 'https://other.example/page');
+  const dl = b.sent.filter((e) => e.event_name === 'file_download');
+  assert.deepEqual(dl.map((e) => e.data.file_type), ['pdf', 'file']);
+  assert.equal(dl[0].data.url, 'https://site.test/files/report.PDF');
+});
+
+test('404 meta tag, trackNotFound API and site search', async () => {
+  const b = createBrowser({ url: 'https://site.test/missing?q=red+shoes', meta: { 'meta[name="pulzivo:404"]': 'true' } });
+  await b.load();
+  b.api().trackNotFound('/other-missing');
+  b.history.pushState({}, '', '/missing?q=blue');
+  await b.settle();
+  b.history.pushState({}, '', '/missing?q=blue&page=2'); // same term: no new view
+  await b.settle();
+  await b.flush();
+  const nf = b.sent.filter((e) => e.event_name === 'not_found').map((e) => e.data.page);
+  assert.ok(nf.includes('/missing') && nf.includes('/other-missing'));
+  const terms = b.sent.filter((e) => e.event_name === 'site_search').map((e) => e.data.term);
+  assert.deepEqual(terms, ['red shoes', 'blue']);
+  assert.equal(b.sent.filter((e) => e.event_name === 'page_view').length, 2);
+});
+
+test('Do Not Track / GPC and optOut stop tracking; optIn resumes', async () => {
+  for (const opts of [{ dnt: true }, { gpc: true }]) {
+    const b = createBrowser(opts);
+    await b.load();
+    await b.flush();
+    assert.equal(b.sent.length, 0);
+  }
+  const b = createBrowser();
+  await b.load();
+  b.api().optOut();
+  assert.equal(b.api().isOptedOut(), true);
+  b.api().trackGoal('signup');
+  await b.flush();
+  assert.equal(b.sent.filter((e) => e.event_name === 'goal').length, 0);
+  b.api().optIn();
+  b.api().trackGoal('signup');
+  await b.flush();
+  assert.equal(b.sent.filter((e) => e.event_name === 'goal').length, 1);
+});
+
+test('goal and revenue API (object and command forms)', async () => {
+  const b = createBrowser();
+  await b.load();
+  b.api().trackRevenue('49.99', 'eur', { goal: 'purchase', order_id: 'A-1' });
+  b.window.pulzivo('revenue', 10, 'USD');
+  b.window.PulzivoAnalytics('goal', 'signup');
+  b.api().trackRevenue('abc', 'USD');
+  await b.flush();
+  const rev = b.sent.filter((e) => e.event_name === 'revenue');
+  assert.equal(rev.length, 2);
+  assert.equal(rev[0].data.value, 49.99);
+  assert.equal(rev[0].data.currency, 'EUR');
+  assert.equal(rev[0].data.goal, 'purchase');
+  assert.equal(rev[0].data.order_id, 'A-1');
+  assert.equal(rev[1].data.currency, 'USD');
+  assert.equal(b.sent.find((e) => e.event_name === 'goal').data.goal, 'signup');
+});
