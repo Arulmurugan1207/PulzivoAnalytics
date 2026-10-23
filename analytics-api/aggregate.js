@@ -440,8 +440,9 @@ function sessionGroupStage() {
       visitCount: { $max: { $ifNull: ['$_visit', numericOrNull('$data.visit_count')] } },
       entryKey: { $min: pvKey },
       exitKey: { $max: pvKey },
-      fallbackEntry: { $first: '$_page' },
-      fallbackExit: { $last: '$_page' },
+      // Earliest/latest event of any type, via $min/$max on {t, p} so no raw-event $sort is needed.
+      fallbackKey0: { $min: { t: '$_t', p: '$_page' } },
+      fallbackKey1: { $max: { t: '$_t', p: '$_page' } },
     },
   };
 }
@@ -462,8 +463,8 @@ function sessionDecorateStage() {
           0,
         ],
       },
-      entryPage: { $ifNull: ['$entryKey.p', { $ifNull: ['$fallbackEntry', '/'] }] },
-      exitPage: { $ifNull: ['$exitKey.p', { $ifNull: ['$fallbackExit', { $ifNull: ['$entryKey.p', '/'] }] }] },
+      entryPage: { $ifNull: ['$entryKey.p', { $ifNull: ['$fallbackKey0.p', '/'] }] },
+      exitPage: { $ifNull: ['$exitKey.p', { $ifNull: ['$fallbackKey1.p', { $ifNull: ['$entryKey.p', '/'] }] }] },
     },
   };
 }
@@ -530,7 +531,6 @@ function coreMetricsPipeline(match) {
         ],
         sessions: [
           { $match: { _sid: { $nin: [null, ''] } } },
-          { $sort: { _t: 1 } },
           sessionGroupStage(),
           sessionDecorateStage(),
           sessionSummaryGroup(),
@@ -588,7 +588,8 @@ function sessionBase(match) {
     { $match: match },
     { $addFields: normalizedFields() },
     { $match: { _sid: { $nin: [null, ''] } } },
-    { $sort: { _t: 1 } },
+    // Keep only what sessionGroupStage reads; never sort raw events (shared-tier Atlas ignores allowDiskUse).
+    { $project: { _t: 1, _sid: 1, _page: 1, _pv: 1, _visit: numericOrNull('$data.visit_count') } },
     sessionGroupStage(),
     sessionDecorateStage(),
   ];
