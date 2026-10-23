@@ -2146,14 +2146,16 @@ export class DashboardOverview implements OnInit, OnDestroy {
   /** Top countries from recent realtime events, shown as flag pills on the Live Visitors card */
   get liveCountries(): { country: string; flag: string; count: number }[] {    // Build counts from recent realtime events first
     const countMap: Record<string, number> = {};
+    const flagMap: Record<string, string> = {};
     for (const e of this.realtimeEvents) {
       const c = (e as any).country;
       if (c) countMap[c] = (countMap[c] || 0) + 1;
+      if (c && (e as any).flag) flagMap[c] = (e as any).flag;
     }
     if (Object.keys(countMap).length) {
       return Object.entries(countMap)
         .sort((a, b) => b[1] - a[1]).slice(0, 5)
-        .map(([country, count]) => ({ country, count, flag: this.getFlagEmoji(country) }));
+        .map(([country, count]) => ({ country, count, flag: flagMap[country] || this.getFlagEmoji(country) }));
     }
     // Fallback: top 5 from geoData
     return this.geoData.slice(0, 5).map(g => ({
@@ -2173,7 +2175,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
       'US': '🇺🇸', 'GB': '🇬🇧', 'DE': '🇩🇪', 'FR': '🇫🇷',
       'IN': '🇮🇳', 'CA': '🇨🇦', 'AU': '🇦🇺', 'NL': '🇳🇱',
     };
-    return flags[country] || '🌐';
+    if (flags[country]) return flags[country];
+    if (/^[A-Za-z]{2}$/.test(country || '')) {
+      return String.fromCodePoint(...[...country.toUpperCase()].map(ch => 127397 + ch.charCodeAt(0)));
+    }
+    return '🌐';
   }
 
   /** CSS class for cohort retention cell heat-map colouring */

@@ -11,7 +11,7 @@ function localRequires(fileName) {
   const text = fs.readFileSync(path.join(ROOT, fileName), 'utf8');
   return [...text.matchAll(/require\(['"]\.\/([^'"]+)['"]\)/g)].map((m) => {
     const spec = m[1];
-    return spec.endsWith('.js') ? spec : `${spec}.js`;
+    return /\.(js|json)$/.test(spec) ? spec : `${spec}.js`;
   });
 }
 
