@@ -138,7 +138,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   faqItems = [
     {
       question: 'How small is Pulzivo?',
-      answer: 'Under 10KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
+      answer: 'About 9KB gzipped — smaller than a typical image. Zero dependencies, zero bloat. It loads asynchronously so it never blocks your page render.'
     },
     {
       question: 'Does it work with React, Vue, Angular, Next.js?',
@@ -166,7 +166,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Will it affect my page speed / Core Web Vitals?',
-      answer: 'No. The script loads asynchronously, adds under 10KB gzip to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
+      answer: 'No. The script loads asynchronously, adds about 9KB gzip to your page, and has no render-blocking behaviour. It scores 100 on Lighthouse performance in our internal tests.'
     },
     {
       question: 'How do I migrate from Google Analytics?',
@@ -265,7 +265,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       id: 'faq', label: 'FAQ', icon: 'pi-question-circle',
-      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '10kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
+      keywords: ['faq', 'question', 'help', 'how', 'what', 'why', 'cookie', 'gdpr', 'ccpa', 'size', '9kb', 'rate limit', 'migrate', 'google analytics', 'ga4', 'self host', 'data retention']
     },
     {
       id: 'dashboard', label: 'Dashboard', icon: 'pi-chart-bar',

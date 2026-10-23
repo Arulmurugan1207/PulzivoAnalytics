@@ -96,8 +96,8 @@ export class Features {
         {
           icon: 'pi-bolt',
           tag: 'Free', tagSeverity: 'success' as const,
-          title: 'Under 10KB gzip',
-          desc: 'Entire SDK is under 10KB minified + gzipped. Zero impact on your page speed.',
+          title: 'About 9KB gzip',
+          desc: 'Entire SDK is about 9KB minified + gzipped. Zero impact on your page speed.',
           docsSection: 'getting-started', campaign: 'feat-bundle-size',
         },
         {

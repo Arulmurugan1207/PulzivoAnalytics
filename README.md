@@ -99,66 +99,20 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
-## Cloud Run (GCP project `node-server-apis`)
+## Deploying the marketing site (single path: cPanel)
 
-This repo is the Pulzivo Analytics Angular SPA. Cloud Run requires the container to bind `0.0.0.0` and `process.env.PORT` (default **8080**). `npm start` (`ng serve --port 4201`) does not do that — use the Dockerfile / `server.js` below.
-
-`server.js` serves `dist/simpletrack-prime-ng/browser`, falls back to `index.html` for SPA routes, and treats `GET /` as the health check.
+`pulzivo.com` (marketing pages + dashboard SPA) has **one** deploy path: merging to `main` runs the GitHub Actions workflow **Deploy to cPanel** ([`.github/workflows/deploy-cpanel.yml`](.github/workflows/deploy-cpanel.yml)), which builds and FTPs `dist/simpletrack-prime-ng/browser/` to the cPanel web root. Do not deploy this SPA anywhere else (the former root `Dockerfile` / `cloudrun.yaml` Cloud Run path was removed so search engines never see a duplicate copy of the site). `server.js` remains only as a local static preview (`npm run start:cloud`) and is covered by `npm run test:server`.
 
 There are **no runtime secrets** in this frontend. Client API URLs stay in `src/environments/environment.ts` (do not invent new env vars).
 
 - **Auth / billing / users / API-key CRUD** still call App Engine: `https://analytics-dot-node-server-apis.ue.r.appspot.com` (`environment.apiUrl`).
-- **Homepage public-stats + tracker plan validate + ingest + dashboard metrics** go to Cloud Run `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`environment.analyticsApiUrl`, `environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`). Routes there include `/analytics/log`, `/analytics/public-stats`, `/analytics/page-stats`, `/analytics/metrics`, `/analytics/page-views`, `/analytics/event-history`, `/api-keys/:apiKey/validate`, `/health`.
+- **Homepage public-stats + tracker plan validate + ingest + dashboard metrics** go to Cloud Run `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`environment.analyticsApiUrl`, `environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`).
 
-The dashboard Node API is **not** this repository. Deploying this SPA to Cloud Run does **not** replace that API and does **not** require MongoDB changes. Prefer service name `pulzivo-analytics` so it does not collide with the existing Cloud Run service `analytics` (marketing SPA) or App Engine service `analytics`.
-
-### Deploy (source build)
-
-From the repo root, authenticated as an account that can deploy to `node-server-apis`:
-
-```bash
-gcloud config set project node-server-apis
-
-gcloud run deploy pulzivo-analytics \
-  --source . \
-  --project node-server-apis \
-  --region us-east1 \
-  --allow-unauthenticated \
-  --port 8080 \
-  --cpu 1 \
-  --memory 256Mi \
-  --concurrency 80 \
-  --timeout 60s \
-  --min-instances 0 \
-  --max-instances 3 \
-  --cpu-boost
-```
-
-`256Mi` / `1` CPU is in the App Engine F1 class (256 MB). Scale-to-zero (`--min-instances 0`) avoids idle instance charges. `--max-instances 3` is enough for this low-traffic SPA.
-
-To use the name `analytics` instead:
-
-```bash
-gcloud run deploy analytics \
-  --source . \
-  --project node-server-apis \
-  --region us-east1 \
-  --allow-unauthenticated \
-  --port 8080 \
-  --cpu 1 \
-  --memory 256Mi \
-  --concurrency 80 \
-  --timeout 60s \
-  --min-instances 0 \
-  --max-instances 3 \
-  --cpu-boost
-```
-
-Do **not** stop or delete App Engine service `analytics` until auth / billing / users / API-key CRUD are migrated. Dashboard **metric** reads now live on Cloud Run `pulzivo-analytics-api` (same Mongo the tracker writes). Redeploy that service after merging metric-route changes; then FTP the SPA so `environment.analyticsApiUrl` is used for charts.
+SEO files live in `public/` (`robots.txt`, `sitemap.xml`, `og-image.png`, `.htaccess`). Per-route title, description, canonical and robots tags are set from route `data` in `src/app/app.routes.ts` by `src/app/services/title.strategy.ts`. When you add a public page, add it to `sitemap.xml` and give it a unique `title` + `data.description`.
 
 ## Analytics Node API Cloud Run (`pulzivo-analytics-api`)
 
-The existing Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`) is the **marketing SPA**. `/analytics/log` there returns HTML. Do **not** replace or delete that service for the API cutover.
+The legacy Cloud Run service `analytics` (`https://analytics-167308220305.us-east1.run.app`) still serves an old copy of the marketing SPA. It is not a supported deploy target; do not redeploy it. `/analytics/log` there returns HTML.
 
 The ingest API is already deployed from `analytics-api/` as service `pulzivo-analytics-api`. Redeploy commands and Mongo notes: [`analytics-api/README.md`](analytics-api/README.md).
 
@@ -186,28 +140,6 @@ Merge / push to `main` runs [`.github/workflows/deploy-cpanel.yml`](.github/work
 
 1. If `cdn.pulzivo.com` is the same cPanel `public_html` (or a CNAME to it), the new min.js is live once FTP finishes — purge any CDN cache if the file is cached.
 2. If `cdn.pulzivo.com` is a distinct origin, copy `public/pulzivo-analytics.min.js` there after minify. There is no `gcloud` / npm script here that does that.
-
-SPA Cloud Run (`gcloud run deploy pulzivo-analytics --source . ...` above) serves the same built `pulzivo-analytics.min.js` from the container, but **does not** update `cdn.pulzivo.com`. Do **not** use `gcloud run deploy analytics` for this cutover.
-
-### Local check that `$PORT` is bound
-
-```bash
-npm ci
-npm run build
-PORT=8080 HOST=127.0.0.1 npm run start:cloud
-# in another terminal:
-curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/
-```
-
-Expect `200`. The server unit test (no Angular build required):
-
-```bash
-npm run test:server
-```
-
-### After Cloud Run is serving
-
-Point custom domains or load balancers at the Cloud Run URL. Keep cPanel / App Engine traffic on the current hosts until you cut over.
 
 ## Additional Resources
 

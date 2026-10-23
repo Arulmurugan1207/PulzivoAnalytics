@@ -4,6 +4,18 @@
 
 RewriteEngine On
 
+# Canonical host: force https://pulzivo.com (www and http -> apex, 301)
+RewriteCond %{HTTP_HOST} ^www\.pulzivo\.com$ [NC,OR]
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP_HOST} ^(www\.)?pulzivo\.com$ [NC]
+RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
+
+# Defence in depth: app routes never get indexed even if linked externally
+<IfModule mod_headers.c>
+  SetEnvIf Request_URI "^/(dashboard|reset-password)" PZ_NOINDEX
+  Header set X-Robots-Tag "noindex, nofollow" env=PZ_NOINDEX
+</IfModule>
+
 # Never rewrite SEO files to the Angular app
 RewriteRule ^sitemap\.xml$ - [L]
 RewriteRule ^robots\.txt$ - [L]
