@@ -324,6 +324,18 @@ export class AnalyticsAPIService {
   }
 
   /**
+   * Events page KPI strip: totals, % change vs previous period, daily sparkline.
+   * Resolves null when the API predates /analytics/events-trend so the page can fall back.
+   */
+  getEventsTrend(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of(null);
+    return this.http.get(`${this.apiUrl}/analytics/events-trend?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  /**
    * Get Form Interactions - track form submissions, abandonment, and engagement metrics
    */
   getFormInteractions(dateRange?: DateRange, page: number = 1, limit: number = 10): Observable<any> {

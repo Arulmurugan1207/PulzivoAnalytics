@@ -847,6 +847,15 @@
     }
 
     // Track clicks on elements with data-click attribute
+  // Human-readable element name for click reports: aria-label, visible text, title, or image alt.
+  function elLabel(el, max) {
+    if (!el || !el.getAttribute) return '';
+    const img = el.querySelector && el.querySelector('img[alt]');
+    const raw = el.getAttribute('aria-label') || el.innerText || el.textContent ||
+      el.getAttribute('title') || (img && img.getAttribute('alt')) || el.value || '';
+    return String(raw).replace(/\s+/g, ' ').trim().substring(0, max);
+  }
+
     if (config.autoTrackClicks) {
       document.addEventListener('click', (event) => {
         const target = event.target.closest('[data-click]');
@@ -857,7 +866,7 @@
           
           queueEvent('click', {
             category: 'interaction',
-            label: (target.textContent || target.innerText || '').trim().substring(0, 100),
+            label: elLabel(target, 100),
             element: target.tagName,
             href: target.href || null,
             click_type: clickType,
@@ -870,7 +879,7 @@
         if (hasFeature('auto_clicks')) {
           const clickableTarget = event.target.closest('button, a, [role="button"]');
           if (clickableTarget) {
-            const label = (clickableTarget.textContent || clickableTarget.innerText || '').trim().substring(0, 100);
+            const label = elLabel(clickableTarget, 100);
             const href = clickableTarget.href || null;
             
             // Skip if no meaningful content and no href
@@ -1188,7 +1197,7 @@
           if (recentClicks.length >= RAGE_THRESHOLD) {
             queueEvent('rage_click', {
               category: 'frustration',
-              label: target.textContent?.trim().substring(0, 50) || 'Unknown element',
+              label: elLabel(target, 50) || 'Unknown element',
               custom: {
                 element: target.tagName,
                 element_id: target.id || null,
@@ -1215,7 +1224,7 @@
                 !target.matches('input, textarea, select, label')) {
               queueEvent('dead_click', {
                 category: 'frustration',
-                label: target.textContent?.trim().substring(0, 50) || 'Unknown element',
+                label: elLabel(target, 50) || 'Unknown element',
                 custom: {
                   element: target.tagName,
                   element_id: target.id || null,
