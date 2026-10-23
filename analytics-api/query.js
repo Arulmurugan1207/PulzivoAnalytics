@@ -35,6 +35,22 @@ const SYSTEM_EVENTS = new Set([
   'web_vital_lcp',
   'web_vital_fid',
   'web_vital_cls',
+  'web_vital_inp',
+  'web_vital_fcp',
+  'web_vital_ttfb',
+  'page_hidden',
+  'page_load_complete',
+  'unique_visitor_session',
+  'unique_visitor_daily',
+  'form_start',
+  'form_field_interaction',
+  'promise_rejection',
+  'impression',
+  'impression_click',
+  'outbound_click',
+  'file_download',
+  'not_found',
+  'site_search',
   'resource_timing',
   'session_start',
   'hover',
@@ -47,9 +63,9 @@ const SYSTEM_EVENTS = new Set([
 const EVENT_CATEGORIES = {
   user_actions: ['click', 'auto_click', 'scroll', 'hover', 'input'],
   navigation: ['page_view', 'page_views', 'route_change', 'navigation'],
-  forms: ['form_submit', 'form_abandon', 'form_focus', 'form_blur', 'form_error'],
-  errors: ['error', 'rage_click', 'dead_click', 'javascript_error'],
-  performance: ['web_vital_lcp', 'web_vital_fid', 'web_vital_cls', 'resource_timing', 'performance'],
+  forms: ['form_submit', 'form_abandon', 'form_focus', 'form_blur', 'form_error', 'form_start', 'form_field_interaction'],
+  errors: ['error', 'rage_click', 'dead_click', 'javascript_error', 'promise_rejection', 'not_found'],
+  performance: ['web_vital_lcp', 'web_vital_fid', 'web_vital_cls', 'web_vital_inp', 'web_vital_fcp', 'web_vital_ttfb', 'resource_timing', 'performance'],
 };
 
 const { TZ_ISO, countryForTimezone, countryNameForIso, isoForCountry, flagForIso } = require('./geo');
@@ -260,6 +276,21 @@ function vitalRating(name, value) {
   if (name === 'LCP') {
     if (value <= 2500) return 'good';
     if (value <= 4000) return 'needs-improvement';
+    return 'poor';
+  }
+  if (name === 'INP') {
+    if (value <= 200) return 'good';
+    if (value <= 500) return 'needs-improvement';
+    return 'poor';
+  }
+  if (name === 'FCP') {
+    if (value <= 1800) return 'good';
+    if (value <= 3000) return 'needs-improvement';
+    return 'poor';
+  }
+  if (name === 'TTFB') {
+    if (value <= 800) return 'good';
+    if (value <= 1800) return 'needs-improvement';
     return 'poor';
   }
   if (name === 'FID') {

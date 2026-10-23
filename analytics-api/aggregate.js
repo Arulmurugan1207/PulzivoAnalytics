@@ -400,21 +400,36 @@ function normalizedFields() {
     _uid: userIdExpr(),
     _page: pageExpr(),
     _pv: { $cond: [{ $in: ['$event_name', PAGE_VIEWS] }, 1, 0] },
+    _eng: engExpr(),
     _conv: { $cond: [{ $in: ['$event_name', CONVERSIONS] }, 1, 0] },
   };
+}
+
+// Engagement (time on page, scroll depth) is reported on page_exit, not on the page_view
+// itself. Older trackers sent page_view with time_on_page 0 and the scroll depth at load.
+const ENGAGEMENT_EVENTS = ['page_exit'];
+
+function engExpr() {
+  return { $cond: [{ $in: ['$event_name', ENGAGEMENT_EVENTS] }, 1, 0] };
+}
+
+/** One row per page view: page_exit events from the same view share data.view_id. */
+function viewKeyExpr() {
+  return { $ifNull: ['$data.view_id', '$_id'] };
 }
 
 function scrollExpr() {
   const n = numericOrNull('$data.scroll_depth');
   return {
-    $cond: [{ $and: [{ $eq: ['$_pv', 1] }, { $ne: [n, null] }] }, n, null],
+    $cond: [{ $and: [{ $eq: ['$_eng', 1] }, { $ne: [n, null] }, { $gte: [n, 0] }] }, { $cond: [{ $gt: [n, 100] }, 100, n] }, null],
   };
 }
 
+// time_on_page is milliseconds on the wire; the dashboard shows seconds.
 function timeOnPageExpr() {
   const n = numericOrNull('$data.time_on_page');
   return {
-    $cond: [{ $and: [{ $eq: ['$_pv', 1] }, { $gt: [n, 0] }] }, n, null],
+    $cond: [{ $and: [{ $eq: ['$_eng', 1] }, { $gt: [n, 0] }] }, { $divide: [n, 1000] }, null],
   };
 }
 
@@ -497,6 +512,8 @@ function coreMetricsPipeline(match) {
         _uid: 1,
         _page: 1,
         _pv: 1,
+        _eng: 1,
+        _view: viewKeyExpr(),
         _conv: 1,
         _who: 1,
         _scroll: 1,
@@ -508,14 +525,18 @@ function coreMetricsPipeline(match) {
       $facet: {
         pageStats: [
           { $match: { _pv: 1 } },
+          { $group: { _id: null, count: { $sum: 1 } } },
+        ],
+        engagement: [
+          { $match: { _eng: 1 } },
+          { $group: { _id: '$_view', scroll: { $max: '$_scroll' }, top: { $max: '$_top' } } },
           {
             $group: {
               _id: null,
-              count: { $sum: 1 },
-              scrollSum: { $sum: { $cond: [{ $ne: ['$_scroll', null] }, '$_scroll', 0] } },
-              scrollN: { $sum: { $cond: [{ $ne: ['$_scroll', null] }, 1, 0] } },
-              timeSum: { $sum: { $cond: [{ $ne: ['$_top', null] }, '$_top', 0] } },
-              timeN: { $sum: { $cond: [{ $ne: ['$_top', null] }, 1, 0] } },
+              scrollSum: { $sum: { $cond: [{ $ne: ['$scroll', null] }, '$scroll', 0] } },
+              scrollN: { $sum: { $cond: [{ $ne: ['$scroll', null] }, 1, 0] } },
+              timeSum: { $sum: { $cond: [{ $ne: ['$top', null] }, '$top', 0] } },
+              timeN: { $sum: { $cond: [{ $ne: ['$top', null] }, 1, 0] } },
             },
           },
         ],
@@ -542,7 +563,10 @@ function coreMetricsPipeline(match) {
 
 function shapeCoreMetrics(facet, liveCount = 0) {
   const doc = facet || {};
-  const page = (doc.pageStats && doc.pageStats[0]) || {};
+  const page = {
+    ...((doc.pageStats && doc.pageStats[0]) || {}),
+    ...((doc.engagement && doc.engagement[0]) || {}),
+  };
   const unique = doc.uniqueUsers && doc.uniqueUsers[0] ? doc.uniqueUsers[0].n : 0;
   const conversions = doc.conversions && doc.conversions[0] ? doc.conversions[0].n : 0;
   const sessions = (doc.sessions && doc.sessions[0]) || {};
@@ -742,21 +766,37 @@ function shapePageViews(rows, period) {
   };
 }
 
+/** Match page views plus the page_exit events that carry their engagement. */
 function topPagesPipeline(match) {
   return [
     { $match: match },
-    { $addFields: { _page: pageExpr(), _pv: 1 } },
+    {
+      $addFields: {
+        _page: pageExpr(),
+        _pv: { $cond: [{ $in: ['$event_name', PAGE_VIEWS] }, 1, 0] },
+        _eng: engExpr(),
+      },
+    },
     { $addFields: { _scroll: scrollExpr(), _top: timeOnPageExpr() } },
     {
       $group: {
-        _id: '$_page',
-        views: { $sum: 1 },
-        scrollSum: { $sum: { $cond: [{ $ne: ['$_scroll', null] }, '$_scroll', 0] } },
-        scrollN: { $sum: { $cond: [{ $ne: ['$_scroll', null] }, 1, 0] } },
-        timeSum: { $sum: { $cond: [{ $ne: ['$_top', null] }, '$_top', 0] } },
-        timeN: { $sum: { $cond: [{ $ne: ['$_top', null] }, 1, 0] } },
+        _id: { p: '$_page', v: { $cond: [{ $eq: ['$_eng', 1] }, viewKeyExpr(), null] } },
+        views: { $sum: '$_pv' },
+        scroll: { $max: '$_scroll' },
+        top: { $max: '$_top' },
       },
     },
+    {
+      $group: {
+        _id: '$_id.p',
+        views: { $sum: '$views' },
+        scrollSum: { $sum: { $cond: [{ $ne: ['$scroll', null] }, '$scroll', 0] } },
+        scrollN: { $sum: { $cond: [{ $ne: ['$scroll', null] }, 1, 0] } },
+        timeSum: { $sum: { $cond: [{ $ne: ['$top', null] }, '$top', 0] } },
+        timeN: { $sum: { $cond: [{ $ne: ['$top', null] }, 1, 0] } },
+      },
+    },
+    { $match: { views: { $gt: 0 } } },
     { $sort: { views: -1, _id: 1 } },
   ];
 }
@@ -1253,6 +1293,16 @@ function historyClientMatch(query) {
 
 function vitalNumberExpr(name) {
   const lower = String(name || '').toLowerCase();
+  // Older trackers sent CLS as data.value = round(cls * 1000) with the raw score in
+  // custom_parameters.value; newer ones send the raw score in both places.
+  if (name === 'CLS') {
+    return {
+      $ifNull: [
+        numericOrNull('$data.custom_parameters.value'),
+        { $ifNull: [numericOrNull('$data.metric_value'), numericOrNull('$data.value')] },
+      ],
+    };
+  }
   return {
     $ifNull: [
       numericOrNull('$data.value'),
@@ -1309,6 +1359,7 @@ function pageVitalsPipeline(match) {
         _lcp: valueFor('web_vital_lcp', 'LCP'),
         _fid: valueFor('web_vital_fid', 'FID'),
         _cls: valueFor('web_vital_cls', 'CLS'),
+        _inp: valueFor('web_vital_inp', 'INP'),
       },
     },
     {
@@ -1320,6 +1371,8 @@ function pageVitalsPipeline(match) {
         fidN: { $sum: { $cond: [{ $ne: ['$_fid', null] }, 1, 0] } },
         clsSum: { $sum: { $cond: [{ $ne: ['$_cls', null] }, '$_cls', 0] } },
         clsN: { $sum: { $cond: [{ $ne: ['$_cls', null] }, 1, 0] } },
+        inpSum: { $sum: { $cond: [{ $ne: ['$_inp', null] }, '$_inp', 0] } },
+        inpN: { $sum: { $cond: [{ $ne: ['$_inp', null] }, 1, 0] } },
       },
     },
   ];
@@ -1330,20 +1383,27 @@ function shapePageVitals(rows, limit) {
     const avgLCP = row.lcpN ? row.lcpSum / row.lcpN : null;
     const avgFID = row.fidN ? row.fidSum / row.fidN : null;
     const avgCLS = row.clsN ? row.clsSum / row.clsN : null;
+    const avgINP = row.inpN ? row.inpSum / row.inpN : null;
     const round3 = (value) => (value == null ? null : Math.round(value * 1000) / 1000);
     return {
       page: row._id,
-      count: (row.lcpN || 0) + (row.fidN || 0) + (row.clsN || 0),
+      count: (row.lcpN || 0) + (row.fidN || 0) + (row.clsN || 0) + (row.inpN || 0),
       avgLCP: round3(avgLCP),
       avgFID: round3(avgFID),
       avgCLS: round3(avgCLS),
+      avgINP: round3(avgINP),
       lcpRating: vitalRating('LCP', avgLCP),
       fidRating: vitalRating('FID', avgFID),
       clsRating: vitalRating('CLS', avgCLS),
+      inpRating: vitalRating('INP', avgINP),
     };
   }).filter((row) => row.count > 0).sort((a, b) => b.count - a.count || String(a.page).localeCompare(String(b.page)));
   return { pages: pages.slice(0, limit), total: pages.length };
 }
+
+// Tracker emits form_field_interaction/form_start; older builds and docs used form_focus.
+const FORM_FIELD_EVENTS = ['form_focus', 'form_field_interaction'];
+const FORM_EVENTS = ['form_submit', 'form_abandon', 'form_start', ...FORM_FIELD_EVENTS];
 
 function formPipeline(match) {
   return [
@@ -1354,12 +1414,12 @@ function formPipeline(match) {
         _id: '$_form',
         submissions: { $sum: { $cond: [{ $eq: ['$event_name', 'form_submit'] }, 1, 0] } },
         abandons: { $sum: { $cond: [{ $eq: ['$event_name', 'form_abandon'] }, 1, 0] } },
-        fieldInteractions: { $sum: { $cond: [{ $eq: ['$event_name', 'form_focus'] }, 1, 0] } },
+        fieldInteractions: { $sum: { $cond: [{ $in: ['$event_name', FORM_FIELD_EVENTS] }, 1, 0] } },
         timeSum: {
           $sum: {
             $cond: [
               { $eq: ['$event_name', 'form_submit'] },
-              { $ifNull: [numericOrNull('$data.time_to_complete'), { $ifNull: [numericOrNull('$data.time_on_page'), 0] }] },
+              { $ifNull: [{ $ifNull: [numericOrNull('$data.time_to_complete'), numericOrNull('$data.timeToComplete')] }, { $ifNull: [numericOrNull('$data.time_on_page'), 0] }] },
               0,
             ],
           },
@@ -1370,7 +1430,7 @@ function formPipeline(match) {
               {
                 $and: [
                   { $eq: ['$event_name', 'form_submit'] },
-                  { $ne: [{ $ifNull: [numericOrNull('$data.time_to_complete'), numericOrNull('$data.time_on_page')] }, null] },
+                  { $ne: [{ $ifNull: [{ $ifNull: [numericOrNull('$data.time_to_complete'), numericOrNull('$data.timeToComplete')] }, numericOrNull('$data.time_on_page')] }, null] },
                 ],
               },
               1,
@@ -1433,6 +1493,8 @@ function shapeTooltips(rows, page, limit) {
   return { tooltips: tooltips.slice(start, start + limit), total: tooltips.length };
 }
 
+const ERROR_EVENTS = ['error', 'javascript_error', 'promise_rejection'];
+
 function errorPipeline(match) {
   return [
     { $match: match },
@@ -1442,7 +1504,15 @@ function errorPipeline(match) {
         _page: pageExpr(),
         _uid: userIdExpr(),
         _type: firstStringOr(['$data.error_type', '$data.type', '$event_name'], 'error'),
-        _message: firstStringOr(['$data.message', '$data.error'], 'Unknown error'),
+        _message: firstStringOr([
+          '$data.message',
+          '$data.error',
+          '$data.error_message',
+          '$data.custom_parameters.error_message',
+          '$data.custom_parameters.reason',
+          '$data.event_label',
+          '$data.label',
+        ], 'Unknown error'),
       },
     },
     {
@@ -1633,6 +1703,9 @@ function shapeUserPaths(rows, limit) {
 }
 
 module.exports = {
+  ENGAGEMENT_EVENTS,
+  FORM_EVENTS,
+  ERROR_EVENTS,
   aggregate,
   coreMetricsPipeline,
   shapeCoreMetrics,

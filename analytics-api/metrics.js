@@ -129,8 +129,20 @@ function computeCoreMetrics(docs, { liveCount = 0 } = {}) {
   const bounced = sessionList.filter((s) => s.pageViews <= 1).length;
   const durations = sessionList.map(durationSec).filter((n) => n > 0);
   const pagesPer = sessionList.map((s) => s.pageViews);
-  const scrolls = pageViews.map((d) => Number(d.data?.scroll_depth)).filter((n) => Number.isFinite(n));
-  const times = pageViews.map((d) => Number(d.data?.time_on_page)).filter((n) => Number.isFinite(n) && n > 0);
+  // Engagement lives on page_exit; repeated exits for one view (hidden, then closed) share data.view_id.
+  const views = new Map();
+  for (const d of docs) {
+    if (d.event_name !== 'page_exit') continue;
+    const key = d.data?.view_id != null ? d.data.view_id : d._id || Symbol('view');
+    const row = views.get(key) || { scroll: null, time: null };
+    const sc = Number(d.data?.scroll_depth);
+    const tm = Number(d.data?.time_on_page);
+    if (d.data?.scroll_depth != null && Number.isFinite(sc) && sc >= 0) row.scroll = Math.max(row.scroll ?? -1, Math.min(sc, 100));
+    if (Number.isFinite(tm) && tm > 0) row.time = Math.max(row.time ?? 0, tm / 1000);
+    views.set(key, row);
+  }
+  const scrolls = [...views.values()].map((r) => r.scroll).filter((n) => n != null);
+  const times = [...views.values()].map((r) => r.time).filter((n) => n != null);
   const conversions = new Set(
     docs.filter((d) => CONVERSION_EVENTS.includes(d.event_name)).map((d) => userIdOf(d) || sessionIdOf(d)).filter(Boolean),
   );
@@ -229,6 +241,9 @@ const {
   cohortPipeline,
   userPathsPipeline,
   shapeUserPaths,
+  ENGAGEMENT_EVENTS,
+  FORM_EVENTS,
+  ERROR_EVENTS,
 } = require('./aggregate');
 
 function pageViewsTrend(docs, period = 'daily') {
@@ -391,7 +406,7 @@ function registerMetricRoutes(app, { db }) {
     const page = clampInt(req.query.page, 1, 1, 10000);
     const limit = clampInt(req.query.limit, 10, 1, 100);
     const rows = await aggregate(col, topPagesPipeline(
-      composeMatch(apiKey, req, { event_name: { $in: PAGE_VIEW_EVENTS } }),
+      composeMatch(apiKey, req, { event_name: { $in: [...PAGE_VIEW_EVENTS, ...ENGAGEMENT_EVENTS] } }),
     ));
     return res.json(shapeTopPages(rows, page, limit));
   }));
@@ -472,7 +487,7 @@ function registerMetricRoutes(app, { db }) {
   }));
 
   app.get('/analytics/web-vitals', guarded(async (req, res, apiKey, col) => {
-    const names = ['LCP', 'FID', 'CLS'];
+    const names = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB', 'FID'];
     const vitals = {};
     await Promise.all(names.map(async (name) => {
       vitals[name] = await loadVital(
@@ -487,7 +502,7 @@ function registerMetricRoutes(app, { db }) {
   app.get('/analytics/page-vitals', guarded(async (req, res, apiKey, col) => {
     const limit = clampInt(req.query.limit, 15, 1, 100);
     const rows = await aggregate(col, pageVitalsPipeline(composeMatch(apiKey, req, {
-      event_name: { $in: ['web_vital_lcp', 'web_vital_fid', 'web_vital_cls'] },
+      event_name: { $in: ['web_vital_lcp', 'web_vital_inp', 'web_vital_fid', 'web_vital_cls'] },
     })));
     return res.json(shapePageVitals(rows, limit));
   }));
@@ -603,7 +618,7 @@ function registerMetricRoutes(app, { db }) {
     const page = clampInt(req.query.page, 1, 1, 10000);
     const limit = clampInt(req.query.limit, 10, 1, 100);
     const rows = await aggregate(col, formPipeline(composeMatch(apiKey, req, {
-      event_name: { $in: ['form_submit', 'form_abandon', 'form_focus'] },
+      event_name: { $in: FORM_EVENTS },
     })));
     return res.json(shapeForms(rows, page, limit));
   }));
@@ -675,7 +690,7 @@ function registerMetricRoutes(app, { db }) {
   app.get('/analytics/error-tracking', guarded(async (req, res, apiKey, col) => {
     const limit = clampInt(req.query.limit, 20, 1, 100);
     const rows = await aggregate(col, errorPipeline(composeMatch(apiKey, req, {
-      event_name: { $in: ['error', 'javascript_error'] },
+      event_name: { $in: ERROR_EVENTS },
     })));
     return res.json(shapeErrors(rows, limit));
   }));
