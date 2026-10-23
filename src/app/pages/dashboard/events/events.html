@@ -127,7 +127,10 @@
           <p-skeleton width="60%" height="0.9rem" styleClass="mb-3"></p-skeleton>
           <p-skeleton width="70%" height="2.2rem"></p-skeleton>
         } @else {
-          <div class="kpi-label">{{ $any(kpi).label }}</div>
+          <div class="kpi-top">
+            <span class="kpi-ico" aria-hidden="true"><i [class]="kpiIcons[$any(kpi).key] || 'pi pi-chart-line'"></i></span>
+            <div class="kpi-label">{{ $any(kpi).label }}</div>
+          </div>
           <div class="kpi-row">
             <div class="kpi-value">{{ $any(kpi).display }}</div>
             @if ($any(kpi).spark) {
@@ -167,64 +170,56 @@
     }
   </section>
 
-  <!-- ══════════════════ 4 · ALL EVENTS TABLE ══════════════════ -->
+  <div class="ev-pair">
+  <!-- ══════════════════ 4 · WHAT PEOPLE DID (all events) ══════════════════ -->
   <section class="ev-card" id="all-events" aria-labelledby="all-h">
     <div class="ev-card-head wrap">
-      <h3 id="all-h">All events</h3>
+      <h3 id="all-h">What people did</h3>
       <div class="tbl-tools">
-        <span class="search">
-          <i class="pi pi-search" aria-hidden="true"></i>
-          <input type="search" [(ngModel)]="tableSearch" placeholder="Search events" aria-label="Search events" />
-        </span>
-        <button type="button" class="ghost-btn" (click)="exportEventsTable()"><i class="pi pi-download" aria-hidden="true"></i> Export</button>
+        @if (showAllEvents) {
+          <span class="search">
+            <i class="pi pi-search" aria-hidden="true"></i>
+            <input type="search" [(ngModel)]="tableSearch" placeholder="Search events" aria-label="Search events" />
+          </span>
+          <button type="button" class="ghost-btn icon" (click)="exportEventsTable()" aria-label="Export events"><i class="pi pi-download" aria-hidden="true"></i></button>
+        }
+        @if (tableRows.length > 6 || showAllEvents) {
+          <button type="button" class="link-btn" (click)="showAllEvents = !showAllEvents; tableSearch = showAllEvents ? tableSearch : ''; tableCategory = showAllEvents ? tableCategory : ''"
+            [attr.aria-expanded]="showAllEvents">{{ showAllEvents ? 'Show less' : 'View all' }}</button>
+        }
       </div>
     </div>
-    <div class="chips" role="group" aria-label="Filter by category">
-      @for (c of tableCategories; track c.key) {
-        <button type="button" class="chip" [class.active]="tableCategory === c.key" [attr.aria-pressed]="tableCategory === c.key"
-          (click)="tableCategory = c.key">{{ c.label }}</button>
-      }
-    </div>
+    @if (showAllEvents) {
+      <div class="chips" role="group" aria-label="Filter by category">
+        @for (c of tableCategories; track c.key) {
+          <button type="button" class="chip" [class.active]="tableCategory === c.key" [attr.aria-pressed]="tableCategory === c.key"
+            (click)="tableCategory = c.key">{{ c.label }}</button>
+        }
+      </div>
+    }
     @if (loading.breakdown) {
       <div class="list-skeleton">
-        @for (i of [1,2,3,4,5]; track i) { <p-skeleton width="100%" height="3rem" borderRadius="8px"></p-skeleton> }
+        @for (i of [1,2,3,4,5]; track i) { <p-skeleton width="100%" height="2.75rem" borderRadius="8px"></p-skeleton> }
       </div>
     } @else if (filteredTableRows.length === 0) {
       <div class="ev-empty"><i class="pi pi-inbox" aria-hidden="true"></i><p>No matching events.</p>
         <small>Try another category or a longer date range.</small></div>
     } @else {
-      <div class="tbl" role="table" aria-label="All events">
-        <div class="tr th" role="row">
-          <span role="columnheader">Event</span>
-          <span role="columnheader" class="num">Count</span>
-          <span role="columnheader" class="num">Change</span>
-          <span role="columnheader" class="trend-col">Trend</span>
-        </div>
-        @for (row of filteredTableRows; track row.label + row.name) {
-          <button type="button" class="tr" role="row" (click)="showRawInStream(row.raw[0])"
-            [attr.aria-label]="row.label + ', ' + row.count + '. Show in event stream'">
-            <span class="ev-name" role="cell">
+      <ol class="mk-list" [class.scroll]="showAllEvents" aria-label="Top events">
+        @for (row of visibleTableRows; track row.label + row.name) {
+          <li>
+            <button type="button" class="mk-row" (click)="showRawInStream(row.raw[0])"
+              [attr.aria-label]="row.label + ', ' + row.count + '. Show in event stream'"
+              [title]="row.description || categoryLabel(row.category)">
               <span class="ico" [attr.data-cat]="row.category"><i [class]="row.icon" aria-hidden="true"></i></span>
-              <span class="ev-txt">
-                <strong>{{ row.label }}</strong>
-                <small>{{ row.description || categoryLabel(row.category) }}@if (showAdvanced) { · <code>{{ row.raw.join(', ') }}</code> }</small>
-              </span>
-            </span>
-            <span class="num" role="cell">{{ row.count | number }}</span>
-            <span class="num" role="cell">
-              @if (row.change === null) { <span class="delta">—</span> }
-              @else { <span class="delta" [class.good]="row.change > 0" [class.bad]="row.change < 0">{{ row.change > 0 ? '+' : '' }}{{ row.change | number:'1.0-0' }}%</span> }
-            </span>
-            <span class="trend-col" role="cell">
-              @if (row.spark) {
-                <svg class="spark sm" viewBox="0 0 80 24" preserveAspectRatio="none" aria-hidden="true">
-                  <polyline [attr.points]="row.spark" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke" />
-                </svg>
-              }
-            </span>
-          </button>
+              <span class="mk-name">{{ row.label }}@if (showAdvanced) { <code>{{ row.raw.join(', ') }}</code> }</span>
+              <span class="mk-bar" aria-hidden="true"><span [style.width.%]="barWidth(row.count, tableRows[0].count)"></span></span>
+              <span class="mk-num">{{ row.count | number }}</span>
+              <span class="mk-pct">{{ (row.count / tableTotal) * 100 | number:'1.1-1' }}%</span>
+            </button>
+          </li>
         }
-      </div>
+      </ol>
     }
   </section>
 
@@ -239,21 +234,23 @@
       <div class="ev-empty"><i class="pi pi-hand-pointer" aria-hidden="true"></i><p>No clicks recorded yet.</p>
         <small>Buttons and links are tracked automatically on Pro.</small></div>
     } @else {
-      <ol class="bar-list">
+      <ol class="mk-list" aria-label="Most clicked elements">
         @for (c of clickRows; track $index) {
-          <li class="bar-row static" [title]="c.page">
-            <span class="bar-fill" [style.width.%]="barWidth(c.count, clickRows[0].count)"></span>
-            <span class="bar-name two-line">
+          <li class="mk-row static" [title]="c.page">
+            <span class="ico"><i class="pi pi-hand-pointer" aria-hidden="true"></i></span>
+            <span class="mk-name two">
               <span class="click-text">{{ c.label }}</span>
-              <span class="crumb">{{ c.crumb }}</span>
+              @if (c.crumb) { <span class="crumb">{{ c.crumb }}</span> }
             </span>
-            <span class="bar-num">{{ c.count | number }}</span>
-            <span class="bar-share">{{ c.share | number:'1.0-0' }}%</span>
+            <span class="mk-bar" aria-hidden="true"><span [style.width.%]="barWidth(c.count, clickRows[0].count)"></span></span>
+            <span class="mk-num">{{ c.count | number }}</span>
+            <span class="mk-pct">{{ c.share | number:'1.1-1' }}%</span>
           </li>
         }
       </ol>
     }
   </section>
+  </div>
 
   <!-- ══════════════════ ZONE 3 — EVENT STREAM ══════════════════ -->
   <div class="history-card" id="event-history">
