@@ -1,376 +1,212 @@
-﻿<section class="hero"
+<!-- Hero -->
+<section class="h-hero"
          data-track-impression="home_hero"
          data-impression-name="Home Hero"
          data-impression-category="hero">
-  <div class="container">
-    <div class="hero-badge fade-in">⚡ Web &amp; Product Analytics · built for developers</div>
-    <h1 class="scale-in">Stop guessing. <span class="gradient-text">Start knowing.</span></h1>
-    <p class="subtitle fade-in" style="animation-delay: 0.15s">One script tag. No GDPR headaches. No bloat. Just data.</p>
-    <p class="description fade-in" style="animation-delay: 0.25s">Zero configuration &bull; About 9KB gzip &bull; Auto-tracking &bull; Privacy-first &bull; Free forever tier</p>
-
-    <div class="hero-actions slide-up" style="animation-delay: 0.35s">
-      <button pButton type="button" label="Start Free Now" icon="pi pi-arrow-right" iconPos="right" size="large" (click)="openSignUp('hero')" class="pulse-on-hover glow-button"></button>
-      <button pButton type="button" label="See Live Demo" icon="pi pi-play" size="large" class="p-button-outlined pulse-on-hover" routerLink="/demo" (click)="trackDemoClick()"></button>
+  <div class="h-container">
+    <div class="h-badge">Privacy-friendly analytics · no cookies, no personal data</div>
+    <h1>Simple analytics that<br><span>respects your visitors</span></h1>
+    <p class="h-sub">See who visits, where they come from and what they do, on one clean screen, in plain language. One ~9KB gzip script, no cookies, no personal data.</p>
+    <div class="h-actions">
+      <a routerLink="/signup" (click)="trackCta('hero')" class="h-btn h-btn-primary">Get started free <i class="pi pi-arrow-right"></i></a>
+      <a routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'docs'}" class="h-btn h-btn-ghost"><i class="pi pi-book"></i> View docs</a>
     </div>
-    <p class="no-card-note fade-in" style="animation-delay: 0.45s">
-      <i class="pi pi-shield"></i> No credit card required &nbsp;&middot;&nbsp; Free forever tier &nbsp;&middot;&nbsp; Cancel anytime
-    </p>
+    <div class="h-snippet">
+      <code>{{ script }}</code>
+      <button type="button" class="h-copy" (click)="copyScript()" [attr.aria-label]="copied() ? 'Copied' : 'Copy install snippet'">
+        <i class="pi" [class.pi-check]="copied()" [class.pi-copy]="!copied()"></i>
+        <span>{{ copied() ? 'Copied' : 'Copy' }}</span>
+      </button>
+    </div>
+    <p class="h-note">Free plan: 10K events/month · No credit card</p>
+  </div>
+</section>
 
-    <div class="stats-row">
-      <div class="stat bounce-in stat--live" style="animation-delay: 0.6s">
-        <div class="stat-value">
-          @if (livePageViews() !== null) {
-            {{ formatCount(livePageViews()!) }}
-          } @else {
-            <span class="stat-loading">…</span>
+<!-- Sample dashboard -->
+<section class="h-demo" aria-label="Sample Pulzivo dashboard with demo data">
+  <div class="h-container">
+    <div class="dash">
+      <div class="dash-chrome">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="dash-url">pulzivo.com/dashboard</span>
+      </div>
+      <div class="dash-body">
+        <div class="dash-head">
+          <div class="dash-site">
+            <span class="dash-favicon">A</span>
+            <strong>acme-coffee.com</strong>
+            <span class="dash-live"><span></span>12 online</span>
+          </div>
+          <div class="dash-head-right">
+            <span class="dash-demo">Demo data</span>
+            <span class="dash-range"><i class="pi pi-calendar"></i> Last 30 days <i class="pi pi-chevron-down"></i></span>
+          </div>
+        </div>
+
+        <div class="dash-kpis">
+          @for (k of kpis; track k.label) {
+            <div class="kpi">
+              <div class="kpi-label">{{ k.label }}</div>
+              <div class="kpi-value">{{ k.value }}</div>
+              <div class="kpi-delta" [class.up]="k.good" [class.down]="!k.good">
+                <i class="pi" [class.pi-arrow-up]="k.up" [class.pi-arrow-down]="!k.up"></i> {{ k.delta }}
+              </div>
+            </div>
           }
         </div>
-        <div class="stat-label">Page views tracked <span class="stat-live-dot"></span></div>
-      </div>
-      @for (stat of stats; track stat.label; let i = $index) {
-        <div class="stat bounce-in" [style.animation-delay]="(0.7 + i * 0.1) + 's'">
-          <div class="stat-value">{{stat.value}}</div>
-          <div class="stat-label">{{stat.label}}</div>
+
+        <div class="dash-insight">
+          <i class="pi pi-sparkles"></i>
+          <span><strong>What happened:</strong> Visitors up 18% vs the previous 30 days. Most came from Google, and /pricing had its best week yet.</span>
         </div>
-      }
+
+        <div class="dash-chart">
+          <div class="dash-chart-head"><span>Visitors</span><span class="muted">Daily</span></div>
+          <svg viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="Visitors trend over the last 30 days, rising">
+            <defs>
+              <linearGradient id="hArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#6366f1" stop-opacity="0.28"/>
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="40" x2="600" y2="40" class="grid"/>
+            <line x1="0" y1="80" x2="600" y2="80" class="grid"/>
+            <line x1="0" y1="120" x2="600" y2="120" class="grid"/>
+            <path [attr.d]="chartArea" fill="url(#hArea)"/>
+            <path [attr.d]="chartLine" class="line"/>
+            <circle [attr.cx]="chartEnd[0]" [attr.cy]="chartEnd[1]" r="4" class="end"/>
+          </svg>
+          <div class="dash-axis"><span>Sep 23</span><span>Oct 8</span><span>Oct 22</span></div>
+        </div>
+
+        <div class="dash-lists">
+          <div class="dash-list">
+            <div class="dash-list-head"><span>Top pages</span><span>Visitors</span></div>
+            @for (r of topPages; track r.label) {
+              <div class="bar-row"><div class="bar" [style.width.%]="r.pct"></div><span class="bar-label">{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
+            }
+          </div>
+          <div class="dash-list">
+            <div class="dash-list-head"><span>Top sources</span><span>Visitors</span></div>
+            @for (r of topSources; track r.label) {
+              <div class="bar-row"><div class="bar src" [style.width.%]="r.pct"></div><span class="bar-label">{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
+            }
+          </div>
+          <div class="dash-list">
+            <div class="dash-list-head"><span>Countries</span><span>Visitors</span></div>
+            @for (r of countries; track r.label) {
+              <div class="bar-row"><div class="bar geo" [style.width.%]="r.pct"></div><span class="bar-label"><span class="flag" [ngClass]="'flag-' + r.code" aria-hidden="true"></span>{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
+            }
+          </div>
+        </div>
+      </div>
     </div>
+    <p class="h-demo-cap">Sample dashboard with demo data. <a routerLink="/demo" (click)="trackDemoClick()">Try the live demo <i class="pi pi-arrow-right"></i></a></p>
   </div>
 </section>
 
-<!-- Dashboard preview -->
-<section class="preview-section">
-  <div class="container">
-    <p class="preview-label">Your dashboard — ready in 60 seconds</p>
-    <div class="browser-window zoom-in">
-      <div class="browser-chrome">
-        <div class="browser-dots"><span></span><span></span><span></span></div>
-        <div class="browser-url">pulzivo.com/dashboard</div>
-        <span class="browser-live-badge"><span class="stat-live-dot"></span> Live</span>
-      </div>
-      <div class="dashboard-preview">
-        <div class="preview-stats">
-          <div class="preview-stat">
-            <div class="ps-label">Page Views</div>
-            <div class="ps-value">24,391</div>
-            <div class="ps-delta up">↑ 12% this week</div>
-          </div>
-          <div class="preview-stat">
-            <div class="ps-label">Sessions</div>
-            <div class="ps-value">8,204</div>
-            <div class="ps-delta up">↑ 8% this week</div>
-          </div>
-          <div class="preview-stat">
-            <div class="ps-label">Bounce Rate</div>
-            <div class="ps-value">34%</div>
-            <div class="ps-delta good">↓ 3% this week</div>
-          </div>
-          <div class="preview-stat">
-            <div class="ps-label">Avg. Session</div>
-            <div class="ps-value">2m 41s</div>
-            <div class="ps-delta up">↑ 5% this week</div>
-          </div>
-        </div>
-        <div class="preview-chart">
-          <div class="chart-label">Page views — last 7 days</div>
-          <div class="chart-bars">
-            <div class="chart-bar" style="--h: 45%"><span>Mon</span></div>
-            <div class="chart-bar" style="--h: 62%"><span>Tue</span></div>
-            <div class="chart-bar" style="--h: 58%"><span>Wed</span></div>
-            <div class="chart-bar" style="--h: 75%"><span>Thu</span></div>
-            <div class="chart-bar" style="--h: 83%"><span>Fri</span></div>
-            <div class="chart-bar" style="--h: 51%"><span>Sat</span></div>
-            <div class="chart-bar" style="--h: 69%"><span>Sun</span></div>
-          </div>
-        </div>
-        <div class="preview-pages">
-          <div class="pp-row header"><span>Top Pages</span><span>Views</span></div>
-          <div class="pp-row"><span>/home</span><span>9,214</span></div>
-          <div class="pp-row"><span>/pricing</span><span>4,381</span></div>
-          <div class="pp-row"><span>/docs</span><span>2,918</span></div>
-          <div class="pp-row"><span>/features</span><span>1,640</span></div>
-        </div>
-      </div>
-    </div>
+<!-- Value strip -->
+<section class="h-values">
+  <div class="h-container h-values-grid">
+    @for (v of values; track v.title) {
+      <div class="h-value"><i class="pi {{ v.icon }}"></i><div><strong>{{ v.title }}</strong><span>{{ v.desc }}</span></div></div>
+    }
   </div>
 </section>
 
-<section class="install-section">
-  <div class="container">
-    <div class="install-header fade-in">
-      <h2>Get Started in 3 Simple Steps</h2>
-      <p class="section-subtitle">Copy the script &rarr; Paste in your HTML &rarr; Done</p>
-    </div>
-
-    <div class="install-steps">
-      <a class="step-card zoom-in" style="animation-delay: 0.1s" routerLink="/docs" [fragment]="'getting-started'">
-        <div class="step-badge">1</div>
-        <h3>Copy the script</h3>
-      </a>
-      <div class="step-arrow">→</div>
-      <a class="step-card zoom-in" style="animation-delay: 0.2s" routerLink="/docs" [fragment]="'getting-started'">
-        <div class="step-badge">2</div>
-        <h3>Paste in your HTML</h3>
-      </a>
-      <div class="step-arrow">→</div>
-      <a class="step-card zoom-in" style="animation-delay: 0.3s" routerLink="/docs" [fragment]="'getting-started'">
-        <div class="step-badge">3</div>
-        <h3>Data flows in</h3>
-      </a>
-    </div>
-
-    <!-- Code snippet with tabs -->
-    <div class="install-card slide-up" style="animation-delay: 0.2s"
-         data-track-impression="home_install_card"
-         data-impression-name="Home Install Card"
-         data-impression-category="install">
-      <div class="code-tabs">
-        <button class="code-tab" [class.active]="activeTab() === 'html'" (click)="setTab('html')">HTML</button>
-        <button class="code-tab" [class.active]="activeTab() === 'js'" (click)="setTab('js')">JavaScript API</button>
-      </div>
-      <div class="code-wrapper">
-        <div class="code-bar">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-          <span class="code-title">{{ activeTab() === 'html' ? 'index.html' : 'app.js' }}</span>
-        </div>
-        <div class="copy-button-wrap">
-          <button pButton type="button"
-                  [label]="copied() ? 'Copied!' : 'Copy'"
-                  [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'"
-                  (click)="copyActive()"
-                  [class.p-button-success]="copied()"
-                  class="copy-button"
-                  size="small"></button>
-          @if (scriptCopyCount() > 0) {
-            <span class="copy-count-badge" title="Times copied this session">{{ scriptCopyCount() }}×</span>
-          }
-        </div>
-        @if (activeTab() === 'html') {
-          <pre class="code-block"><code class="language-html" [textContent]="script"></code></pre>
-        } @else {
-          <pre class="code-block"><code class="language-javascript" [textContent]="jsSnippet"></code></pre>
-        }
-      </div>
-      <div class="install-footer">
-        <div class="install-features">
-          <p-tag value="Auto page tracking" icon="pi pi-check" severity="success"></p-tag>
-          <p-tag value="Click events" icon="pi pi-check" severity="success"></p-tag>
-          <p-tag value="User sessions" icon="pi pi-check" severity="success"></p-tag>
-          <p-tag value="Zero config" icon="pi pi-check" severity="success"></p-tag>
-        </div>
-        <button pButton type="button" label="Full Setup Guide" icon="pi pi-arrow-right" iconPos="right" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'install', utm_campaign: 'setup-guide'}" severity="secondary"></button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Docs teaser -->
-<section class="docs-teaser">
-  <div class="container">
-    <div class="docs-teaser-inner">
-      <div class="docs-teaser-left">
-        <i class="pi pi-book docs-teaser-book"></i>
-        <div>
-          <p class="docs-teaser-title">Not sure where to start?</p>
-          <p class="docs-teaser-sub">Our docs cover WordPress, Shopify, React, Next.js, Vue, Angular, CSP headers, and more.</p>
-        </div>
-      </div>
-      <div class="docs-teaser-chips">
-        <a class="docs-chip" routerLink="/docs" [fragment]="'no-code-platforms'">WordPress / Shopify</a>
-        <a class="docs-chip" routerLink="/docs" [fragment]="'frameworks'">React / Next.js / Vue</a>
-        <a class="docs-chip" routerLink="/docs" [fragment]="'custom-events'">Custom Events</a>
-        <a class="docs-chip" routerLink="/docs" [fragment]="'advanced'">TypeScript &amp; CSP</a>
-      </div>
-      <a pButton routerLink="/docs" label="Open Full Docs" icon="pi pi-arrow-right" iconPos="right" class="docs-teaser-btn"></a>
-    </div>
-  </div>
-</section>
-
-<p-divider></p-divider>
-
-<section class="features-section"
+<!-- Features -->
+<section class="h-section"
          data-track-impression="home_features"
          data-impression-name="Home Features Grid"
          data-impression-category="features">
-  <div class="container">
-    <h2 class="fade-in">Why Developers Choose Pulzivo</h2>
-    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">Everything you need. Nothing you don't.</p>
-
-    <div class="features-grid">
-      @for (feature of features; track feature.title; let i = $index) {
-        <a class="feature-card zoom-in" [style.animation-delay]="(i * 0.07) + 's'"
-           [routerLink]="feature.link"
-           [queryParams]="{utm_source: 'home', utm_medium: 'features-grid', utm_campaign: feature.campaign}">
-          <div class="feature-icon-wrap">
-            <i class="pi {{ feature.icon }}"></i>
-          </div>
-          <h3>{{feature.title}}</h3>
-          <p>{{feature.desc}}</p>
+  <div class="h-container">
+    <h2>Everything you need, nothing you don't</h2>
+    <p class="h-section-sub">Web analytics and product analytics from one script tag.</p>
+    <div class="h-features">
+      @for (f of features; track f.title) {
+        <a class="h-feature" [routerLink]="f.link" [fragment]="f.fragment" [queryParams]="{utm_source: 'home', utm_medium: 'features-grid', utm_campaign: f.campaign}">
+          <div class="h-feature-icon"><i class="pi {{ f.icon }}"></i></div>
+          <h3>{{ f.title }}</h3>
+          <p>{{ f.desc }}</p>
         </a>
       }
     </div>
-
-    <div class="view-more slide-up" style="animation-delay: 0.6s">
-      <button pButton type="button" label="Explore All Features" icon="pi pi-arrow-right" iconPos="right" routerLink="/features" [queryParams]="{utm_source: 'home', utm_medium: 'features', utm_campaign: 'explore-features'}" class="p-button-outlined" size="large"></button>
-    </div>
+    <div class="h-center"><a routerLink="/features" [queryParams]="{utm_source: 'home', utm_medium: 'features', utm_campaign: 'explore-features'}" class="h-link">Explore all features <i class="pi pi-arrow-right"></i></a></div>
   </div>
 </section>
 
-<p-divider></p-divider>
-
-<!-- Why Pulzivo teaser -->
-<section class="why-teaser">
-  <div class="container">
-    <div class="why-teaser-inner zoom-in">
-      <div class="why-teaser-text">
-        <h2>Web Analytics + Product Analytics.<br><span>One script tag.</span></h2>
-        <p>Most tools make you choose. Pulzivo tracks your marketing site <em>and</em> your app — privacy-first, no cookie banners, about 9KB gzip.</p>
-      </div>
-      <a routerLink="/why-pulzivo" [queryParams]="{utm_source: 'home', utm_medium: 'why-teaser'}" pButton label="See Why Pulzivo Wins" icon="pi pi-arrow-right" iconPos="right" class="p-button-outlined"></a>
+<!-- Comparison teaser -->
+<section class="h-section h-alt">
+  <div class="h-container h-compare">
+    <div>
+      <h2>Lighter than GA4. More than a page counter.</h2>
+      <p>GA4 is powerful but complex and uses cookies. Pulzivo keeps the dashboard simple like Plausible or Fathom, and adds product analytics: auto click tracking, funnels, goals and revenue.</p>
+      <a routerLink="/why-pulzivo" [queryParams]="{utm_source: 'home', utm_medium: 'why-teaser'}" class="h-link">See the honest comparison <i class="pi pi-arrow-right"></i></a>
     </div>
+    <ul class="h-checks">
+      <li><i class="pi pi-check"></i> No cookies, no personal data; respects Do Not Track and GPC</li>
+      <li><i class="pi pi-check"></i> Works with SPAs: React, Next.js, Vue, Angular</li>
+      <li><i class="pi pi-check"></i> Goals, revenue, 404s and site search built in</li>
+      <li><i class="pi pi-check"></i> Exclude your own visits with owner mode</li>
+    </ul>
   </div>
 </section>
 
-<p-divider></p-divider>
-
-<section class="use-cases-preview">
-  <div class="container">
-    <h2 class="fade-in">Track Everything That Matters</h2>
-    <p class="section-subtitle fade-in" style="animation-delay: 0.1s">From page views to custom conversions</p>
-
-    <div class="use-cases-grid">
-      <a class="use-case-card zoom-in" [style.animation-delay]="'0.1s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'page-analytics'}">
-        <i class="pi pi-globe use-case-icon-pi"></i>
-        <h3>Page Analytics</h3>
-        <p>Views, time on page, bounce rate, navigation paths</p>
-      </a>
-      <a class="use-case-card zoom-in" [style.animation-delay]="'0.2s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'conversions'}">
-        <i class="pi pi-star use-case-icon-pi"></i>
-        <h3>Conversions</h3>
-        <p>Sign ups, purchases, form submissions, goals</p>
-      </a>
-      <a class="use-case-card zoom-in" [style.animation-delay]="'0.3s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'user-behavior'}">
-        <i class="pi pi-users use-case-icon-pi"></i>
-        <h3>User Behavior</h3>
-        <p>Sessions, returning visitors, user journeys</p>
-      </a>
-      <a class="use-case-card zoom-in" [style.animation-delay]="'0.4s'" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases-preview', utm_campaign: 'campaigns'}">
-        <i class="pi pi-megaphone use-case-icon-pi"></i>
-        <h3>Campaigns</h3>
-        <p>UTM tracking, referral sources, promo performance</p>
-      </a>
+<!-- Pricing teaser -->
+<section class="h-section">
+  <div class="h-container">
+    <h2>Simple pricing</h2>
+    <p class="h-section-sub">Start free. Upgrade when your traffic grows.</p>
+    <div class="h-prices">
+      @for (p of plans; track p.name) {
+        <div class="h-price" [class.featured]="p.featured">
+          <h3>{{ p.name }}</h3>
+          <div class="amt">{{ p.price }}@if (p.per) {<span>/mo</span>}</div>
+          <p>{{ p.desc }}</p>
+        </div>
+      }
     </div>
+    <div class="h-center"><a routerLink="/pricing" [queryParams]="{utm_source: 'home', utm_medium: 'pricing-teaser', utm_campaign: 'view-pricing'}" class="h-link">Compare plans <i class="pi pi-arrow-right"></i></a></div>
+  </div>
+</section>
 
-    <div class="cta-inline slide-up" style="animation-delay: 0.6s">
-      <button pButton type="button" label="See All Use Cases" icon="pi pi-arrow-right" iconPos="right" routerLink="/use-cases" [queryParams]="{utm_source: 'home', utm_medium: 'use-cases', utm_campaign: 'see-all'}" size="large"></button>
-    </div>
+<!-- FAQ -->
+<section class="h-section h-alt">
+  <div class="h-container h-faq-wrap">
+    <h2>Questions</h2>
+    @for (q of faqs; track q.q) {
+      <details class="h-faq">
+        <summary>{{ q.q }}<i class="pi pi-plus"></i></summary>
+        <p>{{ q.a }}</p>
+      </details>
+    }
   </div>
 </section>
 
 <!-- Trusted by -->
 <section class="trusted-section">
-  <div class="container">
-    <p class="trusted-label">Trusted by websites using Pulzivo</p>
+  <div class="h-container">
+    <p class="trusted-label">Used by sites like</p>
     <div class="trusted-logos">
-      <a href="https://freshechodaily.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
-        freshechodaily.com
-      </a>
-      <a href="https://tabletennistube.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">
-        tabletennistube.com
-      </a>
+      <a href="https://freshechodaily.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">freshechodaily.com</a>
+      <a href="https://tabletennistube.com?utm_source=Pulzivo&utm_medium=partner&utm_campaign=trusted-by" target="_blank" rel="noopener" class="trusted-logo">tabletennistube.com</a>
     </div>
   </div>
 </section>
 
-<!-- Social proof / Testimonials — TODO: update with real quotes -->
-<!--
-<section class="testimonials-section">
-  <div class="container">
-    <h2 class="fade-in">What developers say</h2>
-    <p class="section-subtitle fade-in" style="animation-delay:0.1s">Real feedback from people who've ditched GA4 for Pulzivo</p>
-    <div class="testimonials-grid">
-
-      <div class="testimonial-card zoom-in" style="animation-delay:0.1s">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-quote">"Replaced Google Analytics with one script tag and got my dashboard up in under a minute. The bounce rate and session data are exactly what I needed — without the GDPR cookie nightmare."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">RS</div>
-          <div class="author-info">
-            <strong>Rajesh S.</strong>
-            <span>Indie developer · freshechodaily.com</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial-card zoom-in" style="animation-delay:0.2s">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-quote">"I was shocked how little it weighs — about 9KB gzip and zero config. It just works. Real-time page views, top pages, traffic sources — all in one clean dashboard. GA4 felt like overkill for what I needed."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">KP</div>
-          <div class="author-info">
-            <strong>Kartik P.</strong>
-            <span>Content creator · tabletennistube.com</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial-card zoom-in" style="animation-delay:0.3s">
-        <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-quote">"The free tier is genuinely useful. 10K events/month was enough to validate my side project. When I needed more I upgraded in one click. Pricing is the most honest I've seen in this space."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">AM</div>
-          <div class="author-info">
-            <strong>Aditya M.</strong>
-            <span>Solopreneur · SaaS founder</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="proof-bar fade-in" style="animation-delay:0.4s">
-      <div class="proof-item">
-        <i class="pi pi-shield"></i>
-        <span>No cookies, ever</span>
-      </div>
-      <div class="proof-divider"></div>
-      <div class="proof-item">
-        <i class="pi pi-clock"></i>
-        <span>Up in &lt; 60 seconds</span>
-      </div>
-      <div class="proof-divider"></div>
-      <div class="proof-item">
-        <i class="pi pi-credit-card"></i>
-        <span>No card required</span>
-      </div>
-      <div class="proof-divider"></div>
-      <div class="proof-item">
-        <i class="pi pi-chart-line"></i>
-        <span>Real-time data</span>
-      </div>
-    </div>
-  </div>
-</section>
--->
-
-<section class="cta-section"
+<!-- CTA -->
+<section class="h-cta"
          data-track-impression="home_cta"
          data-impression-name="Home CTA"
          data-impression-category="cta">
-  <div class="container text-center">
-    <h2 class="scale-in">Start tracking in 60 seconds.</h2>
-    <p class="fade-in" style="animation-delay: 0.2s">No credit card. No complex setup. Just paste one script tag.</p>
-    <div class="cta-actions slide-up" style="animation-delay: 0.4s">
-      <button pButton type="button" label="Get Started Free" icon="pi pi-arrow-right" iconPos="right" (click)="openSignUp('cta')" size="large" class="pulse-on-hover cta-btn-primary"></button>
-      <button pButton type="button" label="Read the Docs" icon="pi pi-book" iconPos="left" routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'read-docs'}" class="p-button-outlined cta-btn-docs" size="large"></button>
-      <button pButton type="button" label="View Pricing" routerLink="/pricing" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'view-pricing'}" class="p-button-text cta-btn-ghost" size="large"></button>
+  <div class="h-container">
+    <h2>See your first visitors today</h2>
+    <p>Paste one script tag. Free plan, no credit card.</p>
+    <div class="h-actions">
+      <a routerLink="/signup" (click)="trackCta('cta')" class="h-btn h-btn-primary">Get started free <i class="pi pi-arrow-right"></i></a>
+      <a routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'read-docs'}" class="h-btn h-btn-ghost"><i class="pi pi-book"></i> View docs</a>
     </div>
-    <p class="cta-note fade-in" style="animation-delay: 0.6s">10,000 events/month free &bull; Upgrade anytime &bull; Cancel anytime</p>
-    <p class="pronunciation fade-in" style="animation-delay: 0.8s; margin-top: 1rem; opacity: 0.7; font-size: 0.8rem;">
-      <i class="pi pi-volume-up"></i>
-      <span>Pronounced: <strong>PULSE-ivo</strong> /ˈpʌlsɪvoʊ/ — like "pulse" + "ivo"</span>
-    </p>
+    <p class="pronunciation"><i class="pi pi-volume-up"></i> Pronounced <strong>PULSE-ivo</strong></p>
   </div>
 </section>
 

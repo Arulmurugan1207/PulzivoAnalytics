@@ -18,7 +18,7 @@ export const routes: Routes = [
   {
     path: '',
     title: 'Pulzivo Analytics — Free, Privacy-First Web & Product Analytics',
-    data: { description: 'Free, privacy-first, cookieless web and product analytics in one script tag. Track page views, clicks, custom events and sessions — about 9KB gzip, no cookie banners.' },
+    data: { description: 'Free, privacy-first, cookieless web and product analytics in one script tag. Track page views, clicks, custom events and sessions — about 9KB gzip, no personal data.' },
     component: Home
   },
   {
@@ -42,7 +42,7 @@ export const routes: Routes = [
   {
     path: 'why-pulzivo',
     title: 'Why Pulzivo — A Google Analytics Alternative | Pulzivo Analytics',
-    data: { description: 'How Pulzivo compares with Google Analytics and other tools: privacy-first, no cookie banners, about 9KB gzip, zero configuration, free to start.' },
+    data: { description: 'How Pulzivo compares with Google Analytics and other tools: privacy-first, no cookies or personal data, about 9KB gzip, zero configuration, free to start.' },
     component: WhyPulzivo
   },
   {

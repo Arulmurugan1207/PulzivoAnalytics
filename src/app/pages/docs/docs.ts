@@ -184,7 +184,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Does it use cookies?',
-      answer: 'No cookies at all. Sessions are tracked using a combination of tab-scoped memory and localStorage, which does not require cookie consent banners under GDPR.'
+      answer: 'Pulzivo sets no cookies and collects no personal data. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
     },
     {
       question: 'Can I self-host the SDK?',
