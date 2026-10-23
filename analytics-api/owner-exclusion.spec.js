@@ -70,3 +70,16 @@ test('EXCLUDED_EMAILS env drops events and hides historical rows at report time'
   // Historical row is not deleted.
   assert.equal((await db.collection('events').find({}).toArray()).length, 2);
 });
+
+test('aggregated metric routes also hide owner-excluded rows', async () => {
+  const owner = { ...ev(OWNER, 'u-owner', '/mine'), apiKey: KEY, service: KEY };
+  const fan = { ...ev('fan@example.com', 'u-fan', '/fan'), apiKey: KEY, service: KEY };
+  const db = createMemoryDb({ events: [owner, fan], api_keys: [{ apiKey: KEY, ownerEmail: OWNER }] });
+  await withServer(createApp({ db }), async (url) => {
+    const res = await fetch(`${url}/analytics/top-pages?apiKey=${KEY}`);
+    assert.equal(res.status, 200);
+    const body = JSON.stringify(await res.json());
+    assert.ok(body.includes('/fan'));
+    assert.ok(!body.includes('/mine'), 'owner page leaked into aggregated top-pages');
+  });
+});

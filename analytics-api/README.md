@@ -36,6 +36,8 @@ CORS allowlist (OPTIONS preflight and GET/POST on every `/analytics/*` route):
 
 ## Deploy (GCP project `node-server-apis`)
 
+`gcloud run deploy` replaces the service template with the flags you pass. Omit `--memory`, `--cpu`, or `--min-instances` and Cloud Run falls back to 512Mi / 1 CPU / scale-to-zero. That shape aborted (signal 6) when the overview fired several heavy reads at once. Keep the capacity mitigation on every source deploy:
+
 ```bash
 gcloud config set project node-server-apis
 
@@ -55,6 +57,10 @@ gcloud run deploy pulzivo-analytics-api \
   --set-env-vars "NODE_ENV=production,MONGODB_DB=analytics,API_KEYS_COLLECTION=api_keys,EVENTS_COLLECTION=events" \
   --set-secrets "MONGODB_URI=analytics-mongodb-uri:latest"
 ```
+
+Do **not** deploy this image over Cloud Run service `analytics` (the marketing SPA).
+
+On startup the API calls `createIndex` for `{ apiKey: 1, timestamp: 1 }` (plus event name, createdAt, receivedAt, and session_id companions). Index creation does not update or delete event documents. Dashboard routes aggregate in Mongo; they no longer pull every matching event into Node.
 
 CORS origins default in `server.js`. Extra origins can be added with `CORS_ORIGINS` (gcloud `^@^` delimiter). That variable does not remove `pulzivo.com` or localhost.
 

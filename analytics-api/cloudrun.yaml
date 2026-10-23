@@ -7,6 +7,11 @@
 #
 # Prefer `gcloud run deploy pulzivo-analytics-api --source analytics-api ...`
 # so the image digest is set. Leave App Engine service `analytics` running.
+#
+# A source deploy REPLACES cpu / memory / min-instances with the flags you pass.
+# Keep the live mitigation (revision pulzivo-analytics-api-00010-wvt and later):
+#   --cpu 2 --memory 1Gi --min-instances 1
+# Dropping those flags silently returns the service to 512Mi / 1 CPU / scale-to-zero.
 
 apiVersion: serving.knative.dev/v1
 kind: Service
