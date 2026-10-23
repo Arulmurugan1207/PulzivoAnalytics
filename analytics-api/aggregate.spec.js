@@ -358,3 +358,50 @@ const form = body.events.find((e) => e.name === 'form_submit');
     assert.deepEqual([err.current, err.change], [0, -100]);
   });
 });
+
+function stageNames(pipeline) {
+  const names = [];
+  for (const stage of pipeline) {
+    const name = Object.keys(stage)[0];
+    if (name === '$facet') {
+      for (const sub of Object.values(stage.$facet)) names.push(stageNames(sub));
+    } else names.push(name);
+  }
+  return names;
+}
+
+function assertNoSortBeforeGroup(names) {
+  let grouped = false;
+  for (const n of names) {
+    if (Array.isArray(n)) { if (!grouped) assertNoSortBeforeGroup(n); continue; }
+    if (n === '$group') grouped = true;
+    if (n === '$sort') assert.ok(grouped, '$sort must only run on grouped results');
+  }
+}
+
+test('metrics/session pipelines never sort raw events and start with $match', () => {
+  for (const p of [coreMetricsPipeline({ apiKey: 'K' }), sessionStatsPipeline({ apiKey: 'K' })]) {
+    assert.ok(p[0].$match, 'first stage is $match');
+    assertNoSortBeforeGroup(stageNames(p));
+  }
+});
+
+test('session stats are correct for out-of-order events without allowDiskUse', async () => {
+  const t0 = Date.UTC(2026, 9, 1);
+  const docs = [
+    { apiKey: 'K', event_name: 'click', session_id: 's1', timestamp: t0 + 9000, data: { page: '/c' } },
+    { apiKey: 'K', event_name: 'page_view', session_id: 's1', timestamp: t0 + 5000, data: { page: '/b' } },
+    { apiKey: 'K', event_name: 'page_view', session_id: 's1', timestamp: t0, data: { page: '/a' } },
+    { apiKey: 'K', event_name: 'click', session_id: 's2', timestamp: t0 + 2000, data: { page: '/z' } },
+    { apiKey: 'K', event_name: 'click', session_id: 's2', timestamp: t0 + 1000, data: { page: '/y' } },
+  ];
+  const col = new MemoryCollection(docs);
+  const strict = { aggregate: (pipeline, opts) => col.aggregate(pipeline, { ...opts, allowDiskUse: false }) };
+  const stats = shapeSessionStats((await aggregate(strict, sessionStatsPipeline({ apiKey: 'K' })))[0]);
+  assert.equal(stats.totalSessions, 2);
+  const entries = stats.topEntryPages.map((r) => r.page).sort();
+  const exits = stats.topExitPages.map((r) => r.page).sort();
+  assert.deepEqual(entries, ['/a', '/y']);
+  assert.deepEqual(exits, ['/b', '/z']);
+  assert.equal(stats.avgSessionDuration, 5);
+});
