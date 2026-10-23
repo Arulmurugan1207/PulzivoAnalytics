@@ -5,6 +5,8 @@ set -euo pipefail
 PROJECT="${PROJECT:-node-server-apis}"
 REGION="${REGION:-us-east1}"
 SERVICE="${SERVICE:-pulzivo-analytics-api}"
+# Prod settings (keep in sync with the live revision): project node-server-apis, region us-east1,
+# --cpu 2 --memory 1Gi --min-instances 1 --max-instances 5 --concurrency 80 --cpu-boost
 SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [[ "${SERVICE}" == "analytics" ]]; then
@@ -21,11 +23,11 @@ DEPLOY_ARGS=(
   --region "${REGION}"
   --allow-unauthenticated
   --port 8080
-  --cpu 1
-  --memory 512Mi
+  --cpu 2
+  --memory 1Gi
   --concurrency 80
   --timeout 60s
-  --min-instances 0
+  --min-instances 1
   --max-instances 5
   --cpu-boost
   --set-env-vars "NODE_ENV=production,MONGODB_DB=analytics,API_KEYS_COLLECTION=api_keys,EVENTS_COLLECTION=events"
