@@ -43,7 +43,7 @@ export class Home implements OnInit, OnDestroy {
   }
 
   constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone) {
-    this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, cookieless, no banners required.' });
+    this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, no cookies, no personal data.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'og:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
     this.meta.updateTag({ property: 'og:description', content: 'The Pulse of Modern Web & Product Analytics. Privacy-first, cookieless analytics for websites and applications.' });
@@ -62,11 +62,11 @@ export class Home implements OnInit, OnDestroy {
     { icon: 'pi-sliders-h',  title: 'Custom events',      desc: 'Track sign-ups, purchases or any action with one line of code.',        link: '/docs', fragment: 'custom-events',      campaign: 'feature-custom-events' },
     { icon: 'pi-filter',     title: 'Funnels & journeys', desc: 'See where visitors drop off between landing and conversion.',           link: '/features', fragment: undefined,        campaign: 'feature-funnels' },
     { icon: 'pi-search',     title: '404s & site search', desc: 'Find broken links and what people search for on your site.',            link: '/docs', fragment: 'not-found-search',   campaign: 'feature-404-search' },
-    { icon: 'pi-shield',     title: 'Privacy built in',   desc: 'No cookies. Do Not Track and GPC respected. Visitor opt-out in one call.', link: '/docs', fragment: 'privacy-opt-out', campaign: 'feature-privacy' },
+    { icon: 'pi-shield',     title: 'Privacy built in',   desc: 'No cookies, no personal data. Do Not Track and GPC respected. Visitor opt-out in one call.', link: '/docs', fragment: 'privacy-opt-out', campaign: 'feature-privacy' },
   ];
 
   values = [
-    { icon: 'pi-shield',     title: 'No cookies',          desc: 'No consent banner needed for analytics' },
+    { icon: 'pi-shield',     title: 'No cookies, no personal data', desc: 'Anonymous, aggregate stats only' },
     { icon: 'pi-bolt',       title: '~9KB gzip',           desc: 'One async script tag' },
     { icon: 'pi-th-large',   title: 'One-screen dashboard', desc: 'Answers without a report builder' },
     { icon: 'pi-comment',    title: 'Plain-language insights', desc: 'Know what changed and why' },
@@ -80,7 +80,7 @@ export class Home implements OnInit, OnDestroy {
   ];
 
   faqs = [
-    { q: 'Do I need a cookie banner?', a: 'Pulzivo does not set cookies, so it does not add a cookie-consent requirement of its own. Check with your own legal advisor for your situation.' },
+    { q: 'Do I need a cookie banner?', a: 'Pulzivo sets no cookies and collects no personal data, but it does store anonymous visitor and session IDs in the browser\'s local storage. Depending on your region (for example the EU under the ePrivacy rules) that may still require consent. You can respect visitor choices with PulzivoAnalytics.optOut() / optIn(), and Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor for your situation.' },
     { q: 'How do I install it?', a: 'Paste one script tag into your <head>. It works with plain HTML, WordPress, Shopify, Webflow and single-page apps like React, Next.js, Vue and Angular.' },
     { q: 'Is there really a free plan?', a: 'Yes. The Free plan includes 10K events per month with page views, clicks, custom events, goals and revenue. No credit card required.' },
     { q: 'Can I exclude my own visits?', a: 'Yes. Turn on owner mode once in your browser (or open any page with ?pulz_owner=1 on mobile) and your visits are ignored.' },
