@@ -52,87 +52,12 @@ const EVENT_CATEGORIES = {
   performance: ['web_vital_lcp', 'web_vital_fid', 'web_vital_cls', 'resource_timing', 'performance'],
 };
 
-const TIMEZONE_COUNTRY = {
-  'America/New_York': 'United States',
-  'America/Chicago': 'United States',
-  'America/Denver': 'United States',
-  'America/Los_Angeles': 'United States',
-  'America/Phoenix': 'United States',
-  'America/Anchorage': 'United States',
-  'America/Toronto': 'Canada',
-  'America/Vancouver': 'Canada',
-  'America/Sao_Paulo': 'Brazil',
-  'America/Mexico_City': 'Mexico',
-  'Europe/London': 'United Kingdom',
-  'Europe/Dublin': 'Ireland',
-  'Europe/Paris': 'France',
-  'Europe/Berlin': 'Germany',
-  'Europe/Amsterdam': 'Netherlands',
-  'Europe/Madrid': 'Spain',
-  'Europe/Rome': 'Italy',
-  'Europe/Stockholm': 'Sweden',
-  'Europe/Warsaw': 'Poland',
-  'Europe/Zurich': 'Switzerland',
-  'Europe/Vienna': 'Austria',
-  'Europe/Brussels': 'Belgium',
-  'Europe/Lisbon': 'Portugal',
-  'Europe/Prague': 'Czechia',
-  'Europe/Helsinki': 'Finland',
-  'Europe/Athens': 'Greece',
-  'Europe/Bucharest': 'Romania',
-  'Europe/Budapest': 'Hungary',
-  'Europe/Moscow': 'Russia',
-  'Asia/Kolkata': 'India',
-  'Asia/Calcutta': 'India',
-  'Asia/Tokyo': 'Japan',
-  'Asia/Shanghai': 'China',
-  'Asia/Hong_Kong': 'Hong Kong',
-  'Asia/Singapore': 'Singapore',
-  'Asia/Seoul': 'South Korea',
-  'Asia/Bangkok': 'Thailand',
-  'Asia/Jakarta': 'Indonesia',
-  'Asia/Manila': 'Philippines',
-  'Asia/Dubai': 'United Arab Emirates',
-  'Asia/Karachi': 'Pakistan',
-  'Asia/Dhaka': 'Bangladesh',
-  'Asia/Taipei': 'Taiwan',
-  'Asia/Ho_Chi_Minh': 'Vietnam',
-  'Australia/Sydney': 'Australia',
-  'Australia/Melbourne': 'Australia',
-  'Australia/Perth': 'Australia',
-  'Pacific/Auckland': 'New Zealand',
-  'Africa/Johannesburg': 'South Africa',
-  'Africa/Cairo': 'Egypt',
-  'Africa/Lagos': 'Nigeria',
-  'Africa/Nairobi': 'Kenya',
-};
+const { TZ_ISO, countryForTimezone, countryNameForIso, isoForCountry, flagForIso } = require('./geo');
 
-const COUNTRY_ISO = {
-  'United States': 'US',
-  USA: 'US',
-  'United Kingdom': 'GB',
-  England: 'GB',
-  Canada: 'CA',
-  Germany: 'DE',
-  France: 'FR',
-  India: 'IN',
-  Australia: 'AU',
-  Netherlands: 'NL',
-  Brazil: 'BR',
-  Mexico: 'MX',
-  Ireland: 'IE',
-  Spain: 'ES',
-  Italy: 'IT',
-  Sweden: 'SE',
-  Poland: 'PL',
-  Switzerland: 'CH',
-  Japan: 'JP',
-  China: 'CN',
-  Singapore: 'SG',
-  'South Korea': 'KR',
-  'New Zealand': 'NZ',
-  'South Africa': 'ZA',
-};
+/** IANA timezone -> country display name for every tzdb zone (used by Mongo aggregation). */
+const TIMEZONE_COUNTRY = Object.fromEntries(
+  Object.keys(TZ_ISO).map((tz) => [tz, countryForTimezone(tz)]).filter(([, name]) => name),
+);
 
 function toDate(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -236,22 +161,44 @@ function eventPage(doc) {
   return typeof page === 'string' && page.trim() ? page : '/';
 }
 
+function timezoneOf(doc) {
+  const data = doc?.data || {};
+  return data.timezone || data.timeZone || doc?.timezone || doc?.timeZone || null;
+}
+
+/**
+ * Country display name. Uses the explicit country when present (ISO codes are
+ * normalised to names), else falls back to the IANA timezone via tzdb mapping.
+ */
 function countryOf(doc) {
   const data = doc?.data || {};
   const raw = data.country || data.country_name || data.countryName || data.geo?.country || doc?.country;
-  if (raw && String(raw).trim() && String(raw).toLowerCase() !== 'unknown') {
-    return String(raw).trim();
+  if (raw && String(raw).trim() && String(raw).trim().toLowerCase() !== 'unknown') {
+    const s = String(raw).trim();
+    if (/^[A-Za-z]{2}$/.test(s)) return countryNameForIso(s) || s;
+    return s;
   }
-  const tz = data.timezone || data.timeZone;
-  if (tz && TIMEZONE_COUNTRY[tz]) return TIMEZONE_COUNTRY[tz];
-  return 'Unknown';
+  return countryForTimezone(timezoneOf(doc)) || 'Unknown';
+}
+
+/**
+ * Ingest-time enrichment: when an event has no country but a mappable timezone,
+ * store the derived country (data.country + data.countryCode, countrySource='timezone').
+ * Returns a new object; never overwrites an explicit country.
+ */
+function withDerivedCountry(event) {
+  if (!event || typeof event !== 'object') return event;
+  const data = event.data && typeof event.data === 'object' ? event.data : {};
+  const raw = data.country || data.country_name || data.countryName || data.geo?.country || event.country;
+  if (raw && String(raw).trim() && String(raw).trim().toLowerCase() !== 'unknown') return event;
+  const country = countryForTimezone(timezoneOf(event));
+  if (!country) return event;
+  return { ...event, data: { ...data, country, countryCode: isoForCountry(country), countrySource: 'timezone' } };
 }
 
 function countryFlag(country) {
-  const iso = COUNTRY_ISO[country] || (country && country.length === 2 ? country.toUpperCase() : '');
-  if (!iso || iso.length !== 2) return '🏳️';
-  const chars = [...iso.toUpperCase()].map((c) => 127397 + c.charCodeAt(0));
-  return String.fromCodePoint(...chars);
+  if (!country || country === 'Unknown') return '🌐';
+  return flagForIso(isoForCountry(country));
 }
 
 function deviceLabel(data = {}) {
@@ -576,7 +523,9 @@ function formatHistoryEvent(doc) {
     timestamp: ts ? ts.toISOString() : null,
     page: eventPage(doc),
     country: countryOf(doc),
-    timezone: data.timezone || null,
+    countryCode: isoForCountry(countryOf(doc)),
+    flag: countryFlag(countryOf(doc)),
+    timezone: timezoneOf(doc),
     device: deviceLabel(data),
     data,
   };
@@ -636,6 +585,9 @@ module.exports = {
   eventPage,
   countryOf,
   countryFlag,
+  isoForCountry,
+  timezoneOf,
+  withDerivedCountry,
   deviceLabel,
   browserName,
   osName,

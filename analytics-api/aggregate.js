@@ -17,9 +17,11 @@ const {
   reqWithRange,
   percent,
   countryFlag,
+  isoForCountry,
   vitalRating,
   classifySource,
 } = require('./query');
+const { countryNameForIso } = require('./geo');
 
 const PAGE_VIEWS = [...PAGE_VIEW_EVENTS];
 const CONVERSIONS = [...CONVERSION_EVENTS];
@@ -181,7 +183,7 @@ function countryExpr() {
   }));
   return {
     $let: {
-      vars: { raw, tz: { $ifNull: ['$data.timezone', '$data.timeZone'] } },
+      vars: { raw, tz: { $ifNull: ['$data.timezone', { $ifNull: ['$data.timeZone', { $ifNull: ['$timezone', '$timeZone'] }] }] } },
       in: {
         $cond: [
           {
@@ -786,14 +788,22 @@ function countRowsPipeline(match, labelExpr, valueName = 'count') {
 }
 
 function shapeGeographic(rows) {
-  const total = (rows || []).reduce((sum, row) => sum + row.visitors, 0);
+  // Merge rows whose label is an ISO code (e.g. "MY") into the country name row.
+  const merged = new Map();
+  for (const row of rows || []) {
+    const label = /^[A-Za-z]{2}$/.test(String(row._id || '')) ? (countryNameForIso(row._id) || row._id) : row._id;
+    merged.set(label, (merged.get(label) || 0) + row.visitors);
+  }
+  const list = [...merged.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+  const total = list.reduce((sum, [, v]) => sum + v, 0);
   return {
-    geographic: (rows || []).map((row) => ({
-      country: row._id,
-      visitors: row.visitors,
-      views: row.visitors,
-      percentage: percent(row.visitors, total || 1),
-      flag: countryFlag(row._id),
+    geographic: list.map(([country, visitors]) => ({
+      country,
+      visitors,
+      views: visitors,
+      percentage: percent(visitors, total || 1),
+      countryCode: isoForCountry(country),
+      flag: countryFlag(country),
     })),
   };
 }

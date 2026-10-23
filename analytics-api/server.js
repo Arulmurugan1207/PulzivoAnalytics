@@ -15,7 +15,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { MongoClient } = require('mongodb');
-const { buildDateFilter, toDate, mergeUtmAttribution } = require('./query');
+const { buildDateFilter, toDate, mergeUtmAttribution, withDerivedCountry } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
 const { isCrawlerUserAgent } = require('./bots');
 const { loadExclusionRules, isExcludedEvent } = require('./owner-exclusion');
@@ -388,7 +388,7 @@ function createApp(options = {}) {
     if (db && events.length) {
       try {
         const now = new Date();
-        const docs = events.map((event) => ({
+        const docs = events.map(withDerivedCountry).map((event) => ({
           ...event,
           receivedAt: now,
           createdAt: event.createdAt ? new Date(event.createdAt) : now,

@@ -278,3 +278,27 @@ test('ensureEventIndexes requests apiKey + timestamp and does not touch document
   assert.ok(indexes.some((spec) => spec.key.apiKey === 1 && spec.key.timestamp === 1 && spec.name === 'events_apiKey_timestamp'));
   assert.deepEqual(db.collection('events').docs, docs);
 });
+
+test('geographic maps timezone-only visits to countries via tzdb (report time)', async () => {
+  const now = Date.now();
+  const mk = (i, data) => ({ apiKey: 'K', event_name: 'page_view', timestamp: now - i * 1000, session_id: `s${i}`, data });
+  const docs = [
+    mk(1, { timezone: 'Asia/Kuala_Lumpur' }),
+    mk(2, { timezone: 'Asia/Kuala_Lumpur', country: 'Unknown' }),
+    mk(3, { country: 'MY' }),
+    mk(4, { timezone: 'Europe/Kiev' }),
+    mk(5, { timezone: 'Etc/UTC' }),
+    mk(6, { country: 'Russia' }),
+  ];
+  const db = createMemoryDb({ events: docs });
+  await withServer(createApp({ db }), async (url) => {
+    const body = await (await fetch(`${url}/analytics/geographic?apiKey=K`)).json();
+    const by = Object.fromEntries(body.geographic.map((g) => [g.country, g]));
+    assert.equal(by.Malaysia.visitors, 3);
+    assert.equal(by.Malaysia.countryCode, 'MY');
+    assert.equal(by.Malaysia.flag, '🇲🇾');
+    assert.equal(by.Ukraine.visitors, 1);
+    assert.equal(by.Unknown.visitors, 1);
+    assert.equal(by.Russia.flag, '🇷🇺');
+  });
+});
