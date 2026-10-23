@@ -47,6 +47,7 @@ import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
+import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -86,7 +87,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
