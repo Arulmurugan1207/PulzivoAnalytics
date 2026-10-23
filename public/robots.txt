@@ -1,24 +1,12 @@
-﻿# Pulzivo Analytics - robots.txt
+# Pulzivo Analytics - robots.txt
 # https://pulzivo.com
 
 User-agent: *
 Allow: /
-Allow: /pricing
-Allow: /docs
-Allow: /features
-Allow: /why-pulzivo
-Allow: /use-cases
-Allow: /blog
-Allow: /contact
-Allow: /demo/
-Allow: /demo/overview
-Allow: /demo/events
 
-# Block authenticated / private routes
-Disallow: /dashboard/
-Disallow: /reset-password/
+# App / authenticated routes (no SEO value)
+Disallow: /dashboard
+Disallow: /reset-password
 Disallow: /api/
-
-Crawl-delay: 2
 
 Sitemap: https://pulzivo.com/sitemap.xml
