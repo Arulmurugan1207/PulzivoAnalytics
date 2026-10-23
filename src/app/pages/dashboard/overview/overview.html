@@ -124,38 +124,7 @@
           <button type="button" class="state-action" (click)="manualRefresh()">Try again</button>
         </div>
       } @else if (showSetupEmpty) {
-        <div class="no-data-setup-card">
-          <div class="no-data-setup-icon"><i class="pi pi-chart-line"></i></div>
-          <h2>No traffic yet for {{ selectedSiteName }}</h2>
-          <p>This API key has no page views in {{ dateRangeLabel || activePreset || 'the selected range' }}. Add the tracking script, then open the site once.</p>
-          <div class="no-data-setup-steps">
-            <div class="setup-step">
-              <span class="step-num">1</span>
-              <div>
-                <strong>Copy the API key</strong>
-                <p>Open <a routerLink="/dashboard/api-keys">API Keys</a> and copy the key for {{ selectedSiteName }}.</p>
-              </div>
-            </div>
-            <div class="setup-step">
-              <span class="step-num">2</span>
-              <div>
-                <strong>Add the tracking script</strong>
-                <p>Paste this into the <code>&lt;head&gt;</code> of every page:</p>
-                <pre class="setup-code"><code>&lt;script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"&gt;&lt;/script&gt;</code></pre>
-              </div>
-            </div>
-            <div class="setup-step">
-              <span class="step-num">3</span>
-              <div>
-                <strong>Visit the site</strong>
-                <p>Page views usually show up here within a few seconds. Use Refresh if they don’t.</p>
-              </div>
-            </div>
-          </div>
-          <a routerLink="/dashboard/api-keys" class="setup-cta-btn">
-            <i class="pi pi-key"></i> Go to API Keys
-          </a>
-        </div>
+        <app-first-event-onboarding [apiKey]="selectedApiKey" [siteName]="selectedSiteName" (done)="manualRefresh()"></app-first-event-onboarding>
       } @else {
       <div class="metrics-grid">
 

@@ -21,6 +21,7 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 
 import { AuthService } from '../../../services/auth.service';
+import { OwnerExclusionSettingsComponent } from '../../../components/owner-exclusion/owner-exclusion-settings';
 import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
@@ -75,6 +76,7 @@ interface User {
   selector: 'app-dashboard-settings',
   standalone: true,
   imports: [
+    OwnerExclusionSettingsComponent,
     CommonModule,
     RouterLink,
     FormsModule,
