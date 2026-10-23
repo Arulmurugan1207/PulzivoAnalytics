@@ -21,7 +21,9 @@ const ALIASES = {
 };
 
 // Exceptionally reserved / grouping codes ICU knows but that are not countries.
-const NON_COUNTRY = new Set(['UK', 'EU', 'EZ', 'UN', 'QO', 'XA', 'XB', 'ZZ']);
+// Also deprecated/transitional codes ICU still names (DD -> "Germany", FX -> "France", ...).
+const NON_COUNTRY = new Set(['UK', 'EU', 'EZ', 'UN', 'QO', 'XA', 'XB', 'ZZ',
+  'DD', 'FX', 'BU', 'CS', 'NT', 'SU', 'TP', 'YD', 'YU', 'ZR', 'AN', 'QU', 'EA', 'IC', 'DG', 'CP', 'CQ', 'AC', 'TA']);
 
 let display = null;
 try { display = new Intl.DisplayNames(['en'], { type: 'region' }); } catch { display = null; }
@@ -39,8 +41,9 @@ for (const code of allCodes) {
   const intlName = display ? display.of(code) : null;
   const name = NAME_OVERRIDES[code] || (intlName && intlName !== code ? intlName : code);
   ISO_NAME[code] = name;
-  NAME_ISO[name.toLowerCase()] = code;
-  if (intlName && intlName !== code) NAME_ISO[intlName.toLowerCase()] = code;
+  // First code wins: tzdb codes are inserted first, so they take precedence.
+  if (!NAME_ISO[name.toLowerCase()]) NAME_ISO[name.toLowerCase()] = code;
+  if (intlName && intlName !== code && !NAME_ISO[intlName.toLowerCase()]) NAME_ISO[intlName.toLowerCase()] = code;
 }
 for (const [alias, code] of Object.entries(ALIASES)) NAME_ISO[alias.toLowerCase()] = code;
 

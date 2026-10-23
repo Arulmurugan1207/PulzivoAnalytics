@@ -33,6 +33,7 @@ test('countryOf prefers explicit country, falls back to timezone', () => {
 
 test('flags resolve for previously blank countries', () => {
   for (const [name, iso] of [['Russia', 'RU'], ['Kenya', 'KE'], ['Hong Kong', 'HK'], ['United Kingdom', 'GB'],
+    ['Germany', 'DE'], ['France', 'FR'], ['Turkey', 'TR'], ['Türkiye', 'TR'], ['Norway', 'NO'],
     ['United Arab Emirates', 'AE'], ['United States', 'US'], ['Malaysia', 'MY'], ['UK', 'GB']]) {
     assert.strictEqual(isoForCountry(name), iso, name);
     assert.strictEqual(countryFlag(name), flagForIso(iso), name);
@@ -47,4 +48,11 @@ test('withDerivedCountry enriches only when country missing', () => {
   assert.strictEqual(withDerivedCountry(keep), keep);
   const utc = { data: { timezone: 'UTC' } };
   assert.strictEqual(withDerivedCountry(utc), utc);
+});
+
+test('every distinct ICU country name maps back to a single current ISO code', () => {
+  const { countryNameForIso } = require('./geo');
+  for (const iso of new Set(Object.values(TZ_ISO))) {
+    assert.strictEqual(isoForCountry(countryNameForIso(iso)), iso, iso);
+  }
 });
