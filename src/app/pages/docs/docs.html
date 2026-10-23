@@ -96,7 +96,7 @@
             <i class="pi" [ngClass]="anchorCopied() === 'getting-started' ? 'pi-check' : 'pi-link'"></i>
           </button>
         </div>
-        <p class="lead">Quick setup guide to integrate Pulzivo Analytics in under 60 seconds.</p>
+        <p class="lead">One script tag, no cookies, about 9KB gzip. Paste it into your <code>&lt;head&gt;</code> and page views start flowing in.</p>
 
         <div class="steps-container">
           <div class="step-item">
@@ -109,14 +109,7 @@
                 <span>Find your API key in <strong>Dashboard → API Keys</strong> — copy the key that starts with <code>PULZ-</code></span>
               </div>
               <div class="code-block-wrapper">
-                <button pButton 
-                        type="button" 
-                        [label]="copied() ? 'Copied!' : 'Copy'" 
-                        [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" 
-                        (click)="copyCode(codeBlocks['script-tag'])"
-                        [class.p-button-success]="copied()" 
-                        class="copy-btn"
-                        size="small"></button>
+                <button pButton type="button" [label]="isCopied('script-tag') ? 'Copied!' : 'Copy'" [icon]="isCopied('script-tag') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['script-tag'])" [class.p-button-success]="isCopied('script-tag')" class="copy-btn" size="small" aria-label="Copy code"></button>
                 <pre class="code-block"><code>{{ codeBlocks['script-tag'] }}</code></pre>
               </div>
               <p class="step-note"><i class="pi pi-info-circle"></i> <strong>Not a developer?</strong> Skip down to the <a (click)="trackNavClick('no-code-platforms')" class="inline-link">No-Code Platforms</a> section — we have step-by-step guides for WordPress, Shopify, and Webflow.</p>
@@ -176,7 +169,7 @@
             <h4><i class="pi pi-file-code"></i> Complete Example</h4>
           </ng-template>
           <div class="code-block-wrapper">
-            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['complete-html'])" class="copy-btn" size="small"></button>
+            <button pButton type="button" [label]="isCopied('complete-html') ? 'Copied!' : 'Copy'" [icon]="isCopied('complete-html') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['complete-html'])" [class.p-button-success]="isCopied('complete-html')" class="copy-btn" size="small" aria-label="Copy code"></button>
             <pre class="code-block"><code>{{ codeBlocks['complete-html'] }}</code></pre>
           </div>
         </p-card>
@@ -193,12 +186,7 @@
             and <strong>blocks all network sends</strong> so you never pollute production data.
           </p>
           <div class="code-block-wrapper">
-            <button pButton type="button"
-                    [label]="copied() ? 'Copied!' : 'Copy'"
-                    [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'"
-                    (click)="copyCode(codeBlocks['dynamic-key-setup'])"
-                    [class.p-button-success]="copied()"
-                    class="copy-btn" size="small"></button>
+            <button pButton type="button" [label]="isCopied('dynamic-key-setup') ? 'Copied!' : 'Copy'" [icon]="isCopied('dynamic-key-setup') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['dynamic-key-setup'])" [class.p-button-success]="isCopied('dynamic-key-setup')" class="copy-btn" size="small" aria-label="Copy code"></button>
             <pre class="code-block"><code>{{ codeBlocks['dynamic-key-setup'] }}</code></pre>
           </div>
           <ul class="dev-env-tips">
@@ -215,7 +203,7 @@
           </ng-template>
           <p>Use the global <code>PulzivoAnalytics</code> object in your components:</p>
           <div class="code-block-wrapper">
-            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['component-integration'])" class="copy-btn" size="small"></button>
+            <button pButton type="button" [label]="isCopied('component-integration') ? 'Copied!' : 'Copy'" [icon]="isCopied('component-integration') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['component-integration'])" [class.p-button-success]="isCopied('component-integration')" class="copy-btn" size="small" aria-label="Copy code"></button>
             <pre class="code-block"><code>{{ codeBlocks['component-integration'] }}</code></pre>
           </div>
           <p-message severity="info" styleClass="mt-3">
@@ -272,7 +260,7 @@
               <i class="pi pi-code"></i> Alternative — Edit Theme Directly
             </div>
             <div class="code-block-wrapper">
-              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-wordpress'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <button pButton type="button" [label]="isCopied('nocode-wordpress') ? 'Copied!' : 'Copy'" [icon]="isCopied('nocode-wordpress') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-wordpress'])" [class.p-button-success]="isCopied('nocode-wordpress')" class="copy-btn" size="small" aria-label="Copy code"></button>
               <pre class="code-block"><code>{{ codeBlocks['nocode-wordpress'] }}</code></pre>
             </div>
           </div>
@@ -303,7 +291,7 @@
               <li>Click <strong>Save</strong> — your entire store is tracked.</li>
             </ol>
             <div class="code-block-wrapper" style="margin-top:1rem;">
-              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-shopify'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <button pButton type="button" [label]="isCopied('nocode-shopify') ? 'Copied!' : 'Copy'" [icon]="isCopied('nocode-shopify') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-shopify'])" [class.p-button-success]="isCopied('nocode-shopify')" class="copy-btn" size="small" aria-label="Copy code"></button>
               <pre class="code-block"><code>{{ codeBlocks['nocode-shopify'] }}</code></pre>
             </div>
           </div>
@@ -333,7 +321,7 @@
               <li>Click <strong>Save Changes</strong>, then <strong>Publish</strong> your site</li>
             </ol>
             <div class="code-block-wrapper" style="margin-top:1rem;">
-              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-webflow'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <button pButton type="button" [label]="isCopied('nocode-webflow') ? 'Copied!' : 'Copy'" [icon]="isCopied('nocode-webflow') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-webflow'])" [class.p-button-success]="isCopied('nocode-webflow')" class="copy-btn" size="small" aria-label="Copy code"></button>
               <pre class="code-block"><code>{{ codeBlocks['nocode-webflow'] }}</code></pre>
             </div>
           </div>
@@ -352,7 +340,7 @@
           </div>
           <div class="nocode-method">
             <div class="code-block-wrapper">
-              <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-gtm'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+              <button pButton type="button" [label]="isCopied('nocode-gtm') ? 'Copied!' : 'Copy'" [icon]="isCopied('nocode-gtm') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['nocode-gtm'])" [class.p-button-success]="isCopied('nocode-gtm')" class="copy-btn" size="small" aria-label="Copy code"></button>
               <pre class="code-block"><code>{{ codeBlocks['nocode-gtm'] }}</code></pre>
             </div>
           </div>
@@ -403,7 +391,7 @@
             <h4><i class="pi pi-cog"></i> Example with Custom Configuration</h4>
           </ng-template>
           <div class="code-block-wrapper">
-            <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['config-options-example'])" class="copy-btn" size="small"></button>
+            <button pButton type="button" [label]="isCopied('config-options-example') ? 'Copied!' : 'Copy'" [icon]="isCopied('config-options-example') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['config-options-example'])" [class.p-button-success]="isCopied('config-options-example')" class="copy-btn" size="small" aria-label="Copy code"></button>
             <pre class="code-block"><code>{{ codeBlocks['config-options-example'] }}</code></pre>
           </div>
         </p-card>
@@ -425,9 +413,12 @@
         <h3>Click Tracking</h3>
         <p>Add <code>data-click</code> attributes to elements:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['data-click-attributes'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('data-click-attributes') ? 'Copied!' : 'Copy'" [icon]="isCopied('data-click-attributes') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['data-click-attributes'])" [class.p-button-success]="isCopied('data-click-attributes')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['data-click-attributes'] }}</code></pre>
         </div>
+
+        <h3>Outbound Links &amp; File Downloads</h3>
+        <p>Clicks on links to other domains are recorded as <code>outbound_click</code>, and links to files (or with a <code>download</code> attribute) as <code>file_download</code>. Middle-clicks count too. Nothing to configure.</p>
 
         <h3>SPA Navigation (Automatic)</h3>
         <p>Route changes are <strong>automatically tracked</strong> in Single Page Applications (React, Vue, Angular, etc.). No manual code required!</p>
@@ -451,33 +442,149 @@
         <h3>Simple PulzivoAnalytics() API</h3>
         <p>Use the convenient functional API for cleaner code:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['pulz-api-simple'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('pulz-api-simple') ? 'Copied!' : 'Copy'" [icon]="isCopied('pulz-api-simple') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['pulz-api-simple'])" [class.p-button-success]="isCopied('pulz-api-simple')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['pulz-api-simple'] }}</code></pre>
         </div>
 
         <h3>PulzivoAnalytics() Advanced Usage</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['pulz-api-identify'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('pulz-api-identify') ? 'Copied!' : 'Copy'" [icon]="isCopied('pulz-api-identify') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['pulz-api-identify'])" [class.p-button-success]="isCopied('pulz-api-identify')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['pulz-api-identify'] }}</code></pre>
         </div>
 
         <h3>Full API (Alternative)</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['custom-event-example'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('custom-event-example') ? 'Copied!' : 'Copy'" [icon]="isCopied('custom-event-example') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['custom-event-example'])" [class.p-button-success]="isCopied('custom-event-example')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['custom-event-example'] }}</code></pre>
         </div>
 
         <h3>E-commerce Events</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['ecommerce-tracking'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('ecommerce-tracking') ? 'Copied!' : 'Copy'" [icon]="isCopied('ecommerce-tracking') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ecommerce-tracking'])" [class.p-button-success]="isCopied('ecommerce-tracking')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['ecommerce-tracking'] }}</code></pre>
         </div>
 
         <h3>Force Send Batch</h3>
         <p>Send queued events immediately (useful before navigation):</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['immediate-send'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('immediate-send') ? 'Copied!' : 'Copy'" [icon]="isCopied('immediate-send') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['immediate-send'])" [class.p-button-success]="isCopied('immediate-send')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['immediate-send'] }}</code></pre>
+        </div>
+      </section>
+
+
+      <!-- Goals & Revenue -->
+      <section id="goals-revenue" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-flag"></i> Goals &amp; Revenue</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'goals-revenue'" (click)="copyAnchorLink('goals-revenue')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'goals-revenue' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Count conversions and the money they bring in. Available on every plan, including Free.</p>
+        <h3>Track a goal</h3>
+        <p>Call <code>trackGoal(name, data?)</code> when a visitor does something that matters: signs up, books a demo, subscribes.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('goals-basic') ? 'Copied!' : 'Copy'" [icon]="isCopied('goals-basic') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['goals-basic'])" [class.p-button-success]="isCopied('goals-basic')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['goals-basic'] }}</code></pre>
+        </div>
+        <h3>Track revenue</h3>
+        <p>Call <code>trackRevenue(amount, currency, data?)</code> after a successful payment. The currency is stored as a 3-letter code (defaults to <code>USD</code>). Pass <code>goal</code> to tie the revenue to a goal.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('revenue-basic') ? 'Copied!' : 'Copy'" [icon]="isCopied('revenue-basic') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['revenue-basic'])" [class.p-button-success]="isCopied('revenue-basic')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['revenue-basic'] }}</code></pre>
+        </div>
+        <div class="info-callout">
+          <i class="pi pi-info-circle"></i>
+          <div>Goals and revenue both count as conversions in your dashboard. Don't send personal data (names, emails) in the extra data object.</div>
+        </div>
+      </section>
+
+      <!-- 404s & Site Search -->
+      <section id="not-found-search" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-search"></i> 404s &amp; Site Search</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'not-found-search'" (click)="copyAnchorLink('not-found-search')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'not-found-search' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Find broken links and learn what visitors are looking for, with no extra events to design.</p>
+        <h3>404 pages</h3>
+        <p>On a static site, add one meta tag to your 404 template. Every view of that page is recorded as a <code>not_found</code> event with the path and referrer.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('notfound-meta') ? 'Copied!' : 'Copy'" [icon]="isCopied('notfound-meta') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['notfound-meta'])" [class.p-button-success]="isCopied('notfound-meta')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['notfound-meta'] }}</code></pre>
+        </div>
+        <p>In a single-page app the server never returns a 404, so call <code>trackNotFound()</code> from your catch-all route instead:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('notfound-spa') ? 'Copied!' : 'Copy'" [icon]="isCopied('notfound-spa') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['notfound-spa'])" [class.p-button-success]="isCopied('notfound-spa')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['notfound-spa'] }}</code></pre>
+        </div>
+        <h3>Site search</h3>
+        <p>When a page URL contains a search term, Pulzivo records a <code>site_search</code> event automatically. Use <code>data-search-params</code> if your search uses different parameter names.</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('site-search') ? 'Copied!' : 'Copy'" [icon]="isCopied('site-search') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['site-search'])" [class.p-button-success]="isCopied('site-search')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['site-search'] }}</code></pre>
+        </div>
+      </section>
+
+      <!-- Privacy & Opt-out -->
+      <section id="privacy-opt-out" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-lock"></i> Privacy &amp; Opt-out</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'privacy-opt-out'" (click)="copyAnchorLink('privacy-opt-out')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'privacy-opt-out' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Respect visitor choices with one line of code. Pulzivo honours browser privacy signals by default.</p>
+        <div class="privacy-points">
+          <div class="privacy-point"><i class="pi pi-shield"></i><div><strong>Do Not Track &amp; GPC</strong><span>Visitors whose browser sends Do Not Track or Global Privacy Control are not tracked.</span></div></div>
+          <div class="privacy-point"><i class="pi pi-user-minus"></i><div><strong>Visitor opt-out</strong><span><code>optOut()</code> stops tracking in that browser and clears queued events.</span></div></div>
+          <div class="privacy-point"><i class="pi pi-eye-slash"></i><div><strong>Exclude yourself</strong><span>Keep your own visits out of reports with <a (click)="trackNavClick('owner-exclusion')" class="inline-link">owner exclusion</a>.</span></div></div>
+        </div>
+        <h3>Opt-out and opt-in</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('opt-out') ? 'Copied!' : 'Copy'" [icon]="isCopied('opt-out') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['opt-out'])" [class.p-button-success]="isCopied('opt-out')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['opt-out'] }}</code></pre>
+        </div>
+        <p>A minimal "Don't track me" button for your privacy policy page:</p>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('opt-out-button') ? 'Copied!' : 'Copy'" [icon]="isCopied('opt-out-button') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['opt-out-button'])" [class.p-button-success]="isCopied('opt-out-button')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['opt-out-button'] }}</code></pre>
+        </div>
+        <h3>Ignoring DNT / GPC</h3>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('ignore-dnt') ? 'Copied!' : 'Copy'" [icon]="isCopied('ignore-dnt') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ignore-dnt'])" [class.p-button-success]="isCopied('ignore-dnt')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['ignore-dnt'] }}</code></pre>
+        </div>
+        <p class="step-note"><i class="pi pi-info-circle"></i> <code>optOut()</code> still applies when <code>data-ignore-dnt="true"</code> is set.</p>
+      </section>
+
+      <!-- JavaScript API -->
+      <section id="api-reference" class="doc-section">
+        <div class="section-header">
+          <h1><i class="pi pi-book"></i> JavaScript API</h1>
+          <button class="anchor-btn" [class.anchor-copied]="anchorCopied() === 'api-reference'" (click)="copyAnchorLink('api-reference')" title="Copy link to this section">
+            <i class="pi" [ngClass]="anchorCopied() === 'api-reference' ? 'pi-check' : 'pi-link'"></i>
+          </button>
+        </div>
+        <p class="lead">Every method is available on the global <code>PulzivoAnalytics</code> object once the script has loaded.</p>
+        <div class="api-table-wrap">
+          <table class="api-table">
+            <thead><tr><th>Method</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><code>trackEvent(name, data?)</code></td><td>Custom event. Command form: <code>PulzivoAnalytics('event', name, data)</code></td></tr>
+              <tr><td><code>trackGoal(name, data?)</code></td><td>Conversion goal. Command form: <code>('goal', name)</code></td></tr>
+              <tr><td><code>trackRevenue(amount, currency, data?)</code></td><td>Revenue for a purchase. Command form: <code>('revenue', amount, currency, data)</code></td></tr>
+              <tr><td><code>trackNotFound(path?)</code></td><td>Mark the current view as a 404. Command form: <code>('404')</code></td></tr>
+              <tr><td><code>trackPageView(title?, path?)</code></td><td>Manual page view (automatic by default)</td></tr>
+              <tr><td><code>trackError(error, data?)</code></td><td>Report a caught error</td></tr>
+              <tr><td><code>setUserEmail(email)</code> / <code>clearUserEmail()</code></td><td>Attach / remove a user identity. Command form: <code>('identify', email)</code></td></tr>
+              <tr><td><code>optOut()</code> / <code>optIn()</code> / <code>isOptedOut()</code></td><td>Visitor privacy choice, stored in this browser</td></tr>
+              <tr><td><code>setOwner(flag, persist?)</code></td><td>Exclude your own visits</td></tr>
+              <tr><td><code>sendBatch()</code></td><td>Send queued events now instead of waiting for the batch interval</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -493,13 +600,13 @@
 
         <h3>Setting User Identity</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['user-email-basic'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('user-email-basic') ? 'Copied!' : 'Copy'" [icon]="isCopied('user-email-basic') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['user-email-basic'])" [class.p-button-success]="isCopied('user-email-basic')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['user-email-basic'] }}</code></pre>
         </div>
 
         <h3>Integration Example</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['react-login-integration'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('react-login-integration') ? 'Copied!' : 'Copy'" [icon]="isCopied('react-login-integration') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['react-login-integration'])" [class.p-button-success]="isCopied('react-login-integration')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['react-login-integration'] }}</code></pre>
         </div>
 
@@ -527,7 +634,7 @@
         <h3>Track Campaign Impressions & Clicks</h3>
         <p>Simply add <code>data-track-impression</code> to any element - impressions AND clicks tracked automatically!</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['promo-custom-events'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('promo-custom-events') ? 'Copied!' : 'Copy'" [icon]="isCopied('promo-custom-events') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['promo-custom-events'])" [class.p-button-success]="isCopied('promo-custom-events')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['promo-custom-events'] }}</code></pre>
         </div>
 
@@ -542,21 +649,21 @@
 
         <h3>Multiple Impressions Example</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['intersection-observer'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('intersection-observer') ? 'Copied!' : 'Copy'" [icon]="isCopied('intersection-observer') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['intersection-observer'])" [class.p-button-success]="isCopied('intersection-observer')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['intersection-observer'] }}</code></pre>
         </div>
 
         <h3>Manual Tracking (Advanced)</h3>
         <p>For custom logic, use events directly:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['promo-manual-events'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('promo-manual-events') ? 'Copied!' : 'Copy'" [icon]="isCopied('promo-manual-events') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['promo-manual-events'])" [class.p-button-success]="isCopied('promo-manual-events')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['promo-manual-events'] }}</code></pre>
         </div>
 
         <h3>UTM Campaign Attribution</h3>
         <p>Attribution is captured automatically from URL parameters (all plans):</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['email-utm-tracking'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('email-utm-tracking') ? 'Copied!' : 'Copy'" [icon]="isCopied('email-utm-tracking') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['email-utm-tracking'])" [class.p-button-success]="isCopied('email-utm-tracking')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['email-utm-tracking'] }}</code></pre>
         </div>
       </section>
@@ -581,27 +688,27 @@
         <h3>Automatic Error Capture (default)</h3>
         <p>No code changes needed — just add the script tag and errors start flowing into your Events dashboard.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('error-auto') ? 'Copied!' : 'Copy'" [icon]="isCopied('error-auto') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-auto'])" [class.p-button-success]="isCopied('error-auto')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['error-auto'] }}</code></pre>
         </div>
 
         <h3>Manual Error Tracking</h3>
         <p>Track handled errors with full context — plan type, user state, whatever matters to you.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-manual'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('error-manual') ? 'Copied!' : 'Copy'" [icon]="isCopied('error-manual') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-manual'])" [class.p-button-success]="isCopied('error-manual')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['error-manual'] }}</code></pre>
         </div>
 
         <h3>React Error Boundary</h3>
         <p>Capture React render errors before they reach <code>window.onerror</code>:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-custom-boundary'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('error-custom-boundary') ? 'Copied!' : 'Copy'" [icon]="isCopied('error-custom-boundary') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-custom-boundary'])" [class.p-button-success]="isCopied('error-custom-boundary')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['error-custom-boundary'] }}</code></pre>
         </div>
 
         <h3>Opt-out of Automatic Capture</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('error-disable') ? 'Copied!' : 'Copy'" [icon]="isCopied('error-disable') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['error-disable'])" [class.p-button-success]="isCopied('error-disable')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['error-disable'] }}</code></pre>
         </div>
 
@@ -646,11 +753,11 @@
           <div><strong>Auto-detected</strong> — no setup needed. Fires a <code>rage_click</code> event you can find in your Events dashboard immediately.</div>
         </div>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('rage-click-auto') ? 'Copied!' : 'Copy'" [icon]="isCopied('rage-click-auto') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-auto'])" [class.p-button-success]="isCopied('rage-click-auto')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['rage-click-auto'] }}</code></pre>
         </div>
         <div class="code-block-wrapper" style="margin-top:1rem;">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('rage-click-disable') ? 'Copied!' : 'Copy'" [icon]="isCopied('rage-click-disable') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['rage-click-disable'])" [class.p-button-success]="isCopied('rage-click-disable')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['rage-click-disable'] }}</code></pre>
         </div>
 
@@ -679,11 +786,11 @@
         </div>
 
         <div class="code-block-wrapper" style="margin-top:1.5rem;">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-auto'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('web-vitals-auto') ? 'Copied!' : 'Copy'" [icon]="isCopied('web-vitals-auto') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-auto'])" [class.p-button-success]="isCopied('web-vitals-auto')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['web-vitals-auto'] }}</code></pre>
         </div>
         <div class="code-block-wrapper" style="margin-top:1rem;">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-disable'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('web-vitals-disable') ? 'Copied!' : 'Copy'" [icon]="isCopied('web-vitals-disable') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['web-vitals-disable'])" [class.p-button-success]="isCopied('web-vitals-disable')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['web-vitals-disable'] }}</code></pre>
         </div>
       </section>
@@ -706,35 +813,35 @@
         <h3>Method 1 — One-time console command <span style="font-size:0.75rem; background:rgba(34,197,94,0.15); color:#4ade80; padding:0.2rem 0.5rem; border-radius:20px; vertical-align:middle;">Easiest</span></h3>
         <p>Open your browser DevTools console on your site and run this once. It persists across all page refreshes automatically.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-console'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('owner-console') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-console') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-console'])" [class.p-button-success]="isCopied('owner-console')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['owner-console'] }}</code></pre>
         </div>
 
         <h3>Method 2 — After login (role-based)</h3>
         <p>Check the authenticated user's role after login and call <code>setOwner()</code>. This is the most reliable approach for apps with user authentication.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-login'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('owner-login') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-login') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-login'])" [class.p-button-success]="isCopied('owner-login')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['owner-login'] }}</code></pre>
         </div>
 
         <h3>Method 3 — At init time</h3>
         <p>Pass <code>excludeOwner: true</code> in your init call. Useful when you already know at page-load time (e.g. a separate admin domain).</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-init'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('owner-init') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-init') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-init'])" [class.p-button-success]="isCopied('owner-init')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['owner-init'] }}</code></pre>
         </div>
 
         <h3>Method 4 — localStorage flag</h3>
         <p>Set <code>pulz_is_owner</code> in localStorage manually. The SDK reads it automatically on every page load — no code changes needed in your app.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-localstorage'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('owner-localstorage') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-localstorage') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-localstorage'])" [class.p-button-success]="isCopied('owner-localstorage')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['owner-localstorage'] }}</code></pre>
         </div>
 
         <h3>Method 5 — Environment / hostname check</h3>
         <p>Automatically suppress tracking on <code>localhost</code> or staging environments so development activity never reaches your dashboard.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" icon="pi pi-copy" (click)="copyCode(codeBlocks['owner-env'])" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('owner-env') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-env') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-env'])" [class.p-button-success]="isCopied('owner-env')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['owner-env'] }}</code></pre>
         </div>
 
@@ -761,7 +868,7 @@
 
         <h3>Enable Debug Mode</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['debug-configuration'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('debug-configuration') ? 'Copied!' : 'Copy'" [icon]="isCopied('debug-configuration') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['debug-configuration'])" [class.p-button-success]="isCopied('debug-configuration')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['debug-configuration'] }}</code></pre>
         </div>
 
@@ -841,26 +948,26 @@
 
         <h3>React</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-react'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('framework-react') ? 'Copied!' : 'Copy'" [icon]="isCopied('framework-react') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-react'])" [class.p-button-success]="isCopied('framework-react')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-react'] }}</code></pre>
         </div>
 
         <h3>Next.js (App Router)</h3>
         <p>Use the <code>next/script</code> component with <code>strategy="afterInteractive"</code> so Pulzivo never blocks SSR rendering.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-nextjs'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('framework-nextjs') ? 'Copied!' : 'Copy'" [icon]="isCopied('framework-nextjs') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-nextjs'])" [class.p-button-success]="isCopied('framework-nextjs')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-nextjs'] }}</code></pre>
         </div>
 
         <h3>Vue 3 / Nuxt</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-vue'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('framework-vue') ? 'Copied!' : 'Copy'" [icon]="isCopied('framework-vue') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-vue'])" [class.p-button-success]="isCopied('framework-vue')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-vue'] }}</code></pre>
         </div>
 
         <h3>Angular</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-angular'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('framework-angular') ? 'Copied!' : 'Copy'" [icon]="isCopied('framework-angular') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['framework-angular'])" [class.p-button-success]="isCopied('framework-angular')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['framework-angular'] }}</code></pre>
         </div>
 
@@ -897,54 +1004,54 @@
         <h3>TypeScript — Full Type Declarations</h3>
         <p>Pulzivo is a script-tag SDK with no npm package. Create a <code>globals.d.ts</code> file once at your project root — no <code>&#64;types/</code> install needed, TypeScript picks it up automatically.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-global-declare'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('ts-global-declare') ? 'Copied!' : 'Copy'" [icon]="isCopied('ts-global-declare') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-global-declare'])" [class.p-button-success]="isCopied('ts-global-declare')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['ts-global-declare'] }}</code></pre>
         </div>
 
         <h3>Safe Wrapper — Handle SSR + Not-Yet-Loaded</h3>
         <p>Use this wrapper in every component instead of calling <code>PulzivoAnalytics</code> directly. It handles Next.js SSR (no <code>window</code> on the server) and the SDK loading async:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-safe-call'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('ts-safe-call') ? 'Copied!' : 'Copy'" [icon]="isCopied('ts-safe-call') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-safe-call'])" [class.p-button-success]="isCopied('ts-safe-call')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['ts-safe-call'] }}</code></pre>
         </div>
 
         <h3>SPA Race Condition — The Queue Pattern</h3>
         <p>The script loads <strong>asynchronously</strong>. Your component code runs immediately. Without a queue, calls made before the script finishes loading would be lost. Pulzivo handles this automatically — here's how:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-ready-queue'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('ts-ready-queue') ? 'Copied!' : 'Copy'" [icon]="isCopied('ts-ready-queue') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['ts-ready-queue'])" [class.p-button-success]="isCopied('ts-ready-queue')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['ts-ready-queue'] }}</code></pre>
         </div>
 
         <h3>Content Security Policy (CSP)</h3>
         <p>If your app sets CSP headers, whitelist these two domains. Everything else is blocked — no third-party data sharing.</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-headers'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('csp-headers') ? 'Copied!' : 'Copy'" [icon]="isCopied('csp-headers') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-headers'])" [class.p-button-success]="isCopied('csp-headers')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['csp-headers'] }}</code></pre>
         </div>
 
         <h4>Next.js CSP via next.config.js</h4>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-nextjs'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('csp-nextjs') ? 'Copied!' : 'Copy'" [icon]="isCopied('csp-nextjs') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['csp-nextjs'])" [class.p-button-success]="isCopied('csp-nextjs')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['csp-nextjs'] }}</code></pre>
         </div>
 
         <h3>Network Tab — What a Successful Request Looks Like</h3>
         <p>When debugging, open <strong>DevTools → Network → XHR</strong> and filter for <code>analytics/log</code>. Here's exactly what you should see:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-network'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('advanced-network') ? 'Copied!' : 'Copy'" [icon]="isCopied('advanced-network') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-network'])" [class.p-button-success]="isCopied('advanced-network')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['advanced-network'] }}</code></pre>
         </div>
 
         <h3>Next.js — Production SSR Pattern</h3>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-nextjs-ssr'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('advanced-nextjs-ssr') ? 'Copied!' : 'Copy'" [icon]="isCopied('advanced-nextjs-ssr') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-nextjs-ssr'])" [class.p-button-success]="isCopied('advanced-nextjs-ssr')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['advanced-nextjs-ssr'] }}</code></pre>
         </div>
 
         <h3>Angular — APP_INITIALIZER for Guaranteed Load Order</h3>
         <p>Use <code>APP_INITIALIZER</code> when you need the SDK fully ready before any component renders — e.g. when you identify users on startup:</p>
         <div class="code-block-wrapper">
-          <button pButton type="button" [label]="copied() ? 'Copied!' : 'Copy'" [icon]="copied() ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-angular-init'])" [class.p-button-success]="copied()" class="copy-btn" size="small"></button>
+          <button pButton type="button" [label]="isCopied('advanced-angular-init') ? 'Copied!' : 'Copy'" [icon]="isCopied('advanced-angular-init') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['advanced-angular-init'])" [class.p-button-success]="isCopied('advanced-angular-init')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['advanced-angular-init'] }}</code></pre>
         </div>
       </section>
