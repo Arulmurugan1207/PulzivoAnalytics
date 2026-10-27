@@ -245,3 +245,22 @@ test('goal and revenue API (object and command forms)', async () => {
   assert.equal(rev[1].data.currency, 'USD');
   assert.equal(b.sent.find((e) => e.event_name === 'goal').data.goal, 'signup');
 });
+
+test('email set by the site is sent; incidental emails stay redacted', async () => {
+  const b = createBrowser({ url: 'https://site.test/account?email=x@y.co' });
+  await b.load();
+  b.api().setUserEmail('member@site.test');
+  b.api().trackEvent('clicked', { label: 'mail other@person.test', url: 'https://site.test/p?to=a@b.co' });
+  b.window.PulzivoAnalytics('identify', 'member2@site.test');
+  b.api().trackEvent('after_identify', {});
+  await b.flush();
+  const ev = b.sent.find((e) => e.event_name === 'clicked');
+  assert.equal(ev.user_email, 'member@site.test');
+  assert.equal(ev.data.user_email, 'member@site.test');
+  assert.equal(ev.data.user_type, 'authenticated');
+  assert.ok(!JSON.stringify(ev.data).includes('other@person.test'));
+  assert.ok(!JSON.stringify(ev.data).includes('a@b.co'));
+  assert.ok(!JSON.stringify(ev.data).includes('x@y.co'));
+  const ev2 = b.sent.find((e) => e.event_name === 'after_identify');
+  assert.equal(ev2.data.user_email, 'member2@site.test');
+});

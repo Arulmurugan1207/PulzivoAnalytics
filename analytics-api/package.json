@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test owner-exclusion.spec.js server.spec.js dockerfile.spec.js bots.spec.js aggregate.spec.js deploy.spec.js geo.spec.js engagement.spec.js insights.spec.js"
+    "test": "node --test owner-exclusion.spec.js server.spec.js dockerfile.spec.js bots.spec.js aggregate.spec.js deploy.spec.js geo.spec.js engagement.spec.js insights.spec.js user-email.spec.js"
   },
   "engines": {
     "node": ">=20"

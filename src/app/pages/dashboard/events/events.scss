@@ -1578,3 +1578,84 @@
     font-size: 0.8rem;
   }
 }
+
+/* ─── Event Details: Who card + grouped sections ───────────────────────── */
+:host ::ng-deep .event-detail-dialog .p-dialog-content { overscroll-behavior: contain; }
+@media (max-width: 640px) {
+  :host ::ng-deep .event-detail-dialog {
+    width: 100vw !important; max-width: 100vw !important; height: 100dvh; max-height: 100dvh;
+    margin: 0; border-radius: 0;
+    .p-dialog-content { max-height: none !important; flex: 1; }
+  }
+}
+
+.who-card {
+  display: flex; gap: 1rem; align-items: flex-start;
+  padding: 1rem 1.25rem; border-radius: 12px;
+  background: linear-gradient(135deg, #eef2ff, #f8fafc); border: 1px solid #e0e7ff;
+}
+.who-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #e2e8f0; color: #64748b; font-size: 1.1rem;
+  &.known { background: #2a6df6; color: #fff; }
+}
+.who-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.who-name { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+.who-email { font-size: 1.1rem; font-weight: 700; color: #0f172a; word-break: break-all; }
+.who-anon { font-size: 1.05rem; font-weight: 600; color: #475569; }
+.who-inferred { font-size: 0.72rem; color: #92400e; background: #fef3c7; border-radius: 10px; padding: 0.1rem 0.5rem; }
+.who-badge {
+  font-size: 0.7rem; font-weight: 600; text-transform: capitalize;
+  padding: 0.12rem 0.55rem; border-radius: 10px; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+  &.auth { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+  &.returning { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+}
+.who-meta { display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; font-size: 0.8rem; color: #334155; }
+.who-meta-item { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; word-break: break-all; }
+.wm-label { color: #94a3b8; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.78rem; }
+
+.icon-copy {
+  border: none; background: transparent; color: #94a3b8; cursor: pointer;
+  padding: 0.1rem 0.25rem; border-radius: 4px; font-size: 0.75rem; line-height: 1;
+  &:hover { color: #2a6df6; background: #eef2ff; }
+}
+
+.detail-sections {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 1rem;
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+.detail-section {
+  border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.85rem 1rem;
+  h4 {
+    margin: 0 0 0.6rem; font-size: 0.8rem; font-weight: 700; color: #334155;
+    display: flex; align-items: center; gap: 0.4rem;
+    i { color: #2a6df6; font-size: 0.8rem; }
+  }
+}
+.kv-list { margin: 0; display: flex; flex-direction: column; }
+.kv-row {
+  display: grid; grid-template-columns: 130px 1fr; gap: 0.75rem; padding: 0.35rem 0;
+  border-bottom: 1px dashed #f1f5f9; font-size: 0.84rem;
+  &:last-child { border-bottom: none; }
+  dt { color: #64748b; }
+  dd { margin: 0; color: #0f172a; word-break: break-word; min-width: 0; }
+  dd.mono { word-break: break-all; }
+  a { color: #2a6df6; text-decoration: none; &:hover { text-decoration: underline; } }
+}
+.custom-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  th { text-align: left; color: #64748b; font-weight: 500; width: 35%; padding: 0.35rem 0.5rem 0.35rem 0; vertical-align: top; word-break: break-all; }
+  td { padding: 0.35rem 0; color: #0f172a; word-break: break-all; }
+  tr + tr { border-top: 1px dashed #f1f5f9; }
+}
+.raw-toggle {
+  border: none; background: transparent; cursor: pointer; padding: 0;
+  font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  &:hover { color: #334155; }
+}
+.tl-item { cursor: pointer; }
+.tl-time { font-variant-numeric: tabular-nums; }
+.tl-raw { display: block; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.7rem; color: #94a3b8; }

@@ -441,7 +441,10 @@
   <p-dialog
     [(visible)]="showEventDetail"
     [modal]="true" [draggable]="false" [resizable]="false"
-    [style]="{ width: '900px', maxWidth: '95vw' }"
+    [style]="{ width: '960px', maxWidth: '90vw' }"
+    [contentStyle]="{ maxHeight: '78vh', overflowY: 'auto' }"
+    [breakpoints]="{ '640px': '100vw' }"
+    styleClass="event-detail-dialog"
     header="Event Details"
     (onHide)="closeEventDetail()">
 
@@ -463,7 +466,7 @@
       </div>
 
       <!-- ── DETAILS TAB ── -->
-      @if (modalTab === 'details') {
+      @if (modalTab === 'details' && detailView; as dv) {
       <div class="event-detail-content">
         <div class="event-detail-header">
           <div class="event-name-section">
@@ -480,53 +483,99 @@
               </span>
             }
           </div>
-          <div class="event-time">{{ formatTime(selectedEvent.timestamp) }}</div>
+          <div class="event-time" [title]="selectedEvent.timestamp">{{ formatTime(selectedEvent.timestamp) }}</div>
         </div>
 
-        <div class="event-detail-grid">
-          <div class="detail-item">
-            <div class="detail-label">Event ID</div>
-            <div class="detail-value mono">{{ selectedEvent.id }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">User ID</div>
-            <div class="detail-value mono">{{ selectedEvent.user_id || 'Anonymous' }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Page</div>
-            <div class="detail-value">{{ selectedEvent.page || '—' }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">How they got here</div>
-            <div class="detail-value">{{ getVisitSource() }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Country</div>
-            <div class="detail-value">{{ selectedEvent.country || '—' }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Device</div>
-            <div class="detail-value">
-              @if (selectedEvent.device) {
-                <span class="device-cell"><i [class]="getDeviceIcon(selectedEvent.device)"></i> {{ selectedEvent.device }}</span>
-              } @else { — }
+        <!-- Who -->
+        <div class="who-card">
+          <div class="who-avatar" [class.known]="dv.who.email"><i [class]="dv.who.email ? 'pi pi-user' : 'pi pi-question'"></i></div>
+          <div class="who-main">
+            <div class="who-name">
+              @if (dv.who.email) {
+                <span class="who-email">{{ dv.who.email }}</span>
+                <button class="icon-copy" (click)="copyText('email', dv.who.email)" [title]="copiedKey === 'email' ? 'Copied' : 'Copy email'"><i [class]="copiedKey === 'email' ? 'pi pi-check' : 'pi pi-copy'"></i></button>
+                @if (dv.who.emailInferred) { <span class="who-inferred" title="This event had no email; showing the last email seen for this user ID">from earlier visits</span> }
+              } @else {
+                <span class="who-anon">Anonymous visitor</span>
+              }
+              <span class="who-badge" [class.auth]="dv.who.userType === 'authenticated'">{{ dv.who.userType }}</span>
+              @if (dv.who.returning !== null) {
+                <span class="who-badge" [class.returning]="dv.who.returning">{{ dv.who.returning ? 'Returning' : 'New' }}</span>
+              }
+            </div>
+            <div class="who-meta">
+              @if (dv.who.userId) {
+                <span class="who-meta-item"><span class="wm-label">User ID</span><span class="mono">{{ dv.who.userId }}</span>
+                  <button class="icon-copy" (click)="copyText('user', dv.who.userId)" title="Copy user ID"><i [class]="copiedKey === 'user' ? 'pi pi-check' : 'pi pi-copy'"></i></button></span>
+              }
+              @if (dv.who.sessionId) {
+                <span class="who-meta-item"><span class="wm-label">Session</span><span class="mono">{{ dv.who.sessionId }}</span>
+                  <button class="icon-copy" (click)="copyText('session', dv.who.sessionId)" title="Copy session ID"><i [class]="copiedKey === 'session' ? 'pi pi-check' : 'pi pi-copy'"></i></button></span>
+              }
+              @if (dv.who.visitCount !== null) {
+                <span class="who-meta-item"><span class="wm-label">Visits</span>{{ dv.who.visitCount }}</span>
+              }
+              @if (dv.who.firstVisit) {
+                <span class="who-meta-item"><span class="wm-label">First visit</span>{{ dv.who.firstVisit }}</span>
+              }
             </div>
           </div>
-          <div class="detail-item">
-            <div class="detail-label">Timestamp</div>
-            <div class="detail-value">{{ selectedEvent.timestamp }}</div>
-          </div>
         </div>
+
+        <div class="detail-sections">
+          @for (sec of [
+            { title: 'Event', icon: 'pi-bolt', rows: dv.event },
+            { title: 'Page', icon: 'pi-file', rows: dv.page },
+            { title: 'Source', icon: 'pi-directions', rows: dv.source },
+            { title: 'Device and location', icon: 'pi-globe', rows: dv.device }
+          ]; track sec.title) {
+            @if (sec.rows.length) {
+              <section class="detail-section">
+                <h4><i [class]="'pi ' + sec.icon"></i> {{ sec.title }}</h4>
+                <dl class="kv-list">
+                  @for (row of sec.rows; track row.label) {
+                    <div class="kv-row">
+                      <dt>{{ row.label }}</dt>
+                      <dd [class.mono]="row.mono" [title]="row.title || ''">
+                        @if (row.link) { <a [href]="row.link" target="_blank" rel="noopener noreferrer">{{ row.value }}</a> } @else { {{ row.value }} }
+                        @if (row.copy) {
+                          <button class="icon-copy" (click)="copyText(row.label, row.value)" [title]="'Copy ' + row.label"><i [class]="copiedKey === row.label ? 'pi pi-check' : 'pi pi-copy'"></i></button>
+                        }
+                      </dd>
+                    </div>
+                  }
+                </dl>
+              </section>
+            }
+          }
+        </div>
+
+        @if (dv.custom.length) {
+          <section class="detail-section">
+            <h4><i class="pi pi-sliders-h"></i> Custom parameters</h4>
+            <table class="custom-table">
+              <tbody>
+                @for (row of dv.custom; track row.label) {
+                  <tr><th>{{ row.label }}</th><td class="mono">{{ row.value }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
 
         <div class="event-data-section">
           <div class="event-data-header">
-            <div class="detail-label">Event Data</div>
+            <button class="raw-toggle" (click)="showRawData = !showRawData">
+              <i [class]="showRawData ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i> Raw event data
+            </button>
             <button class="copy-btn" (click)="copyEventData()" [class.copied]="copiedEventData">
               <i [class]="copiedEventData ? 'pi pi-check' : 'pi pi-copy'"></i>
               {{ copiedEventData ? 'Copied!' : 'Copy' }}
             </button>
           </div>
-          <pre class="event-data-code">{{ formatEventData(selectedEvent.data) }}</pre>
+          @if (showRawData) {
+            <pre class="event-data-code">{{ formatEventData(selectedEvent.data) }}</pre>
+          }
         </div>
       </div>
       }
@@ -713,7 +762,8 @@
           <!-- Event list -->
           <div class="timeline-list">
             @for (evt of sessionEvents; track evt.id; let i = $index) {
-              <div class="tl-item" [class.tl-active]="evt.id === timelineActiveId" (click)="setTimelineActive(evt.id)">
+              <div class="tl-item" [class.tl-active]="evt.id === timelineActiveId" (click)="viewTimelineEvent(evt)"
+                   [title]="'Open ' + eventFriendlyLabel(evt.event_name) + ' details'">
                 <div class="tl-connector">
                   <div class="tl-dot" [style.background]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'">
                     <i [class]="eventIcon(evt.event_name)" style="font-size:0.55rem;color:#fff"></i>
@@ -724,17 +774,9 @@
                   <div class="tl-header">
                     <span class="tl-name">{{ eventFriendlyLabel(evt.event_name) }}</span>
                     <span class="tl-page">{{ evt.page || '—' }}</span>
-                    <span class="tl-time">{{ formatTime(evt.timestamp) }}</span>
+                    <span class="tl-time" [title]="evt.timestamp">{{ formatClock(evt.timestamp) }}</span>
                   </div>
-                  @if (evt.id === timelineActiveId && evt.data) {
-                    <div class="tl-data">
-                      @for (kv of (evt.data | keyvalue); track kv.key) {
-                        @if (kv.key !== 'session_id' && kv.key !== 'userAgent') {
-                          <span class="tl-kv"><span class="tl-key">{{ kv.key }}</span><span class="tl-val">{{ kv.value }}</span></span>
-                        }
-                      }
-                    </div>
-                  }
+                  <span class="tl-raw">{{ evt.event_name }}</span>
                 </div>
               </div>
             }

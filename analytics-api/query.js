@@ -550,6 +550,7 @@ function formatHistoryEvent(doc) {
     id: doc._id != null ? String(doc._id) : `${doc.apiKey || ''}-${ts ? ts.getTime() : ''}-${doc.event_name || ''}`,
     event_name: doc.event_name || 'unknown',
     user_id: doc.user_id || data.user_id || null,
+    user_email: doc.user_email || data.user_email || null,
     session_id: doc.session_id || data.session_id || null,
     timestamp: ts ? ts.toISOString() : null,
     page: eventPage(doc),

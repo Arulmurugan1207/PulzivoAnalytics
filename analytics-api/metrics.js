@@ -38,6 +38,33 @@ function withExclusion(col, exclusion) {
   };
 }
 
+/**
+ * Events without an email but with a user_id get the user's last known email from
+ * earlier events for the same apiKey (flagged email_inferred). One read-only aggregate
+ * per request, served by the partial events_apiKey_user_email_ts index.
+ */
+async function attachKnownEmails(col, apiKey, events) {
+  const ids = [...new Set(events.filter((e) => !e.user_email && e.user_id).map((e) => e.user_id))];
+  if (!ids.length) return events;
+  try {
+    const rows = await aggregate(col, [
+      { $match: { apiKey, user_id: { $in: ids.slice(0, 500) }, user_email: { $type: 'string' } } },
+      { $sort: { user_id: 1, timestamp: -1 } },
+      { $group: { _id: '$user_id', email: { $first: '$user_email' } } },
+    ]);
+    const byId = new Map(rows.filter((r) => r.email).map((r) => [r._id, r.email]));
+    for (const e of events) {
+      if (!e.user_email && byId.has(e.user_id)) {
+        e.user_email = byId.get(e.user_id);
+        e.email_inferred = true;
+      }
+    }
+  } catch (err) {
+    // Best effort: the event list still renders without inferred emails.
+  }
+  return events;
+}
+
 async function findEvents(col, filter, options = {}) {
   let cursor = col.find(filter);
   if (options.sort) cursor = cursor.sort(options.sort);
@@ -568,7 +595,7 @@ function registerMetricRoutes(app, { db }) {
     const total = countRows[0] ? countRows[0].n : 0;
     const ids = (list) => (list || []).map((row) => row._id).filter((value) => value != null && value !== '');
     return res.json({
-      events: pageRows.map(formatHistoryEvent),
+      events: await attachKnownEmails(col, apiKey, pageRows.map(formatHistoryEvent)),
       total,
       pages: Math.max(1, Math.ceil(total / limit) || 1),
       eventTypes: ids(facet.eventTypes).sort(),
@@ -586,7 +613,7 @@ function registerMetricRoutes(app, { db }) {
     const docs = await findEvents(col, composeMatch(apiKey, req, {
       $or: [{ session_id: sessionId }, { 'data.session_id': sessionId }],
     }), { sort: { timestamp: 1, createdAt: 1 }, limit: 500 });
-    return res.json({ events: docs.map(formatHistoryEvent) });
+    return res.json({ events: await attachKnownEmails(col, apiKey, docs.map(formatHistoryEvent)) });
   }));
 
   app.get('/analytics/users/:userId/events', guarded(async (req, res, apiKey, col) => {
@@ -594,7 +621,7 @@ function registerMetricRoutes(app, { db }) {
     const docs = await findEvents(col, composeMatch(apiKey, req, {
       $or: [{ user_id: userId }, { 'data.user_id': userId }],
     }), { sort: { timestamp: -1 }, limit: 200 });
-    return res.json(docs.map(formatHistoryEvent));
+    return res.json(await attachKnownEmails(col, apiKey, docs.map(formatHistoryEvent)));
   }));
 
   app.get('/analytics/conversion-funnel', guarded(async (req, res, apiKey, col) => {

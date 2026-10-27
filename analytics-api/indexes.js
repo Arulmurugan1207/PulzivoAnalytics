@@ -15,6 +15,13 @@ const EVENT_INDEXES = [
   { key: { apiKey: 1, createdAt: 1 }, name: 'events_apiKey_createdAt' },
   { key: { apiKey: 1, receivedAt: 1 }, name: 'events_apiKey_receivedAt' },
   { key: { apiKey: 1, session_id: 1, timestamp: 1 }, name: 'events_apiKey_session_timestamp' },
+  // Last known email per user_id (Event Details "from earlier visits"). Partial: only
+  // identified rows are indexed, so it stays small.
+  {
+    key: { apiKey: 1, user_id: 1, timestamp: -1 },
+    name: 'events_apiKey_user_email_ts',
+    partialFilterExpression: { user_email: { $type: 'string' } },
+  },
 ];
 
 async function ensureEventIndexes(db) {
@@ -25,7 +32,9 @@ async function ensureEventIndexes(db) {
   const created = [];
   for (const spec of EVENT_INDEXES) {
     try {
-      await col.createIndex(spec.key, { name: spec.name });
+      await col.createIndex(spec.key, spec.partialFilterExpression
+        ? { name: spec.name, partialFilterExpression: spec.partialFilterExpression }
+        : { name: spec.name });
       created.push(spec.name);
     } catch (err) {
       console.error('[analytics-api] index create failed', spec.name, err && err.message ? err.message : err);
