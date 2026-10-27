@@ -1663,7 +1663,7 @@
             <div class="card-header">
               <h3>Core Web Vitals
                 <button class="pi pi-info-circle section-info-icon"
-                   pTooltip="Google's performance metrics affecting SEO. LCP (load speed), INP (responsiveness), CLS (visual stability)."
+                   pTooltip="Google's performance metrics affecting SEO. LCP (load speed), INP (responsiveness), CLS (visual stability), plus FCP and TTFB. Values are the 75th percentile."
                    tooltipPosition="top"></button>
               </h3>
               <span class="card-subtitle">Google performance signals</span>
@@ -1683,7 +1683,7 @@
               </div>
             } @else if (loadingStates.webVitals) {
               <div class="vitals-skeleton">
-                @for (item of [1,2,3]; track item) {
+                @for (item of [1,2,3,4,5]; track item) {
                   <div class="vital-skeleton-item">
                     <p-skeleton width="80px" height="80px" borderRadius="50%"></p-skeleton>
                     <p-skeleton width="100px" height="1.2rem" styleClass="mt-2"></p-skeleton>
@@ -1692,48 +1692,28 @@
                 }
               </div>
             } @else {
-              <div class="vitals-grid">
-                <div class="vital-item" [class]="'vital-' + webVitals.LCP.rating">
-                  <div class="vital-circle">
-                    <span class="vital-value">
-                      @if (webVitals.LCP.avg !== null) { {{ (webVitals.LCP.avg / 1000) | number:'1.1-1' }}s } @else { — }
-                    </span>
-                  </div>
-                  <div class="vital-info">
-                    <span class="vital-name">LCP</span>
-                    <span class="vital-desc">Largest Contentful Paint</span>
-                    <span class="vital-rating-badge">{{ webVitals.LCP.rating === 'no-data' ? 'No data' : webVitals.LCP.rating }}</span>
-                    <span class="vital-threshold">&lt; 2.5s is good</span>
-                  </div>
+              @let vcards = vitalCards;
+              @if (!hasVitals(vcards)) {
+                <div class="vitals-empty">
+                  <i class="pi pi-gauge"></i>
+                  <p>No Web Vitals data for this period yet.</p>
+                  <span>Metrics appear once real visitors load your pages with the Pulzivo tracker.</span>
                 </div>
-                @let rv = responsivenessVital;
-                <div class="vital-item" [class]="'vital-' + rv.metric.rating">
-                  <div class="vital-circle">
-                    <span class="vital-value">
-                      @if (rv.metric.avg !== null) { {{ rv.metric.avg | number:'1.0-0' }}ms } @else { — }
-                    </span>
-                  </div>
-                  <div class="vital-info">
-                    <span class="vital-name">{{ rv.name }}</span>
-                    <span class="vital-desc">{{ rv.desc }}</span>
-                    <span class="vital-rating-badge">{{ rv.metric.rating === 'no-data' ? 'No data' : rv.metric.rating }}</span>
-                    <span class="vital-threshold">{{ rv.threshold }}</span>
-                  </div>
+              } @else {
+                <div class="vitals-grid vitals-grid-5">
+                  @for (c of vcards; track c.key) {
+                    <div class="vital-item" [class]="'vital-' + c.rating" [title]="c.count ? ('p75 of ' + c.count + ' samples') : 'No samples'">
+                      <div class="vital-circle"><span class="vital-value">{{ c.value }}</span></div>
+                      <div class="vital-info">
+                        <span class="vital-name">{{ c.name }}</span>
+                        <span class="vital-desc">{{ c.desc }}</span>
+                        <span class="vital-rating-badge">{{ c.ratingLabel }}</span>
+                        <span class="vital-threshold">{{ c.threshold }}</span>
+                      </div>
+                    </div>
+                  }
                 </div>
-                <div class="vital-item" [class]="'vital-' + webVitals.CLS.rating">
-                  <div class="vital-circle">
-                    <span class="vital-value">
-                      @if (webVitals.CLS.avg !== null) { {{ webVitals.CLS.avg | number:'1.2-2' }} } @else { — }
-                    </span>
-                  </div>
-                  <div class="vital-info">
-                    <span class="vital-name">CLS</span>
-                    <span class="vital-desc">Cumulative Layout Shift</span>
-                    <span class="vital-rating-badge">{{ webVitals.CLS.rating === 'no-data' ? 'No data' : webVitals.CLS.rating }}</span>
-                    <span class="vital-threshold">&lt; 0.1 is good</span>
-                  </div>
-                </div>
-              </div>
+              }
             }
           </div>
         </div>

@@ -72,9 +72,12 @@ export class AnalyticsAPIService {
     );
   }
 
-  getUserEvents(userId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/analytics/users/${userId}/events`).pipe(
-      catchError((error: HttpErrorResponse) => this.failMetricRead(error))
+  /** All-time activity for one user (newest first, max 200). */
+  getUserEvents(userId: string): Observable<any[]> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey || !userId) return of([]);
+    return this.http.get<any>(`${this.apiUrl}/analytics/users/${encodeURIComponent(userId)}/events?apiKey=${selectedApiKey}`).pipe(
+      map(res => Array.isArray(res) ? res : (res?.events ?? []))
     );
   }
 

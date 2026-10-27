@@ -23,7 +23,8 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 import { describeVisitSource } from './visit-source';
-import { buildEventDetail, EventDetailView } from './event-detail';
+import { groupUserHistory, UserHistoryView } from './user-history';
+import { buildEventDetail, EventDetailView, streamTime, streamTimeTitle } from './event-detail';
 
 interface UserColor { bg: string; text: string; border: string; }
 
@@ -676,6 +677,9 @@ export class DashboardEvents implements OnInit, OnDestroy {
     return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
+  streamTime(ts: string): string { return streamTime(ts); }
+  streamTimeTitle(ts: string): string { return streamTimeTitle(ts); }
+
   formatTime(ts: string): string {
     const d = new Date(ts);
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -787,6 +791,66 @@ export class DashboardEvents implements OnInit, OnDestroy {
   /** "How they got here": crawler, referrer host + UTMs, Direct, or Not recorded. */
   getVisitSource(): string {
     return describeVisitSource(this.selectedEvent, this.sessionEvents);
+  }
+
+  // ── User history (read-only) ──
+  showUserHistory = false;
+  loadingUserHistory = false;
+  userHistoryError = false;
+  userHistoryUserId = '';
+  userHistoryEmail: string | null = null;
+  userHistoryEmailInferred = false;
+  userHistory: UserHistoryView<HistoryEvent> | null = null;
+  private userHistorySub?: Subscription;
+
+  openUserHistory(userId: string, email: string | null, emailInferred: boolean): void {
+    if (!userId) return;
+    this.userHistoryUserId = userId;
+    this.userHistoryEmail = email || null;
+    this.userHistoryEmailInferred = !!email && !!emailInferred;
+    this.closeEventDetail();
+    this.showUserHistory = true;
+    this.loadUserHistory();
+  }
+
+  loadUserHistory(): void {
+    this.userHistorySub?.unsubscribe();
+    this.loadingUserHistory = true;
+    this.userHistoryError = false;
+    this.userHistory = null;
+    this.cdr.markForCheck();
+    const uid = this.userHistoryUserId;
+    this.userHistorySub = this.analyticsAPI.getUserEvents(uid).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (events) => {
+        if (uid !== this.userHistoryUserId) return;
+        this.userHistory = groupUserHistory(events as HistoryEvent[]);
+        // Prefer an email the API attached if we didn't have one.
+        if (!this.userHistoryEmail && this.userHistory.email) {
+          this.userHistoryEmail = this.userHistory.email;
+          this.userHistoryEmailInferred = this.userHistory.emailInferred;
+        }
+        this.loadingUserHistory = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingUserHistory = false;
+        this.userHistoryError = true;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  openFromUserHistory(evt: HistoryEvent): void {
+    const email = evt.user_email ? null : this.userHistoryEmail;
+    this.closeUserHistory();
+    this.openEventDetail(email ? { ...evt, user_email: email, email_inferred: true } : evt);
+  }
+
+  closeUserHistory(): void {
+    this.userHistorySub?.unsubscribe();
+    this.showUserHistory = false;
+    this.loadingUserHistory = false;
+    this.cdr.markForCheck();
   }
 
   closeEventDetail(): void {

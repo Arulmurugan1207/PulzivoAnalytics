@@ -52,3 +52,16 @@ test('helpers', () => {
   assert.equal(isEmpty('null'), true);
   assert.equal(isEmpty(0), false);
 });
+
+test('stream time: seconds, date only when not today, full title', async () => {
+  const { streamTime, streamTimeTitle } = await import('./event-detail.ts');
+  const now = new Date(2026, 9, 27, 17, 0, 0).getTime();
+  const today = new Date(2026, 9, 27, 15, 24, 19).toISOString();
+  const older = new Date(2026, 9, 20, 9, 5, 7).toISOString();
+  const lastYear = new Date(2025, 0, 2, 9, 5, 7).toISOString();
+  assert.match(streamTime(today, now, 'en-US'), /^3:24:19\sPM$/);
+  assert.match(streamTime(older, now, 'en-US'), /^Oct 20, 9:05:07\sAM$/);
+  assert.match(streamTime(lastYear, now, 'en-US'), /2025/);
+  assert.equal(streamTime('bad', now), '—');
+  assert.match(streamTimeTitle(today, 'en-US'), /October 27, 2026.*3:24:19\sPM\s\S+/);
+});

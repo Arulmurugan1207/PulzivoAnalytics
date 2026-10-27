@@ -1659,3 +1659,54 @@
 .tl-item { cursor: pointer; }
 .tl-time { font-variant-numeric: tabular-nums; }
 .tl-raw { display: block; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.7rem; color: #94a3b8; }
+
+/* ─── Event Stream "Who" column ─── */
+.who-cell {
+  display: inline-flex; align-items: center; gap: 0.35rem; max-width: 240px; min-width: 0;
+  font-size: 0.8rem; color: #0f172a;
+  .pi { color: #2a6df6; font-size: 0.75rem; flex-shrink: 0; }
+}
+.who-cell-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.who-cell-hint {
+  flex-shrink: 0; font-size: 0.65rem; color: #92400e; background: #fef3c7;
+  border-radius: 8px; padding: 0.05rem 0.4rem; white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .who-cell { max-width: 150px; }
+  .who-cell-hint { display: none; }
+}
+@media (max-width: 640px) {
+  .history-table .who-col { display: none; }
+}
+
+/* ─── "View all activity" link + User history dialog ─── */
+.who-history-link {
+  margin-top: 0.6rem; align-self: flex-start; display: inline-flex; align-items: center; gap: 0.4rem;
+  background: none; border: none; padding: 0; cursor: pointer; color: #2a6df6; font-size: 0.82rem; font-weight: 600;
+  &:hover { text-decoration: underline; }
+  .pi { font-size: 0.75rem; }
+}
+.uh-head { display: flex; align-items: center; gap: 0.75rem; padding-bottom: 0.9rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.9rem; }
+.uh-head-main { min-width: 0; }
+.uh-title { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-weight: 600; word-break: break-all; }
+.uh-sub { font-size: 0.75rem; color: #64748b; word-break: break-all; }
+.uh-state { padding: 2rem 1rem; text-align: center; color: #64748b; display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap;
+  &.error { color: #b91c1c; } }
+.uh-retry { background: none; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.15rem 0.6rem; cursor: pointer; }
+.uh-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-bottom: 1rem;
+  > div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.6rem 0.75rem; display: flex; flex-direction: column; min-width: 0; }
+  @media (max-width: 640px) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.uh-stat-val { font-size: 1.15rem; font-weight: 700; color: #0f172a; &.sm { font-size: 0.85rem; } }
+.uh-stat-label { font-size: 0.72rem; color: #64748b; }
+.uh-session { border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 0.75rem; overflow: hidden; }
+.uh-session-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; padding: 0.5rem 0.75rem; background: #f8fafc; font-size: 0.8rem; color: #334155; font-weight: 600; }
+.uh-count { margin-left: auto; color: #64748b; font-weight: 500; }
+.uh-sid { font-size: 0.72rem; color: #94a3b8; font-weight: 400; }
+.uh-dash { color: #94a3b8; }
+.uh-event { display: grid; grid-template-columns: 18px minmax(0, 11rem) minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; width: 100%;
+  padding: 0.45rem 0.75rem; border: none; border-top: 1px solid #f1f5f9; background: #fff; cursor: pointer; text-align: left; font-size: 0.8rem;
+  &:hover { background: #f1f5f9; }
+  @media (max-width: 640px) { grid-template-columns: 18px minmax(0, 1fr) auto; .uh-ev-page { display: none; } } }
+.uh-ev-name { font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uh-ev-page { color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uh-ev-time { color: #64748b; white-space: nowrap; font-size: 0.75rem; }

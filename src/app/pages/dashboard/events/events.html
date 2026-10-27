@@ -344,7 +344,7 @@
               <th>Time</th>
               <th>Event</th>
               <th>Page</th>
-              <th>User</th>
+              <th class="who-col">Who</th>
               <th>Country</th>
               <th>Timezone</th>
               <th>Device</th>
@@ -353,7 +353,7 @@
           <tbody>
             @for (evt of historyEvents; track evt.id) {
               <tr class="clickable-row" (click)="openEventDetail(evt)">
-                <td class="time-cell">{{ formatTime(evt.timestamp) }}</td>
+                <td class="time-cell" [title]="streamTimeTitle(evt.timestamp)">{{ streamTime(evt.timestamp) }}</td>
                 <td>
                   <div class="event-name-cell">
                     <i [class]="eventIcon(evt.event_name) + ' event-row-icon'" [style.color]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'"></i>
@@ -365,18 +365,24 @@
                   </div>
                 </td>
                 <td class="page-cell" [title]="evt.page || ''">{{ evt.page || '—' }}</td>
-                <td class="user-cell">
-                  @if (evt.user_id) {
+                <td class="user-cell who-col">
+                  @if (evt.user_email) {
+                    <span class="who-cell" [title]="evt.email_inferred ? 'Email from earlier visits by this user' : evt.user_email">
+                      <i class="pi pi-user"></i>
+                      <span class="who-cell-email">{{ evt.user_email }}</span>
+                      @if (evt.email_inferred) { <span class="who-cell-hint">earlier visits</span> }
+                    </span>
+                  } @else if (evt.user_id) {
                     <span class="user-chip"
                       [style.background]="userColor(evt.user_id).bg"
                       [style.color]="userColor(evt.user_id).text"
                       [style.border-color]="userColor(evt.user_id).border"
                       [title]="evt.user_id">
                       <span class="user-avatar" [style.background]="userColor(evt.user_id).text" [style.color]="'#fff'">{{ userInitials(evt.user_id) }}</span>
-                      {{ evt.user_id }}
+                      {{ evt.user_id.slice(0, 8) }}
                     </span>
                   } @else {
-                    <span class="user-chip empty">—</span>
+                    <span class="user-chip empty">Anonymous</span>
                   }
                 </td>
                 <td class="country-cell">{{ evt.country || evt.data?.country || '—' }}</td>
@@ -392,7 +398,7 @@
             }
             @if (historyEvents.length === 0) {
               <tr>
-                <td colspan="6" class="empty-row">
+                <td colspan="7" class="empty-row">
                   <i class="pi pi-inbox" style="font-size:1.8rem;color:#94a3b8;display:block;margin-bottom:0.5rem"></i>
                   No events match your filters
                 </td>
@@ -519,6 +525,11 @@
                 <span class="who-meta-item"><span class="wm-label">First visit</span>{{ dv.who.firstVisit }}</span>
               }
             </div>
+            @if (dv.who.userId) {
+              <button class="who-history-link" (click)="openUserHistory(dv.who.userId, dv.who.email, dv.who.emailInferred)">
+                <i class="pi pi-history"></i> View all activity for this user <i class="pi pi-arrow-right"></i>
+              </button>
+            }
           </div>
         </div>
 
@@ -788,6 +799,70 @@
 
     <ng-template #footer>
       <button pButton label="Close" icon="pi pi-times" class="p-button-outlined" (click)="closeEventDetail()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- ══════════════════ USER HISTORY (read-only) ══════════════════ -->
+  <p-dialog
+    [(visible)]="showUserHistory"
+    [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '820px', maxWidth: '90vw' }"
+    [contentStyle]="{ maxHeight: '78vh', overflowY: 'auto' }"
+    [breakpoints]="{ '640px': '100vw' }"
+    styleClass="event-detail-dialog user-history-dialog"
+    header="User activity"
+    (onHide)="closeUserHistory()">
+    <div class="uh-head">
+      <div class="who-avatar" [class.known]="userHistoryEmail"><i [class]="userHistoryEmail ? 'pi pi-user' : 'pi pi-question'"></i></div>
+      <div class="uh-head-main">
+        <div class="uh-title">
+          @if (userHistoryEmail) {
+            <span class="who-email">{{ userHistoryEmail }}</span>
+            @if (userHistoryEmailInferred) { <span class="who-inferred">from earlier visits</span> }
+          } @else {
+            <span class="who-anon">Anonymous visitor</span>
+          }
+        </div>
+        <div class="uh-sub mono">{{ userHistoryUserId }}</div>
+      </div>
+    </div>
+
+    @if (loadingUserHistory) {
+      <div class="uh-state"><i class="pi pi-spin pi-spinner"></i> Loading activity…</div>
+    } @else if (userHistoryError) {
+      <div class="uh-state error"><i class="pi pi-exclamation-triangle"></i> Couldn't load this user's activity. <button class="uh-retry" (click)="loadUserHistory()">Retry</button></div>
+    } @else if (!userHistory || userHistory.total === 0) {
+      <div class="uh-state"><i class="pi pi-inbox"></i> No events found for this user.</div>
+    } @else {
+      @let uh = userHistory;
+      <div class="uh-stats">
+        <div><span class="uh-stat-val">{{ uh.total }}{{ uh.truncated ? '+' : '' }}</span><span class="uh-stat-label">Events{{ uh.truncated ? ' (latest 200)' : '' }}</span></div>
+        <div><span class="uh-stat-val">{{ uh.sessionCount }}</span><span class="uh-stat-label">Sessions</span></div>
+        <div [title]="streamTimeTitle(uh.firstSeen || '')"><span class="uh-stat-val sm">{{ streamTime(uh.firstSeen || '') }}</span><span class="uh-stat-label">First seen</span></div>
+        <div [title]="streamTimeTitle(uh.lastSeen || '')"><span class="uh-stat-val sm">{{ streamTime(uh.lastSeen || '') }}</span><span class="uh-stat-label">Last seen</span></div>
+      </div>
+      @for (g of uh.sessions; track $index) {
+        <div class="uh-session">
+          <div class="uh-session-head">
+            <i class="pi pi-clock"></i>
+            <span [title]="streamTimeTitle(g.start)">{{ streamTime(g.start) }}</span>
+            @if (g.end !== g.start) { <span class="uh-dash">→</span><span [title]="streamTimeTitle(g.end)">{{ streamTime(g.end) }}</span> }
+            <span class="uh-count">{{ g.events.length }} event{{ g.events.length === 1 ? '' : 's' }}</span>
+            @if (g.sessionId) { <span class="uh-sid mono" [title]="g.sessionId">{{ g.sessionId.slice(0, 10) }}</span> }
+          </div>
+          @for (evt of g.events; track evt.id) {
+            <button class="uh-event" (click)="openFromUserHistory(evt)">
+              <i [class]="eventIcon(evt.event_name)" [style.color]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'"></i>
+              <span class="uh-ev-name">{{ eventFriendlyLabel(evt.event_name) }}</span>
+              <span class="uh-ev-page" [title]="evt.page || ''">{{ evt.page || '' }}</span>
+              <span class="uh-ev-time" [title]="streamTimeTitle(evt.timestamp)">{{ streamTime(evt.timestamp) }}</span>
+            </button>
+          }
+        </div>
+      }
+    }
+    <ng-template #footer>
+      <button pButton label="Close" icon="pi pi-times" class="p-button-outlined" (click)="closeUserHistory()"></button>
     </ng-template>
   </p-dialog>
 

@@ -222,3 +222,29 @@ export function buildEventDetail(evt: DetailEvent | null | undefined, visitSourc
 
   return { who, event, page, source, device, custom };
 }
+
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Event Stream time: viewer's locale with seconds; date added when not today. */
+export function streamTime(iso: string | null | undefined, now: number = Date.now(), locale?: string): string {
+  const t = iso ? Date.parse(iso) : NaN;
+  if (Number.isNaN(t)) return '—';
+  const d = new Date(t);
+  const time = d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  if (sameDay(d, new Date(now))) return time;
+  const sameYear = d.getFullYear() === new Date(now).getFullYear();
+  const date = d.toLocaleDateString(locale, sameYear ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' });
+  return `${date}, ${time}`;
+}
+
+/** Hover text: full date, time and timezone. */
+export function streamTimeTitle(iso: string | null | undefined, locale?: string): string {
+  const t = iso ? Date.parse(iso) : NaN;
+  if (Number.isNaN(t)) return '';
+  return new Date(t).toLocaleString(locale, {
+    weekday: 'short', year: 'numeric', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short',
+  });
+}
