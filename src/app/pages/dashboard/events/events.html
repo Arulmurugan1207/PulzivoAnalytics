@@ -605,25 +605,16 @@
             <p>No events found for this session.</p>
           </div>
         } @else {
-          <!-- Session summary bar -->
-          <div class="session-summary">
-            <div class="session-summary-item">
-              <span class="ss-label">Session ID</span>
-              <span class="ss-value mono">{{ selectedEvent.session_id }}</span>
+          <!-- Session summary line (unknown parts hidden) -->
+          @if (timelineView) {
+            <div class="stl-summary">
+              <i class="pi pi-user"></i>
+              @for (part of timelineView.summary; track $index) {
+                @if ($index > 0) { <span class="stl-dot">·</span> }
+                <span>{{ part }}</span>
+              }
             </div>
-            <div class="session-summary-item">
-              <span class="ss-label">Events</span>
-              <span class="ss-value">{{ sessionEvents.length }}</span>
-            </div>
-            <div class="session-summary-item">
-              <span class="ss-label">Duration</span>
-              <span class="ss-value">{{ sessionDuration(sessionEvents) }}</span>
-            </div>
-            <div class="session-summary-item">
-              <span class="ss-label">Device</span>
-              <span class="ss-value">{{ sessionEvents[0]?.device || '—' }}</span>
-            </div>
-          </div>
+          }
 
           <!-- Session Insight Summary (collapsible) -->
           @if (sessionSummary) {
@@ -756,42 +747,55 @@
             }
           }
 
-          <!-- Visual scrubber bar -->
-          <div class="timeline-scrubber">
-            @for (evt of sessionEvents; track evt.id) {
-              <button class="scrubber-dot"
-                [class.active]="evt.id === timelineActiveId"
-                [style.left.%]="timelineOffset(evt, sessionEvents)"
-                [style.background]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'"
-                (click)="jumpToTimelineEvent(evt)"
-                [title]="eventFriendlyLabel(evt.event_name) + ' — ' + (evt.page || '')">
-              </button>
-            }
-            <div class="scrubber-track"></div>
-          </div>
-
-          <!-- Event list -->
-          <div class="timeline-list">
-            @for (evt of sessionEvents; track evt.id; let i = $index) {
-              <div class="tl-item" [class.tl-active]="evt.id === timelineActiveId" (click)="viewTimelineEvent(evt)"
-                   [title]="'Open ' + eventFriendlyLabel(evt.event_name) + ' details'">
-                <div class="tl-connector">
-                  <div class="tl-dot" [style.background]="getCategoryForEvent(evt.event_name)?.color || '#94a3b8'">
-                    <i [class]="eventIcon(evt.event_name)" style="font-size:0.55rem;color:#fff"></i>
+          <!-- Journey grouped by page -->
+          @if (timelineView) {
+            <div class="stl-toolbar">
+              @if (timelineView.technicalCount) {
+                <button class="stl-tech-toggle" (click)="toggleTechnicalEvents()">
+                  <i [class]="showTechnicalEvents ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+                  {{ showTechnicalEvents ? 'Hide' : 'Show' }} technical events ({{ timelineView.technicalCount }})
+                </button>
+              }
+            </div>
+            <div class="stl-journey">
+              @for (pg of timelineView.pages; track pg.key) {
+                @if (pg.idleBefore) { <div class="stl-idle"><span>{{ pg.idleBefore }}</span></div> }
+                <section class="stl-page">
+                  <div class="stl-page-head" [class.stl-active]="pg.pageEvent && pg.pageEvent.id === timelineActiveId"
+                       [class.clickable]="pg.pageEvent" (click)="pg.pageEvent && viewTimelineEvent(pg.pageEvent)"
+                       [title]="pg.pageEvent ? 'Open page view details' : ''">
+                    <span class="stl-icon kind-navigation"><i class="pi pi-file"></i></span>
+                    <div class="stl-page-main">
+                      <div class="stl-page-title">
+                        <span class="stl-title-text">{{ pg.title }}</span>
+                        @if (pg.landed) { <span class="stl-badge landed">Landed here</span> }
+                        @if (pg.left) { <span class="stl-badge left">Left from here</span> }
+                      </div>
+                      <div class="stl-page-meta">
+                        @if (pg.path && pg.path !== pg.title) { <span class="mono stl-path" [title]="pg.path">{{ pg.path }}</span> }
+                        @if (pg.timeSpent) { <span><i class="pi pi-clock"></i> {{ pg.timeSpent }}</span> }
+                        @if (pg.maxScroll !== null) { <span><i class="pi pi-arrows-v"></i> {{ pg.maxScroll }}% scrolled</span> }
+                      </div>
+                    </div>
+                    @if (pg.gapLabel) { <span class="stl-gap" [title]="pg.start">{{ pg.gapLabel }}</span> } @else { <span class="stl-gap" [title]="pg.start">{{ pg.start }}</span> }
                   </div>
-                  @if (i < sessionEvents.length - 1) { <div class="tl-line"></div> }
-                </div>
-                <div class="tl-body">
-                  <div class="tl-header">
-                    <span class="tl-name">{{ eventFriendlyLabel(evt.event_name) }}</span>
-                    <span class="tl-page">{{ evt.page || '—' }}</span>
-                    <span class="tl-time" [title]="evt.timestamp">{{ formatClock(evt.timestamp) }}</span>
-                  </div>
-                  <span class="tl-raw">{{ evt.event_name }}</span>
-                </div>
-              </div>
-            }
-          </div>
+                  @if (pg.steps.length) {
+                    <div class="stl-steps">
+                      @for (st of pg.steps; track st.event.id) {
+                        @if (st.idleBefore) { <div class="stl-idle"><span>{{ st.idleBefore }}</span></div> }
+                        <button class="stl-step" [class]="'stl-step kind-' + st.kind" [class.stl-active]="st.event.id === timelineActiveId"
+                                (click)="viewTimelineEvent(st.event)" [title]="'Open details · ' + st.event.event_name">
+                          <span class="stl-icon" [class]="'stl-icon kind-' + st.kind"><i [class]="st.icon"></i></span>
+                          <span class="stl-step-label">{{ st.label }}</span>
+                          <span class="stl-gap" [title]="st.time">{{ st.gapLabel || st.time }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </section>
+              }
+            </div>
+          }
         }
       </div>
       }

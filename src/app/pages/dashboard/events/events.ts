@@ -23,6 +23,7 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 import { describeVisitSource } from './visit-source';
+import { buildSessionTimeline, sourcePhrase, SessionTimelineView } from './session-timeline';
 import { groupUserHistory, UserHistoryView } from './user-history';
 import { buildEventDetail, EventDetailView, streamTime, streamTimeTitle } from './event-detail';
 
@@ -742,6 +743,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.sessionEvents = [];
     this.timelineActiveId = event.id;
     this.sessionSummary = null;
+    this.timelineView = null;
     this.showTimelineSummary = false;
     this.showEventDetail = true;
     this.showRawData = false;
@@ -860,6 +862,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.copiedEventData = false;
     this.sessionEvents = [];
     this.sessionSummary = null;
+    this.timelineView = null;
     this.showTimelineSummary = false;
     this.loadingTimeline = false;
     this.modalTab = 'details';
@@ -927,7 +930,33 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
+  // ── Session Timeline (grouped by page) ──
+  timelineView: SessionTimelineView<HistoryEvent> | null = null;
+  showTechnicalEvents = false;
+
+  rebuildTimeline(): void {
+    this.timelineView = this.sessionEvents.length
+      ? buildSessionTimeline(this.sessionEvents, {
+          showTechnical: this.showTechnicalEvents,
+          source: sourcePhrase(this.selectedEvent ? this.getVisitSource() : ''),
+          formatTime: (iso) => this.formatFullTime(iso),
+        })
+      : null;
+  }
+
+  toggleTechnicalEvents(): void {
+    this.showTechnicalEvents = !this.showTechnicalEvents;
+    this.rebuildTimeline();
+    this.cdr.markForCheck();
+  }
+
+  private formatFullTime(iso: string): string {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', timeZoneName: 'short' });
+  }
+
   private buildSessionSummary(): void {
+    this.rebuildTimeline();
     const evts = this.sessionEvents;
     if (!evts.length) { this.sessionSummary = null; return; }
 
