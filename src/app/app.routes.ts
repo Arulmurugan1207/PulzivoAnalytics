@@ -1,18 +1,8 @@
 import { Routes } from '@angular/router';
 import { AuthGuard, guestGuard } from './guards/auth.guard';
 
-// Public pages — eagerly loaded for fast navigation and better SEO
+// Home is eager (landing page); other public pages are lazy-loaded to keep the initial bundle small
 import { Home } from './pages/home/home';
-import { Pricing } from './pages/pricing/pricing';
-import { Docs } from './pages/docs/docs';
-import { Features } from './pages/features/features';
-import { WhyPulzivo } from './pages/why-pulzivo/why-pulzivo';
-import { UseCases } from './pages/use-cases/use-cases';
-import { Blog } from './pages/blog/blog';
-import { Contact } from './pages/contact/contact';
-import { Privacy } from './pages/privacy/privacy';
-import { Terms } from './pages/terms/terms';
-import { ResetPassword } from './pages/reset-password/reset-password';
 
 export const routes: Routes = [
   {
@@ -25,55 +15,55 @@ export const routes: Routes = [
     path: 'pricing',
     title: 'Pricing — Free Plan & Paid Tiers | Pulzivo Analytics',
     data: { description: 'Pulzivo pricing: free forever plan with 10,000 events/month, plus paid tiers for higher volume. No credit card required, cookieless and GDPR compliant.' },
-    component: Pricing
+    loadComponent: () => import('./pages/pricing/pricing').then(m => m.Pricing)
   },
   {
     path: 'docs',
     title: 'Documentation — Install & Track Events | Pulzivo Analytics',
     data: { description: 'Install Pulzivo with one script tag, then track page views, clicks, custom events and sessions. Setup guides, API reference and FAQs for developers.' },
-    component: Docs
+    loadComponent: () => import('./pages/docs/docs').then(m => m.Docs)
   },
   {
     path: 'features',
     title: 'Features — Cookieless Auto-Tracking SDK | Pulzivo Analytics',
     data: { description: 'Auto page views, click and scroll tracking, custom events, UTM attribution, funnels and real-time reports — in an analytics SDK of about 9KB gzip.' },
-    component: Features
+    loadComponent: () => import('./pages/features/features').then(m => m.Features)
   },
   {
     path: 'why-pulzivo',
     title: 'Why Pulzivo — A Google Analytics Alternative | Pulzivo Analytics',
     data: { description: 'How Pulzivo compares with Google Analytics and other tools: privacy-first, no cookies or personal data, about 9KB gzip, zero configuration, free to start.' },
-    component: WhyPulzivo
+    loadComponent: () => import('./pages/why-pulzivo/why-pulzivo').then(m => m.WhyPulzivo)
   },
   {
     path: 'use-cases',
     title: 'Use Cases — Marketing Sites, SaaS & Apps | Pulzivo Analytics',
     data: { description: 'See how teams use Pulzivo to measure marketing sites, SaaS products and web apps with one privacy-first analytics script and custom events.' },
-    component: UseCases
+    loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
   },
   {
     path: 'blog',
     title: 'Blog | Pulzivo Analytics',
     data: { description: 'Product updates and announcements from Pulzivo Analytics.', robots: 'noindex, follow' },
-    component: Blog
+    loadComponent: () => import('./pages/blog/blog').then(m => m.Blog)
   },
   {
     path: 'contact',
     title: 'Contact Us — Support & Sales | Pulzivo Analytics',
     data: { description: 'Questions about Pulzivo Analytics? Contact support or sales at support@pulzivo.com, or browse common questions about setup, privacy and pricing.' },
-    component: Contact
+    loadComponent: () => import('./pages/contact/contact').then(m => m.Contact)
   },
   {
     path: 'privacy',
     title: 'Privacy Policy | Pulzivo Analytics',
     data: { description: 'How Pulzivo Analytics handles data: cookieless tracking, no personal data collected from your visitors, and how account data is stored and protected.' },
-    component: Privacy
+    loadComponent: () => import('./pages/privacy/privacy').then(m => m.Privacy)
   },
   {
     path: 'terms',
     title: 'Terms of Service | Pulzivo Analytics',
     data: { description: 'The terms of service governing use of the Pulzivo Analytics website, tracking SDK, dashboard and paid plans.' },
-    component: Terms
+    loadComponent: () => import('./pages/terms/terms').then(m => m.Terms)
   },
   {
     path: 'login',
@@ -107,7 +97,7 @@ export const routes: Routes = [
     path: 'reset-password/:token',
     title: 'Reset Password | Pulzivo Analytics',
     data: { description: 'Reset your Pulzivo Analytics account password.', robots: 'noindex, nofollow' },
-    component: ResetPassword
+    loadComponent: () => import('./pages/reset-password/reset-password').then(m => m.ResetPassword)
   },
   // Public demo — same shell+components as dashboard, no auth, mock data via DemoService
   {

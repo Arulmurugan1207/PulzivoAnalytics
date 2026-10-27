@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { buildVitalCards, hasAnyVitals, VitalCard } from './web-vitals-view';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -1090,6 +1091,9 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
   }
+
+  get vitalCards(): VitalCard[] { return buildVitalCards(this.webVitals as any); }
+  hasVitals(cards: VitalCard[]): boolean { return hasAnyVitals(cards); }
 
   /** INP replaced FID as a Core Web Vital; show FID only for sites with old data. */
   get responsivenessVital(): { name: string; desc: string; threshold: string; metric: WebVitalMetric } {
@@ -2309,40 +2313,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
       { label: '2-5m', percentage: 22, count: Math.floor(total * 0.22) },
       { label: '5m+', percentage: 15, count: Math.floor(total * 0.15) }
     ];
-  }
-
-  getPerformanceData(): { avgLoad: number; lcp: number; fid: number; cls: number } {
-    return {
-      avgLoad: 1250,
-      lcp: 2.1,
-      fid: 85,
-      cls: 0.08
-    };
-  }
-
-  getPerformanceGrade(): string {
-    const perf = this.getPerformanceData();
-    if (perf.lcp <= 2.5 && perf.fid <= 100 && perf.cls <= 0.1) return 'good';
-    if (perf.lcp <= 4.0 && perf.fid <= 300 && perf.cls <= 0.25) return 'fair';
-    return 'poor';
-  }
-
-  getPerformanceMetric(metric: 'lcp' | 'fid' | 'cls'): number {
-    const perf = this.getPerformanceData();
-    const thresholds = {
-      lcp: { good: 2.5, poor: 4.0 },
-      fid: { good: 100, poor: 300 },
-      cls: { good: 0.1, poor: 0.25 }
-    };
-    
-    const value = perf[metric];
-    const threshold = thresholds[metric];
-    
-    if (metric === 'cls') {
-      return Math.min((value / threshold.poor) * 100, 100);
-    } else {
-      return Math.min((value / threshold.poor) * 100, 100);
-    }
   }
 
   getCustomEventsData(): { total: number; types: number } {
