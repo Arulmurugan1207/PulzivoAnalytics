@@ -12,7 +12,7 @@
     "test:copy": "node --test copy-honesty.spec.js",
     "test:tracker": "node --test tests/tracker.spec.js",
     "test:analytics-api": "npm test --prefix analytics-api",
-    "test:units": "node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts src/app/auth/session.logic.test.ts src/app/pages/dashboard/events/visit-source.test.ts src/app/components/owner-exclusion/owner-exclusion.logic.test.ts src/app/components/first-event-onboarding/first-event.logic.test.ts",
+    "test:units": "node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts src/app/auth/session.logic.test.ts src/app/pages/dashboard/events/visit-source.test.ts src/app/pages/dashboard/events/event-detail.test.ts src/app/components/owner-exclusion/owner-exclusion.logic.test.ts src/app/components/first-event-onboarding/first-event.logic.test.ts",
     "minify:analytics": "terser public/pulzivo-analytics.js -o public/pulzivo-analytics.min.js --compress --mangle"
   },
   "prettier": {

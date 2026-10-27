@@ -560,8 +560,8 @@
       if (page.length > 1) page = page.replace(/\/+$/, '');
       eventData.page = redact(page) || '/';
     }
-    // Redact emails from every string field (and custom params); identify() is the only
-    // way to attach an email, and that travels as user_email.
+    // Redact incidental emails from every string field (and custom params); only the
+    // email set via setUserEmail()/identify() is sent, as user_email.
     [eventData, eventData.custom_parameters].forEach((obj) => {
       if (obj) Object.keys(obj).forEach((k) => {
         if (typeof obj[k] === 'string' && obj[k].indexOf('@') !== -1) obj[k] = redact(obj[k]);
@@ -570,6 +570,8 @@
     ['href', 'url', 'form_action'].forEach((k) => {
       if (eventData[k]) eventData[k] = cleanUrl(eventData[k]);
     });
+    // An email the site set via setUserEmail()/identify() is sent as-is (dashboard "Who").
+    if (userEmail) eventData.user_email = userEmail;
 
     // Store first visit
     if (isLocalStorageAvailable()) {

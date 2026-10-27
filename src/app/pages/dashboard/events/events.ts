@@ -23,6 +23,7 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 import { describeVisitSource } from './visit-source';
+import { buildEventDetail, EventDetailView } from './event-detail';
 
 interface UserColor { bg: string; text: string; border: string; }
 
@@ -50,6 +51,9 @@ interface HistoryEvent {
   id: string;
   event_name: string;
   user_id: string;
+  user_email?: string | null;
+  email_inferred?: boolean;
+  flag?: string | null;
   session_id: string | null;
   timestamp: string;
   page: string | null;
@@ -226,6 +230,10 @@ export class DashboardEvents implements OnInit, OnDestroy {
   showEventDetail = false;
   selectedEvent: HistoryEvent | null = null;
   modalTab: 'details' | 'timeline' = 'details';
+  detailView: EventDetailView | null = null;
+  showRawData = false;
+  copiedKey: string | null = null;
+  private copiedKeyTimer: any;
 
   // Session Timeline
   sessionEvents: HistoryEvent[] = [];
@@ -732,8 +740,48 @@ export class DashboardEvents implements OnInit, OnDestroy {
     this.sessionSummary = null;
     this.showTimelineSummary = false;
     this.showEventDetail = true;
+    this.showRawData = false;
+    this.refreshDetail();
     // Load the session up front so "How they got here" can use its first touch.
     if (event.session_id) this.loadSessionTimeline();
+  }
+
+  /** Rebuild the grouped Details view (after the event or its session changes). */
+  refreshDetail(): void {
+    this.detailView = buildEventDetail(this.selectedEvent, this.selectedEvent ? this.getVisitSource() : '');
+    this.cdr.markForCheck();
+  }
+
+  /** Timeline click: show that event in the Details tab (same session, no reload). */
+  viewTimelineEvent(evt: HistoryEvent): void {
+    const prev = this.selectedEvent;
+    this.selectedEvent = {
+      ...evt,
+      // The session endpoint may lack the email the list row had; keep the known one.
+      user_email: evt.user_email || (prev && prev.user_id === evt.user_id ? prev.user_email : null),
+      email_inferred: evt.user_email ? evt.email_inferred : prev?.email_inferred,
+    };
+    this.timelineActiveId = evt.id;
+    this.modalTab = 'details';
+    this.showRawData = false;
+    this.refreshDetail();
+  }
+
+  copyText(key: string, text: string): void {
+    if (!text || !navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(() => {
+      this.copiedKey = key;
+      this.cdr.markForCheck();
+      clearTimeout(this.copiedKeyTimer);
+      this.copiedKeyTimer = setTimeout(() => { this.copiedKey = null; this.cdr.markForCheck(); }, 1500);
+    });
+  }
+
+  /** Time with seconds in the viewer's local timezone (timeline rows). */
+  formatClock(ts: string): string {
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit' });
   }
 
   /** "How they got here": crawler, referrer host + UTMs, Direct, or Not recorded. */
@@ -744,6 +792,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
   closeEventDetail(): void {
     this.showEventDetail = false;
     this.selectedEvent = null;
+    this.detailView = null;
     this.copiedEventData = false;
     this.sessionEvents = [];
     this.sessionSummary = null;
@@ -769,6 +818,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
       const events = this.demoService.getSessionEvents(sessionId);
       this.sessionEvents = events as any;
       this.buildSessionSummary();
+      this.refreshDetail();
       this.loadingTimeline = false;
       this.cdr.markForCheck();
       return;
@@ -780,6 +830,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
         if (this.selectedEvent?.session_id !== sessionId) return;
         this.sessionEvents = events;
         this.buildSessionSummary();
+        this.refreshDetail();
         this.loadingTimeline = false;
         this.cdr.markForCheck();
       },
