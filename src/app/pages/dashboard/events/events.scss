@@ -1580,7 +1580,13 @@
 }
 
 /* ─── Event Details: Who card + grouped sections ───────────────────────── */
-:host ::ng-deep .event-detail-dialog .p-dialog-content { overscroll-behavior: contain; }
+:host ::ng-deep .event-detail-dialog {
+  display: flex; flex-direction: column; max-height: 90vh;
+  .p-dialog-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* Body scrolls as one; avoid small nested scroll boxes leaving empty space */
+  .timeline-list { max-height: none; overflow: visible; }
+  .event-data-code { max-height: 60vh; }
+}
 @media (max-width: 640px) {
   :host ::ng-deep .event-detail-dialog {
     width: 100vw !important; max-width: 100vw !important; height: 100dvh; max-height: 100dvh;

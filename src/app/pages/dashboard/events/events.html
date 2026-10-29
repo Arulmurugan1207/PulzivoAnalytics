@@ -447,8 +447,8 @@
   <p-dialog
     [(visible)]="showEventDetail"
     [modal]="true" [draggable]="false" [resizable]="false"
-    [style]="{ width: '960px', maxWidth: '90vw' }"
-    [contentStyle]="{ maxHeight: '78vh', overflowY: 'auto' }"
+    [style]="{ width: 'min(1280px, 95vw)', maxWidth: '95vw', maxHeight: '90vh' }"
+    [contentStyle]="{ overflowY: 'auto' }"
     [breakpoints]="{ '640px': '100vw' }"
     styleClass="event-detail-dialog"
     header="Event Details"
