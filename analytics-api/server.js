@@ -17,7 +17,7 @@ const rateLimit = require('express-rate-limit');
 const { MongoClient } = require('mongodb');
 const { buildDateFilter, toDate, mergeUtmAttribution, withDerivedCountry } = require('./query');
 const { registerMetricRoutes } = require('./metrics');
-const { isCrawlerUserAgent } = require('./bots');
+const { isCrawlerUserAgent, createRateGuard } = require('./bots');
 const { loadExclusionRules, isExcludedEvent } = require('./owner-exclusion');
 const { ensureEventIndexes } = require('./indexes');
 
@@ -379,11 +379,16 @@ function createApp(options = {}) {
     }
   });
 
-  registerMetricRoutes(app, { db });
+  registerMetricRoutes(app, { db, reportCacheTtlMs: options.reportCacheTtlMs });
 
+  const rateGuard = createRateGuard({
+    limit: Number.parseInt(process.env.VISITOR_EVENT_LIMIT_PER_MIN, 10) || 300,
+  });
   const persistIngest = async (req, res) => {
-    const { kept: botFree, dropped } = dropCrawlerEvents(normalizeEvents(req), req.get('user-agent'));
+    const { kept: uaFree, dropped } = dropCrawlerEvents(normalizeEvents(req), req.get('user-agent'));
     if (dropped) console.log(`[analytics-api] dropped ${dropped} crawler event(s)`);
+    const { kept: botFree, dropped: flooded } = rateGuard(uaFree);
+    if (flooded) console.log(`[analytics-api] dropped ${flooded} event(s) over the per-visitor rate limit`);
     const events = await dropExcludedEvents(db, botFree);
     if (db && events.length) {
       try {
@@ -438,6 +443,14 @@ function parseMaybeJson(body) {
   return null;
 }
 
+/** Visible click text: short, never email-like or digits-only (defence in depth; the tracker already filters). */
+function safeClickText(value) {
+  if (typeof value !== 'string') return '';
+  const text = value.replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!text || /[^\s@]+@[^\s@]+\.[^\s@]+/.test(text) || /^[\d\s()+.,:/#-]+$/.test(text)) return '';
+  return text;
+}
+
 function normalizeEvents(req) {
   const parsed = parseMaybeJson(req.body);
   const queryKey = req.query && (req.query.apiKey || req.query.apikey);
@@ -471,6 +484,7 @@ function normalizeEvents(req) {
         utm_content: event.utm_content,
         utm_term: event.utm_term,
       });
+      if (Object.prototype.hasOwnProperty.call(data, 'text')) data.text = safeClickText(data.text);
       return {
         event_name: event.event_name || event.eventType || event.name || 'unknown',
         user_id: event.user_id || event.userId || null,

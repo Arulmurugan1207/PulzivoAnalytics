@@ -405,3 +405,23 @@ test('session stats are correct for out-of-order events without allowDiskUse', a
   assert.deepEqual(exits, ['/b', '/z']);
   assert.equal(stats.avgSessionDuration, 5);
 });
+
+test('events-breakdown exposes click text and the page with most rage clicks', async () => {
+  const { createMemoryDb } = require('./memory-db');
+  const { aggregate, eventsBreakdownPipeline, shapeEventsBreakdown } = require('./aggregate');
+  const now = Date.now();
+  const db = createMemoryDb({ events: [
+    { apiKey: 'K', event_name: 'click', timestamp: now, data: { page: '/p', element: 'button', text: 'Buy now' } },
+    { apiKey: 'K', event_name: 'click', timestamp: now, data: { page: '/p', element: 'button', text: 'Buy now' } },
+    { apiKey: 'K', event_name: 'rage_click', timestamp: now, data: { page: '/checkout', element: 'button' } },
+    { apiKey: 'K', event_name: 'rage_click', timestamp: now, data: { page: '/checkout', element: 'a' } },
+    { apiKey: 'K', event_name: 'rage_click', timestamp: now, data: { page: '/', element: 'a' } },
+  ] });
+  const rows = await aggregate(db.collection('events'), eventsBreakdownPipeline({ apiKey: 'K' }));
+  const out = shapeEventsBreakdown(rows[0], { clicksPage: 1, clicksLimit: 10, customPage: 1, customLimit: 10 });
+  const top = out.topClicks.find((c) => c.text === 'Buy now');
+  assert.equal(top.count, 2);
+  assert.equal(out.summary.rageClicks, 3);
+  assert.equal(out.summary.rageTopPage, '/checkout');
+  assert.equal(out.summary.rageTopPageCount, 2);
+});

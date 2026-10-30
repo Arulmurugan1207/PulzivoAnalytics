@@ -18,7 +18,7 @@ export const CRAWLER_UA_PATTERN =
   'facebookcatalog|meta-externalagent|headlesschrome|phantomjs|lighthouse|pagespeed|ptst\\/|' +
   'gtmetrix|pingdom|uptimerobot|' +
   'scrapy|bytespider|petalbot|baiduspider|semrush|ahrefs|mj12bot|dotbot|gptbot|claudebot|' +
-  'ccbot|amazonbot|applebot|duckduckbot';
+  'ccbot|amazonbot|applebot|duckduckbot|jsdom|cypress\\/';
 
 const CRAWLER_UA = new RegExp(CRAWLER_UA_PATTERN, 'i');
 

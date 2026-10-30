@@ -6,7 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'public', 'pulzivo-analytics.js'), 'utf8');
+const MIN = process.env.PZ_TRACKER_MIN ? '.min' : ''; // PZ_TRACKER_MIN=1 runs the suite on the built files
+const SRC = fs.readFileSync(path.join(__dirname, '..', 'public', 'pulzivo-analytics' + MIN + '.js'), 'utf8');
+const EXTRAS = fs.readFileSync(path.join(__dirname, '..', 'public', 'pulzivo-analytics-extras' + MIN + '.js'), 'utf8');
 
 function storage() {
   const m = new Map();
@@ -28,7 +30,7 @@ function emitter() {
   };
 }
 
-function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dnt, gpc, meta = {}, local } = {}) {
+function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dnt, gpc, meta = {}, local, session, languages, webdriver } = {}) {
   const sent = []; // every event delivered, in order
   const beacons = [];
   const fetches = [];
@@ -49,6 +51,10 @@ function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dn
   doc.getElementsByTagName = () => [];
   doc.querySelector = (sel) => (meta[sel] ? { getAttribute: () => meta[sel] } : null);
   doc.querySelectorAll = () => [];
+  // Injected <script> tags: the extras module runs in the same context.
+  const scripts = [];
+  doc.createElement = (tag) => ({ tagName: String(tag).toUpperCase() });
+  doc.head = { appendChild(el) { scripts.push(el.src); if (/extras/.test(el.src)) vm.runInContext(EXTRAS, context); } };
 
   const history = {
     pushState(_s, _t, u) { loc = new URL(u, loc.href); },
@@ -62,6 +68,8 @@ function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dn
     onLine: true,
     doNotTrack: dnt ? '1' : null,
     globalPrivacyControl: !!gpc,
+    languages: languages || ['en-CA', 'en'],
+    webdriver: !!webdriver,
     sendBeacon(u, blob) {
       beacons.push({ url: u, size: blob.size });
       for (const ev of JSON.parse(blob._text)) sent.push(ev);
@@ -92,7 +100,7 @@ function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dn
     navigator,
     document: doc,
     localStorage: local || storage(),
-    sessionStorage: storage(),
+    sessionStorage: session || storage(),
     screen: { width: 1440, height: 900 },
     innerWidth: 1200,
     innerHeight: 800,
@@ -124,7 +132,7 @@ function createBrowser({ url = 'https://site.test/', plan = 'enterprise', ua, dn
     }
   }
   return {
-    window, document: doc, history, sent, beacons, fetches,
+    window, document: doc, history, sent, beacons, fetches, scripts,
     load() { vm.runInContext(SRC, context); return settle(); },
     settle,
     perf(type, entries) { (observers[type] || []).forEach((cb) => cb({ getEntries: () => entries })); },

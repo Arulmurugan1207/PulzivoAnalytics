@@ -265,6 +265,9 @@ const {
   shapeRageRows,
   attributionPipeline,
   shapeAttribution,
+  sourceGroupsPipeline,
+  utmCandidateMatch,
+  attributionInputsPipeline,
   cohortPipeline,
   userPathsPipeline,
   shapeUserPaths,
@@ -374,12 +377,67 @@ function buildCohortRows(userRows) {
     });
 }
 
-function registerMetricRoutes(app, { db }) {
+// Short in-memory cache for aggregate report endpoints (keyed by path + full
+// query string, which includes apiKey and date range). Dashboards fire many
+// requests per load and on every tab switch; 60s staleness is invisible there.
+// Not used for /analytics/metrics (live visitor count), drill-downs, or the
+// realtime SSE stream. REPORT_CACHE_TTL_MS=0 disables it.
+const CACHED_REPORTS = new Set([
+  '/analytics/metrics-comparison', '/analytics/page-views', '/analytics/top-pages', '/analytics/geographic',
+  '/analytics/device-breakdown', '/analytics/browser-breakdown', '/analytics/traffic-sources',
+  '/analytics/web-vitals', '/analytics/page-vitals', '/analytics/insights', '/analytics/session-stats',
+  '/analytics/entry-pages', '/analytics/exit-pages', '/analytics/events-trend', '/analytics/events-breakdown',
+  '/analytics/conversion-funnel', '/analytics/form-interactions', '/analytics/tooltip-insights',
+  '/analytics/attribution', '/analytics/cohort-retention', '/analytics/user-paths', '/analytics/error-tracking',
+  '/analytics/rage-dead-clicks',
+]);
+
+function createReportCache({ ttlMs, maxEntries = 300 } = {}) {
+  const store = new Map();
+  return {
+    ttlMs,
+    key(req) {
+      const q = Object.keys(req.query || {}).sort().map((k) => `${k}=${JSON.stringify(req.query[k])}`).join('&');
+      return `${req.path}?${q}`;
+    },
+    get(key) {
+      const hit = store.get(key);
+      if (!hit) return null;
+      if (hit.expires <= Date.now()) { store.delete(key); return null; }
+      return hit.body;
+    },
+    set(key, body) {
+      if (store.size >= maxEntries) store.delete(store.keys().next().value);
+      store.set(key, { body, expires: Date.now() + ttlMs });
+    },
+  };
+}
+
+function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
+  const envTtl = Number.parseInt(process.env.REPORT_CACHE_TTL_MS, 10);
+  const ttlMs = reportCacheTtlMs != null ? reportCacheTtlMs : (Number.isFinite(envTtl) ? envTtl : 60000);
+  const cache = createReportCache({ ttlMs });
   const guarded = (handler) => async (req, res) => {
     try {
       if (!db) return res.status(503).json({ error: 'stats unavailable' });
       const apiKey = requireApiKey(req, res);
       if (!apiKey) return;
+      const route = req.route && req.route.path;
+      if (cache.ttlMs > 0 && req.method === 'GET' && CACHED_REPORTS.has(route)) {
+        const key = cache.key(req);
+        const hit = cache.get(key);
+        res.set('Cache-Control', `private, max-age=${Math.floor(cache.ttlMs / 1000)}`);
+        if (hit) {
+          res.set('X-Report-Cache', 'hit');
+          return res.json(hit);
+        }
+        res.set('X-Report-Cache', 'miss');
+        const json = res.json.bind(res);
+        res.json = (body) => {
+          if (res.statusCode === 200) cache.set(key, body);
+          return json(body);
+        };
+      }
       const rawCol = db.collection(process.env.EVENTS_COLLECTION || 'events');
       const rules = await loadExclusionRules(db, apiKey, { keysCollection: process.env.API_KEYS_COLLECTION || 'api_keys' });
       const col = withExclusion(rawCol, exclusionMatch(rules));
@@ -469,49 +527,73 @@ function registerMetricRoutes(app, { db }) {
   }));
 
   app.get('/analytics/traffic-sources', guarded(async (req, res, apiKey, col) => {
-    const docs = await loadScopedEvents(col, apiKey, req, { event_name: { $in: PAGE_VIEW_EVENTS } });
-    const sources = withPercentage(topCounts(docs, (d) => classifySource(d.data || {}, d)), docs.length, 'source')
-      .map((row) => ({ source: row.source, visits: row.count, percentage: row.percentage }));
+    // Grouped server-side by the few fields the classifiers read; classification
+    // itself stays in JS (classifySource / referrerIdentity / extractUtm) so the
+    // numbers are identical to the old per-event loop.
+    const pvMatch = composeMatch(apiKey, req, { event_name: { $in: PAGE_VIEW_EVENTS } });
+    const navMatch = composeMatch(apiKey, req, { event_name: { $in: ['navigation', 'route_change'] } });
+    const [groups, pvUtmGroups, navGroups] = await Promise.all([
+      aggregate(col, sourceGroupsPipeline(pvMatch)),
+      aggregate(col, sourceGroupsPipeline({ $and: [pvMatch, utmCandidateMatch()] }, { withSession: true })),
+      aggregate(col, sourceGroupsPipeline({ $and: [navMatch, utmCandidateMatch()] }, { withSession: true })),
+    ]);
+    const asDoc = (g) => g._id || {};
+    const totalVisits = groups.reduce((n, g) => n + (g.n || 0), 0);
+    const srcMap = new Map();
     const refMap = new Map();
-    for (const doc of docs) {
+    for (const g of groups) {
+      const doc = asDoc(g);
+      const source = classifySource(doc.data || {}, doc);
+      srcMap.set(source, (srcMap.get(source) || 0) + g.n);
       const id = referrerIdentity(doc.data || {}, doc);
       const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: id.host, visits: 0 };
-      prev.visits += 1;
+      prev.visits += g.n;
       if (!prev.host && id.host) prev.host = id.host;
       refMap.set(id.name, prev);
     }
+    const sources = withPercentage([...srcMap.entries()].sort((a, b) => b[1] - a[1]), totalVisits, 'source')
+      .map((row) => ({ source: row.source, visits: row.count, percentage: row.percentage }));
     const referrers = [...refMap.values()]
       .sort((a, b) => b.visits - a.visits)
-      .map((row) => ({ ...row, percentage: percent(row.visits, docs.length || 1) }));
-    const utmMap = new Map();
-    const pageViewCampaigns = new Set();
-    const addUtmVisit = (doc, { skipIfPageViewCounted = false, recordPageView = false } = {}) => {
+      .map((row) => ({ ...row, percentage: percent(row.visits, totalVisits || 1) }));
+    const utmKeyOf = (doc) => {
       const utm = extractUtm(doc.data || {}, doc);
-      const source = utm.utm_source;
-      const medium = utm.utm_medium;
-      const campaign = utm.utm_campaign;
-      if (!source || !medium || !campaign) return;
-      const key = `${source}|${medium}|${campaign}`;
-      const sid = sessionIdOf(doc);
-      const dedupeKey = sid ? `${sid}|${key}` : '';
-      if (skipIfPageViewCounted && dedupeKey && pageViewCampaigns.has(dedupeKey)) return;
-      const prev = utmMap.get(key) || { source, medium, campaign, visits: 0 };
-      prev.visits += 1;
-      utmMap.set(key, prev);
-      if (recordPageView && dedupeKey) pageViewCampaigns.add(dedupeKey);
+      if (!utm.utm_source || !utm.utm_medium || !utm.utm_campaign) return null;
+      return { source: utm.utm_source, medium: utm.utm_medium, campaign: utm.utm_campaign,
+        key: `${utm.utm_source}|${utm.utm_medium}|${utm.utm_campaign}` };
     };
-    for (const doc of docs) addUtmVisit(doc, { recordPageView: true });
+    const utmMap = new Map();
+    const addVisits = (u, n) => {
+      const prev = utmMap.get(u.key) || { source: u.source, medium: u.medium, campaign: u.campaign, visits: 0 };
+      prev.visits += n;
+      utmMap.set(u.key, prev);
+    };
+    for (const g of groups) {
+      const u = utmKeyOf(asDoc(g));
+      if (u) addVisits(u, g.n);
+    }
+    const pageViewCampaigns = new Set();
+    for (const g of pvUtmGroups) {
+      const doc = asDoc(g);
+      const u = utmKeyOf(doc);
+      const sid = sessionIdOf(doc);
+      if (u && sid) pageViewCampaigns.add(`${sid}|${u.key}`);
+    }
     // Share links often land as navigation/route events whose page path still
     // contains ?utm_* while the paired page_view stored only the pathname.
-    const utmCarrierDocs = await loadScopedEvents(col, apiKey, req, {
-      event_name: { $in: ['navigation', 'route_change'] },
-    });
-    for (const doc of utmCarrierDocs) addUtmVisit(doc, { skipIfPageViewCounted: true });
+    for (const g of navGroups) {
+      const doc = asDoc(g);
+      const u = utmKeyOf(doc);
+      if (!u) continue;
+      const sid = sessionIdOf(doc);
+      if (sid && pageViewCampaigns.has(`${sid}|${u.key}`)) continue;
+      addVisits(u, g.n);
+    }
     return res.json({
       sources,
       referrers,
       utmSources: [...utmMap.values()].sort((a, b) => b.visits - a.visits),
-      totalVisits: docs.length,
+      totalVisits,
     });
   }));
 
@@ -666,7 +748,9 @@ function registerMetricRoutes(app, { db }) {
   }));
 
   app.get('/analytics/attribution', guarded(async (req, res, apiKey, col) => {
-    const docs = await loadScopedEvents(col, apiKey, req);
+    // Compact projection (source/UTM inputs + session + time) instead of full
+    // documents; the session logic below is unchanged.
+    const docs = await aggregate(col, attributionInputsPipeline(composeMatch(apiKey, req)));
     const sessions = [...groupSessions(docs).values()];
     const firstTouch = topCounts(sessions, (s) => {
       const first = s.events[0];

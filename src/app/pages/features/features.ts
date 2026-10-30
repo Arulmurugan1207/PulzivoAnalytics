@@ -34,9 +34,9 @@ export class Features {
         },
         {
           icon: 'pi-arrow-down',
-          tag: 'Starter', tagSeverity: 'info' as const,
+          tag: 'Free', tagSeverity: 'success' as const,
           title: 'Scroll Depth',
-          desc: 'Track how far users scroll on each page — 25%, 50%, 75%, 100% milestones.',
+          desc: 'How far visitors scroll on each page, reported with time on page. Included on Free.',
           docsSection: 'automatic-tracking', campaign: 'feat-scroll-depth',
         },
         {
@@ -88,21 +88,21 @@ export class Features {
       features: [
         {
           icon: 'pi-gauge',
-          tag: 'Enterprise', tagSeverity: 'danger' as const,
+          tag: 'Free', tagSeverity: 'success' as const,
           title: 'Core Web Vitals',
-          desc: 'LCP, FID, CLS, and TTFB captured on every page view automatically.',
+          desc: 'LCP, INP, CLS, FCP and TTFB from real visitors, on every plan including Free.',
           docsSection: 'automatic-tracking', campaign: 'feat-web-vitals',
         },
         {
           icon: 'pi-bolt',
           tag: 'Free', tagSeverity: 'success' as const,
           title: 'About 9KB gzip',
-          desc: 'Entire SDK is about 9KB minified + gzipped. Zero impact on your page speed.',
+          desc: 'The core SDK is about 9KB minified + gzipped. Plan-only modules (forms, errors, rage clicks) load separately, only when enabled.',
           docsSection: 'getting-started', campaign: 'feat-bundle-size',
         },
         {
           icon: 'pi-exclamation-triangle',
-          tag: 'Enterprise', tagSeverity: 'danger' as const,
+          tag: 'Pro', tagSeverity: 'warn' as const,
           title: 'Error Tracking',
           desc: 'Uncaught JS errors and unhandled promise rejections captured with stack traces.',
           docsSection: 'automatic-tracking', campaign: 'feat-error-tracking',

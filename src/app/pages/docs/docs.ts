@@ -177,11 +177,11 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Does it use cookies?',
-      answer: 'Pulzivo sets no cookies and collects no personal data by default. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
+      answer: 'Pulzivo sets no cookies and collects no personal data by default. It stores an anonymous visitor ID that changes every day, plus a session ID, in the browser\'s localStorage (no permanent visitor ID unless you call identify), and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
     },
     {
       question: 'Can I self-host the SDK?',
-      answer: 'Yes — download https://cdn.pulzivo.com/pulzivo-analytics.min.js and host it yourself. Update the src attribute to point to your own URL. The SDK is open source.'
+      answer: 'Yes — download https://cdn.pulzivo.com/pulzivo-analytics.min.js and pulzivo-analytics-extras.min.js (the optional forms / errors / rage-click module, fetched from the same folder only when your plan enables it) and host both yourself. Update the src attribute to point to your own URL. The SDK is open source.'
     },
     {
       question: 'What are rage clicks and does Pulzivo detect them?',
@@ -197,7 +197,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'How do I report 404 pages?',
-      answer: 'Add <meta name="pulzivo:404"> to the head of your 404 template, or call PulzivoAnalytics.trackNotFound() (or PulzivoAnalytics(\'404\')) from your single-page app\'s not-found route. 404s appear in the Site Insights card on the Overview page.'
+      answer: 'Pages titled like "404", "Not Found" or "Page not found" are detected automatically. Otherwise add <meta name="pulzivo:404"> to the head of your 404 template, or call PulzivoAnalytics.trackNotFound() (or PulzivoAnalytics(\'404\')) from your single-page app\'s not-found route. 404s appear in the Site Insights card on the Overview page.'
     },
     {
       question: 'How do I track goals and revenue?',
@@ -619,8 +619,9 @@ document.querySelector('#myButton').addEventListener('click', () => {
 PulzivoAnalytics('event', 'button_clicked', { button_id: 'signup' });
 PulzivoAnalytics('event', 'video_play', { video_id: 'intro' });
 PulzivoAnalytics('event', 'download', { file: 'whitepaper.pdf' });`,
-    'pulz-api-identify': `// User identification
-PulzivoAnalytics('identify', 'user@example.com');
+    'pulz-api-identify': `// Opt-in user identification (an ID you supply; email optional)
+PulzivoAnalytics('identify', 'user-123', { email: 'user@example.com' });
+PulzivoAnalytics('reset'); // on sign-out
 
 // Track page view
 PulzivoAnalytics('page', '/custom-page');
@@ -680,19 +681,19 @@ PulzivoAnalytics.init({
   apiKey: 'your-key',
   excludeOwner: isLocalDev
 });`,
-    'user-email-basic': `// On login
-window.PulzivoAnalytics.setUserEmail('user@example.com');
+    'user-email-basic': `// On login: your own user ID (kept in this browser), email optional (this tab only)
+window.PulzivoAnalytics.identify('user-123', { email: 'user@example.com' });
 
-// On logout
-window.PulzivoAnalytics.clearUserEmail();`,
+// On logout: forget the ID and email
+window.PulzivoAnalytics.reset();`,
     'react-login-integration': `function LoginForm() {
   const handleLogin = async (email) => {
-    await loginUser(email);
-    window.PulzivoAnalytics.setUserEmail(email);
+    const user = await loginUser(email);
+    window.PulzivoAnalytics.identify(user.id, { email });
   };
   
   const handleLogout = () => {
-    window.PulzivoAnalytics.clearUserEmail();
+    window.PulzivoAnalytics.reset();
     logoutUser();
   };
 }`,
