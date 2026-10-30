@@ -1571,8 +1571,22 @@ export class DashboardOverview implements OnInit, OnDestroy {
     return rows;
   }
 
+  /** Bare domain of the selected site (from the key's allowed domains, or a domain-like site name). */
+  get selectedSiteDomain(): string | null {
+    const key = this.availableApiKeys.find(k => k.apiKey === this.selectedApiKey);
+    const raw = (key?.allowedDomains?.find(d => !!d && !d.includes('*')) || key?.name || '').trim().toLowerCase();
+    const host = raw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$/.test(host) ? host : null;
+  }
+
+  private externalHostUrl(host?: string): string | undefined {
+    const h = (host || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? `https://${h}` : undefined;
+  }
+
   get topPageRows(): BreakdownRow[] {
-    return this.memoRows('pages', [this.topPages], () => this.topPages.map(page => {
+    const domain = this.selectedSiteDomain;
+    return this.memoRows('pages', [this.topPages, domain], () => this.topPages.map(page => {
       const extra = [
         `${(page.percentage ?? 0).toFixed(1)}% of views`,
         page.avgTimeOnPage != null ? `avg time ${this.formatDuration(page.avgTimeOnPage)}` : '',
@@ -1581,6 +1595,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       return {
         key: page.path,
         label: page.path,
+        href: domain && page.path?.startsWith('/') ? `https://${domain}${page.path}` : undefined,
         value: page.views || 0,
         tooltip: `${page.title ? page.title + '\n' : ''}${page.path}\n${extra}`,
       };
@@ -1595,6 +1610,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         key: `${src.name}|${src.host}`,
         label: src.name,
         sub: showHost ? src.host : undefined,
+        href: this.externalHostUrl(src.host),
         value: src.visits || 0,
         tooltip: [channel && channel !== src.name ? `${channel}: ${this.channelHint(src.channel)}` : '', `${(src.percentage ?? 0).toFixed(0)}% of visits`]
           .filter(Boolean).join('\n'),

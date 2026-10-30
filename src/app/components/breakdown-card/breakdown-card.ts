@@ -17,6 +17,8 @@ export interface BreakdownRow {
   sub?: string;
   /** Native tooltip with extra detail. */
   tooltip?: string;
+  /** External URL; label becomes a link opening in a new tab. */
+  href?: string;
 }
 
 export type BreakdownTone = 'pages' | 'sources' | 'geo';
