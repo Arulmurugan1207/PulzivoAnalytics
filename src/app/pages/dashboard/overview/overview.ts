@@ -51,6 +51,7 @@ import { DemoService } from '../../../services/demo.service';
 import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
 import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/breakdown-card';
+import { ImproveCard, ImproveReport } from '../../../components/improve-card/improve-card';
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -91,7 +92,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard, ImproveCard],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -121,6 +122,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
   topPagesRows = 10;
   entryPages: PageData[] = [];
   insights: SiteInsights | null = null;
+  improvements: ImproveReport | null = null;
+  improvementsError: string | null = null;
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
   geoDataPage = 1;
@@ -252,6 +255,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     topPages: false,
     entryExit: false,
     insights: false,
+    improvements: false,
     conversion: false,
     features: false,
     liveEvents: false,
@@ -544,6 +548,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.trends = { ...d.overviewTrends };
     this.prevBarChartDataset = d.prevBarChartDataset ?? null;
     this.sessionStats = { ...d.sessionStats } as any;
+    this.improvements = d.improvements as ImproveReport;
+    this.improvementsError = null;
     const demoCounts = (d.barChartData?.datasets?.[0]?.data as number[]) || [];
     const demoEndDay = new Date();
     demoEndDay.setHours(0, 0, 0, 0);
@@ -1081,6 +1087,29 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadInsights();
   }
 
+  /** "Improve your site" card on Overview (all plans; one cached API call). */
+  private loadImprovements(): Promise<void> {
+    this.loadingStates.improvements = true;
+    this.improvementsError = null;
+    return new Promise(resolve => {
+      this.analyticsAPIService.getImprovements(this.currentDateRange ?? undefined).subscribe({
+        next: (data) => {
+          this.improvements = data;
+          this.loadingStates.improvements = false;
+          this.cdr.markForCheck();
+          resolve();
+        },
+        error: () => {
+          this.improvements = null;
+          this.improvementsError = 'Couldn’t load suggestions right now. Try refreshing in a minute.';
+          this.loadingStates.improvements = false;
+          this.cdr.markForCheck();
+          resolve();
+        },
+      });
+    });
+  }
+
   /** Outbound/downloads/404/search/goals/revenue/language/screen card (all plans). */
   private loadInsights(): void {
     this.loadingStates.insights = true;
@@ -1173,6 +1202,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.loadPageViewsWithDelay(),
       this.loadDevicesWithDelay(),
       this.loadTopPagesWithDelay(),
+      this.loadImprovements(),
     ];
 
     if (this.hasFeature('utm_attribution')) {

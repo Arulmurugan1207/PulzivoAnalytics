@@ -368,6 +368,9 @@
           </div>
         </div>
 
+        <!-- Improve your site: rules-only top fixes from real visitor interactions -->
+        <app-improve-card class="improve-slot" [report]="improvements" [loading]="loadingStates.improvements" [error]="improvementsError" [domain]="selectedSiteDomain"></app-improve-card>
+
         <!-- Breakdown cards: Top pages · Top sources · Countries (same style as the home sample dashboard) -->
         <div class="breakdown-grid">
 
