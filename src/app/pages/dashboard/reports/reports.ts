@@ -407,12 +407,12 @@ export class DashboardReports implements OnInit, OnDestroy {
   }
 
   /** Normalised rows for each list card: label, value, bar % (relative to max), optional link. */
-  rankRows(kind: string): { label: string; value: number; pct: number; href: string | null; sub?: string }[] {
-    let rows: { label: string; value: number; href: string | null; sub?: string }[] = [];
+  rankRows(kind: string): { label: string; value: number; pct: number; href: string | null; sub?: string; title?: string }[] {
+    let rows: { label: string; value: number; href: string | null; sub?: string; title?: string }[] = [];
     const n = (v: any) => +(v || 0);
     const arr = (a: any) => Array.isArray(a) ? a : [];
     switch (kind) {
-      case 'pages':    rows = arr(this.topPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.views), href: this.pageHref(l) }; }); break;
+      case 'pages':    rows = arr(this.topPagesData).map(p => { const l = p.url || p.path || p.page || '/'; const t = typeof p.title === 'string' ? p.title.trim() : ''; return { label: l, value: n(p.views), href: this.pageHref(l), title: t && t !== l ? t : undefined }; }); break;
       case 'entry':    rows = arr(this.entryPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.entrances ?? p.count), href: this.pageHref(l) }; }); break;
       case 'exit':     rows = arr(this.exitPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.exits ?? p.count), href: this.pageHref(l), sub: p.exitRate != null ? `${p.exitRate}% exit` : undefined }; }); break;
       case 'sources':  rows = arr(this.trafficSources).map(s => ({ label: s.source || 'Direct', value: n(s.visits), href: this.sourceHref(s.source) })); break;
@@ -742,7 +742,10 @@ export class DashboardReports implements OnInit, OnDestroy {
           text: 'No data available for selected period'
         }
       },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 6 } },
+        x: { ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 8 } }
+      }
     };
   }
 
