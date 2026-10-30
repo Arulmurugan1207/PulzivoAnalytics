@@ -32,7 +32,14 @@ export class AnalyticsAPIService {
 
   private buildDateParams(dateRange?: DateRange): string {
     if (!dateRange) return '';
-    return `&startDate=${dateRange.startDate.toISOString()}&endDate=${dateRange.endDate.toISOString()}`;
+    const valid = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
+    let start: any = (dateRange as any).startDate;
+    let end: any = (dateRange as any).endDate;
+    if (start && !(start instanceof Date)) start = new Date(start);
+    if (end && !(end instanceof Date)) end = new Date(end);
+    if (!valid(end)) end = new Date();
+    if (!valid(start)) start = new Date(end.getTime() - 30 * 86400000);
+    return `&startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
   }
 
   /** Keep the HTTP error so the dashboard can show a failure instead of an empty site. */

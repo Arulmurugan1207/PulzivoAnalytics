@@ -168,13 +168,20 @@
       </div>
 
       <!-- Report Content -->
-      @if (loading()) {
+      @if (errorMessage(); as err) {
+        <div class="report-error" role="alert">
+          <i class="pi pi-exclamation-circle"></i>
+          <span>{{ err }}</span>
+          <button type="button" class="retry-btn" (click)="generateReport()">Try again</button>
+        </div>
+      } @else if (loading()) {
         <div class="loading-state">
           <i class="pi pi-spin pi-spinner"></i>
           <p>Generating report...</p>
         </div>
       } @else {
         <div class="report-content">
+          @if (summary) { <p class="report-summary">{{ summary }}</p> }
           <!-- Metrics Cards -->
           <div class="metrics-grid">
             @for (metric of reportMetrics; track metric.label) {
