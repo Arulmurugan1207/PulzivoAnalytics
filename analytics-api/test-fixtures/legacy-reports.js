@@ -56,14 +56,16 @@ function trafficSources(docs, utmCarrierDocs) {
   const refMap = new Map();
   for (const doc of docs) {
     const id = referrerIdentity(doc.data || {}, doc);
-    const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: id.host, visits: 0 };
+    const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: '', hosts: {}, visits: 0 };
     prev.visits += 1;
-    if (!prev.host && id.host) prev.host = id.host;
+    // Grey hint = busiest host for the merged name (first seen wins ties).
+    if (id.host) prev.hosts[id.host] = (prev.hosts[id.host] || 0) + 1;
+    prev.host = Object.entries(prev.hosts).reduce((best, e) => (e[1] > best[1] ? e : best), ['', 0])[0];
     refMap.set(id.name, prev);
   }
   const referrers = [...refMap.values()]
     .sort((a, b) => b.visits - a.visits)
-    .map((row) => ({ ...row, percentage: percent(row.visits, docs.length || 1) }));
+    .map(({ hosts, ...row }) => ({ ...row, percentage: percent(row.visits, docs.length || 1) }));
   const utmMap = new Map();
   const pageViewCampaigns = new Set();
   const addUtmVisit = (doc, { skipIfPageViewCounted = false, recordPageView = false } = {}) => {

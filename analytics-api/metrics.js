@@ -550,14 +550,18 @@ function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
       const source = classifySource(doc.data || {}, doc);
       srcMap.set(source, (srcMap.get(source) || 0) + g.n);
       const id = referrerIdentity(doc.data || {}, doc);
-      const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, host: id.host, visits: 0 };
+      // Rows are keyed by canonical name (sources.js), so "ig" + l.instagram.com
+      // merge; the grey hint shows the busiest host.
+      const prev = refMap.get(id.name) || { name: id.name, channel: id.channel, visits: 0, hosts: new Map() };
       prev.visits += g.n;
-      if (!prev.host && id.host) prev.host = id.host;
+      if (id.host) prev.hosts.set(id.host, (prev.hosts.get(id.host) || 0) + g.n);
       refMap.set(id.name, prev);
     }
+    const topKey = (m) => [...m.entries()].reduce((best, e) => (e[1] > best[1] ? e : best), ['', 0])[0];
     const sources = withPercentage([...srcMap.entries()].sort((a, b) => b[1] - a[1]), totalVisits, 'source')
       .map((row) => ({ source: row.source, visits: row.count, percentage: row.percentage }));
     const referrers = [...refMap.values()]
+      .map((row) => ({ name: row.name, channel: row.channel, host: topKey(row.hosts), visits: row.visits }))
       .sort((a, b) => b.visits - a.visits)
       .map((row) => ({ ...row, percentage: percent(row.visits, totalVisits || 1) }));
     const utmKeyOf = (doc) => {
