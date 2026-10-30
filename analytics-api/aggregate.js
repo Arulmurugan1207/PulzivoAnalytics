@@ -1961,4 +1961,11 @@ module.exports = {
   shapeUserPaths,
   sourceExpr,
   pageExpr,
+  eventTimeExpr,
+  sessionIdExpr,
+  userIdExpr,
+  firstStringOr,
+  numericOrNull,
+  vitalNumberExpr,
+  viewKeyExpr,
 };

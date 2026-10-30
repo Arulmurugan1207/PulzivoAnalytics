@@ -1,0 +1,68 @@
+<section class="ic" aria-labelledby="ic-title">
+  <header class="ic-head">
+    <div>
+      <h3 id="ic-title"><i class="pi pi-wrench" aria-hidden="true"></i> Improve your site</h3>
+      <p>The top fixes from how real visitors used your pages.</p>
+    </div>
+    @if (report?.status === 'ok' && findings.length) {
+      <span class="ic-count">{{ findings.length }} to fix</span>
+    }
+  </header>
+
+  @if (loading && !report) {
+    <div class="ic-skel" aria-busy="true">
+      @for (i of [1,2,3]; track i) { <div class="ic-skel-row"></div> }
+    </div>
+  } @else if (error) {
+    <div class="ic-empty"><i class="pi pi-info-circle" aria-hidden="true"></i><span>{{ error }}</span></div>
+  } @else if (!report || report.status === 'insufficient_data') {
+    <div class="ic-empty">
+      <i class="pi pi-chart-line" aria-hidden="true"></i>
+      <div>
+        <strong>Collecting visitor signals</strong>
+        <span>{{ report?.reason || 'Suggestions appear once your site has a bit more traffic in this date range.' }}</span>
+      </div>
+    </div>
+  } @else {
+    @if (!findings.length) {
+      <div class="ic-empty ic-good">
+        <i class="pi pi-check-circle" aria-hidden="true"></i>
+        <div><strong>Nothing urgent</strong><span>{{ report.reason || 'No clear problems found for this period.' }}</span></div>
+      </div>
+    }
+    <ul class="ic-list">
+      @for (f of findings; track f.type + f.page + (f.element || '') + (f.metric || '')) {
+        <li class="ic-row tone-{{ meta(f.type).tone }}">
+          <span class="ic-dot" [attr.title]="meta(f.type).label" aria-hidden="true"><i class="pi {{ meta(f.type).icon }}"></i></span>
+          <div class="ic-body">
+            <div class="ic-title">{{ f.title }}</div>
+            <div class="ic-fix">{{ f.fix }}</div>
+            <div class="ic-meta">
+              <span class="ic-chip">{{ f.evidenceText }}</span>
+              <span class="ic-chip ic-chip-soft">{{ f.visitorsAffected | number }} affected</span>
+              @if (href(f.page); as link) {
+                <a class="ic-page" [href]="link" target="_blank" rel="noopener noreferrer" [attr.aria-label]="f.page + ' (opens in a new tab)'">{{ f.page }}<i class="pi pi-external-link" aria-hidden="true"></i></a>
+              } @else {
+                <span class="ic-page">{{ f.page }}</span>
+              }
+            </div>
+          </div>
+        </li>
+      }
+      @for (i of improved; track i.type + i.page) {
+        <li class="ic-row ic-improved">
+          <span class="ic-dot" aria-hidden="true"><i class="pi pi-arrow-down-right"></i></span>
+          <div class="ic-body">
+            <div class="ic-title">{{ i.title }}</div>
+            <div class="ic-meta">
+              <span class="ic-chip ic-chip-good">Improved</span>
+              @if (href(i.page); as link) {
+                <a class="ic-page" [href]="link" target="_blank" rel="noopener noreferrer" [attr.aria-label]="i.page + ' (opens in a new tab)'">{{ i.page }}<i class="pi pi-external-link" aria-hidden="true"></i></a>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

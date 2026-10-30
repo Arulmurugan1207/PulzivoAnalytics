@@ -34,6 +34,49 @@ export class DemoService {
     desktopPercentage: 58, mobilePercentage: 36, tabletPercentage: 6
   };
 
+  /** "Improve your site" sample (same shape as GET /analytics/improvements). */
+  readonly improvements = {
+    status: 'ok' as const,
+    reason: null,
+    sample: { pageViews: 8430, visitors: 3120 },
+    findings: [
+      {
+        type: 'rage_clicks' as const, page: '/pricing', element: 'Annual / Monthly',
+        title: 'Visitors rage-click "Annual / Monthly" on /pricing',
+        fix: 'Make it respond instantly: check it is clickable, add a loading state, and make sure nothing covers it.',
+        evidenceText: '46 rage clicks · 31 visitors', visitorsAffected: 31, severity: 93,
+      },
+      {
+        type: 'form_abandon' as const, page: '/signup', element: 'signup',
+        title: '64% of visitors abandon the "signup" form on /signup',
+        fix: 'Remove optional fields, show inline error messages, and make the submit button obvious.',
+        evidenceText: '120 started · 43 submitted', visitorsAffected: 77, severity: 193,
+      },
+      {
+        type: 'slow_page' as const, page: '/features', metric: 'LCP',
+        title: '/features loads slowly',
+        fix: 'Compress and resize the main image, preload it, and cut render-blocking scripts.',
+        evidenceText: '41% of visits over 2.5s LCP', visitorsAffected: 210, severity: 158,
+      },
+      {
+        type: 'not_found' as const, page: '/blog/old-launch-post',
+        title: 'Visitors hit a missing page: /blog/old-launch-post',
+        fix: 'Add a 301 redirect to the right page, or fix the link that points here.',
+        evidenceText: '24 hits · 19 visitors', visitorsAffected: 19, severity: 57,
+      },
+      {
+        type: 'dead_end' as const, page: '/contact',
+        title: '/contact is a dead end: visitors leave without clicking',
+        fix: 'Add a clear next step: a call to action, related links, or a contact button.',
+        evidenceText: '71% exit · site avg 38%', visitorsAffected: 150, severity: 49,
+      },
+    ],
+    improved: [
+      { type: 'dead_clicks' as const, page: '/pricing', title: 'Dead clicks on /pricing down 60% vs last period', changePct: -60 },
+      { type: 'js_error' as const, page: '/checkout', title: 'JavaScript errors on /checkout down 82% vs last period', changePct: -82 },
+    ],
+  };
+
   readonly topPages = [
     { path: '/', views: 2841, percentage: 33.7, avgTimeOnPage: 142, avgScrollDepth: 68.4 },
     { path: '/pricing', views: 1124, percentage: 13.3, avgTimeOnPage: 98, avgScrollDepth: 72.1 },

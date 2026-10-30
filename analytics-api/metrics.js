@@ -25,6 +25,7 @@ const {
   reqWithRange,
 } = require('./query');
 const { loadExclusionRules, exclusionMatch } = require('./owner-exclusion');
+const { loadImprovements } = require('./improve');
 
 /** Report-time filter: hide owner-excluded rows without deleting them. */
 function withExclusion(col, exclusion) {
@@ -389,7 +390,7 @@ const CACHED_REPORTS = new Set([
   '/analytics/entry-pages', '/analytics/exit-pages', '/analytics/events-trend', '/analytics/events-breakdown',
   '/analytics/conversion-funnel', '/analytics/form-interactions', '/analytics/tooltip-insights',
   '/analytics/attribution', '/analytics/cohort-retention', '/analytics/user-paths', '/analytics/error-tracking',
-  '/analytics/rage-dead-clicks',
+  '/analytics/rage-dead-clicks', '/analytics/improvements',
 ]);
 
 function createReportCache({ ttlMs, maxEntries = 300 } = {}) {
@@ -622,6 +623,13 @@ function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
   app.get('/analytics/insights', guarded(async (req, res, apiKey, col) => {
     const rows = await aggregate(col, insightsPipeline(composeMatch(apiKey, req)));
     return res.json(shapeInsights(rows[0] || {}));
+  }));
+
+  // "Improve your site": rules-only top fixes + improved items (all plans).
+  app.get('/analytics/improvements', guarded(async (req, res, apiKey, col) => {
+    const report = await loadImprovements(col, apiKey, req);
+    if (report.error) return res.status(400).json(report);
+    return res.json(report);
   }));
 
   app.get('/analytics/session-stats', guarded(async (req, res, apiKey, col) => {

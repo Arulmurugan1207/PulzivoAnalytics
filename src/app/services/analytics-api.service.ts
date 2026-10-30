@@ -314,6 +314,13 @@ export class AnalyticsAPIService {
     );
   }
 
+  /** "Improve your site": rules-only top fixes + improved items (all plans). */
+  getImprovements(dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of(null);
+    return this.http.get(`${this.apiUrl}/analytics/improvements?apiKey=${selectedApiKey}${this.buildDateParams(dateRange)}`);
+  }
+
   getExitPages(dateRange?: DateRange, limit: number = 10): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of({ pages: [], total: 0 });
