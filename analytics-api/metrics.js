@@ -261,6 +261,9 @@ const {
   errorPipeline,
   shapeErrors,
   ragePipeline,
+  frictionDetailPipeline,
+  shapeFrictionDetail,
+  FRICTION_DETAIL_EVENTS,
   eventsTrendPipeline,
   shapeEventsTrend,
   shapeRageRows,
@@ -390,7 +393,7 @@ const CACHED_REPORTS = new Set([
   '/analytics/entry-pages', '/analytics/exit-pages', '/analytics/events-trend', '/analytics/events-breakdown',
   '/analytics/conversion-funnel', '/analytics/form-interactions', '/analytics/tooltip-insights',
   '/analytics/attribution', '/analytics/cohort-retention', '/analytics/user-paths', '/analytics/error-tracking',
-  '/analytics/rage-dead-clicks', '/analytics/improvements',
+  '/analytics/rage-dead-clicks', '/analytics/improvements', '/analytics/friction-details',
 ]);
 
 function createReportCache({ ttlMs, maxEntries = 300 } = {}) {
@@ -831,6 +834,17 @@ function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
       rageClicks: shapeRageRows(facet.rage),
       deadClicks: shapeRageRows(facet.dead),
     });
+  }));
+
+  // Drill-down for the Events page friction tiles: kind=rage|dead|abandon|errors.
+  app.get('/analytics/friction-details', guarded(async (req, res, apiKey, col) => {
+    const kind = String(req.query.kind || '');
+    if (!FRICTION_DETAIL_EVENTS[kind]) return res.status(400).json({ error: 'kind must be rage, dead, abandon or errors' });
+    const limit = clampInt(req.query.limit, 50, 1, 200);
+    const rows = await aggregate(col, frictionDetailPipeline(composeMatch(apiKey, req, {
+      event_name: { $in: FRICTION_DETAIL_EVENTS[kind] },
+    }), kind));
+    return res.json(shapeFrictionDetail(rows[0] || {}, kind, { limit }));
   }));
 
   app.get('/analytics/realtime-events', guarded(async (req, res, apiKey, col) => {

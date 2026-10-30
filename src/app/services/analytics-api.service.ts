@@ -455,6 +455,18 @@ export class AnalyticsAPIService {
   }
 
   /**
+   * Friction drill-down rows (kind = rage | dead | abandon | errors).
+   * Resolves null when the API predates /analytics/friction-details so the UI can say "coming soon".
+   */
+  getFrictionDetails(kind: 'rage' | 'dead' | 'abandon' | 'errors', dateRange?: DateRange, limit = 100): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of(null);
+    return this.http.get(`${this.apiUrl}/analytics/friction-details?apiKey=${selectedApiKey}&kind=${kind}&limit=${limit}${this.buildDateParams(dateRange)}`).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  /**
    * Get Rage & Dead Clicks — per-element frustration signals
    */
   getRageDeadClicks(dateRange?: DateRange): Observable<any> {

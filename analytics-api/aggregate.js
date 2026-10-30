@@ -775,20 +775,24 @@ function topPagesPipeline(match) {
         _page: pageExpr(),
         _pv: { $cond: [{ $in: ['$event_name', PAGE_VIEWS] }, 1, 0] },
         _eng: engExpr(),
+        _t: eventTimeExpr(),
+        _title: firstPresentString(['$data.page_title', '$data.title', '$page_title']),
       },
     },
-    { $addFields: { _scroll: scrollExpr(), _top: timeOnPageExpr() } },
+    { $addFields: { _scroll: scrollExpr(), _top: timeOnPageExpr(), _tt: titleStampExpr() } },
     {
       $group: {
         _id: { p: '$_page', v: { $cond: [{ $eq: ['$_eng', 1] }, viewKeyExpr(), null] } },
         views: { $sum: '$_pv' },
         scroll: { $max: '$_scroll' },
         top: { $max: '$_top' },
+        tt: { $max: '$_tt' },
       },
     },
     {
       $group: {
         _id: '$_id.p',
+        tt: { $max: '$tt' },
         views: { $sum: '$views' },
         scrollSum: { $sum: { $cond: [{ $ne: ['$scroll', null] }, '$scroll', 0] } },
         scrollN: { $sum: { $cond: [{ $ne: ['$scroll', null] }, 1, 0] } },
@@ -801,11 +805,30 @@ function topPagesPipeline(match) {
   ];
 }
 
+/** "<iso time>|<title>" so $max keeps the most recent non-empty title per path. */
+function titleStampExpr() {
+  return {
+    $cond: [
+      { $ne: ['$_title', null] },
+      { $concat: [{ $ifNull: [{ $dateToString: { date: '$_t', format: '%Y-%m-%dT%H:%M:%S.%LZ' } }, '0'] }, '|', '$_title'] },
+      null,
+    ],
+  };
+}
+
+function titleFromStamp(stamp) {
+  if (typeof stamp !== 'string') return null;
+  const i = stamp.indexOf('|');
+  const title = (i >= 0 ? stamp.slice(i + 1) : stamp).trim();
+  return title || null;
+}
+
 function shapeTopPages(rows, page, limit) {
   const rankedRows = rows || [];
   const totalPageViews = rankedRows.reduce((sum, row) => sum + row.views, 0);
   const ranked = rankedRows.map((row) => ({
     path: row._id,
+    title: titleFromStamp(row.tt),
     views: row.views,
     percentage: percent(row.views, totalPageViews || 1),
     avgTimeOnPage: row.timeN ? Math.round(row.timeSum / row.timeN) : null,
@@ -998,6 +1021,7 @@ function eventsBreakdownPipeline(match) {
               formSubmits: { $sum: { $cond: [{ $eq: ['$event_name', 'form_submit'] }, 1, 0] } },
               formAbandons: { $sum: { $cond: [{ $eq: ['$event_name', 'form_abandon'] }, 1, 0] } },
               formFocuses: { $sum: { $cond: [{ $eq: ['$event_name', 'form_focus'] }, 1, 0] } },
+              jsErrors: { $sum: { $cond: [{ $in: ['$event_name', ['error', 'javascript_error', 'promise_rejection']] }, 1, 0] } },
             },
           },
         ],
@@ -1179,6 +1203,7 @@ function shapeEventsBreakdown(facet, { clicksPage, clicksLimit, customPage, cust
     summary: {
       rageClicks: summary.rageClicks || 0,
       deadClicks: summary.deadClicks || 0,
+      jsErrors: summary.jsErrors || 0,
       formSubmits: summary.formSubmits || 0,
       formAbandons: summary.formAbandons || 0,
       formFocuses: summary.formFocuses || 0,
@@ -1900,7 +1925,144 @@ function shapeInsights(row = {}) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Friction drill-down (Events page "Form Signals" card): grouped rows with
+// visitors affected, device/browser split, first/last seen, recent samples.
+const FRICTION_DETAIL_EVENTS = {
+  rage: ['rage_click'],
+  dead: ['dead_click'],
+  abandon: ['form_abandon'],
+  errors: ['error', 'javascript_error', 'promise_rejection'],
+};
+
+function frictionKeyFields(kind) {
+  const cp = (f) => `$data.custom_parameters.${f}`;
+  if (kind === 'errors') {
+    return {
+      message: firstStringOr(['$data.message', cp('error_message'), '$data.error', '$data.event_label'], 'Unknown error'),
+      type: firstStringOr(['$event_name'], 'error'),
+      source: firstStringOr([cp('filename'), '$data.filename'], ''),
+      line: { $ifNull: [numericOrNull(cp('line')), numericOrNull('$data.line')] },
+      column: { $ifNull: [numericOrNull(cp('column')), numericOrNull('$data.column')] },
+    };
+  }
+  if (kind === 'abandon') {
+    return {
+      form: firstStringOr(['$data.formId', '$data.form_id', cp('formId'), cp('form_id')], 'unknown-form'),
+      lastField: firstStringOr(['$data.lastField', '$data.last_field', cp('last_field')], ''),
+    };
+  }
+  return {
+    element: firstStringOr(['$data.element', cp('element'), '$data.target'], 'unknown'),
+    text: firstStringOr(['$data.text'], ''),
+    label: firstStringOr(['$data.event_label', '$data.label'], ''),
+    elementId: firstStringOr([cp('element_id')], ''),
+    elementClass: firstStringOr([cp('element_class')], ''),
+  };
+}
+
+function frictionDetailPipeline(match, kind) {
+  const keyFields = frictionKeyFields(kind);
+  const keyId = { page: '$_page' };
+  for (const k of Object.keys(keyFields)) if (k !== 'lastField') keyId[k] = `$k.${k}`;
+  return [
+    { $match: match },
+    {
+      $addFields: {
+        _t: eventTimeExpr(),
+        _page: pageExpr(),
+        _uid: userIdExpr(),
+        _device: deviceExpr(),
+        _browser: browserExpr(),
+        k: keyFields,
+        _fields: numericOrNull('$data.fieldsCompleted'),
+      },
+    },
+    { $project: { _t: 1, _page: 1, _uid: 1, _device: 1, _browser: 1, k: 1, _fields: 1 } },
+    { $sort: { _t: -1 } },
+    {
+      $facet: {
+        groups: [
+          {
+            $group: {
+              _id: keyId,
+              count: { $sum: 1 },
+              users: { $addToSet: '$_uid' },
+              firstSeen: { $min: '$_t' },
+              lastSeen: { $max: '$_t' },
+              lastField: { $first: '$k.lastField' },
+              fieldsSum: { $sum: { $cond: [{ $ne: ['$_fields', null] }, '$_fields', 0] } },
+              fieldsN: { $sum: { $cond: [{ $ne: ['$_fields', null] }, 1, 0] } },
+            },
+          },
+          { $sort: { count: -1, lastSeen: -1 } },
+          { $limit: 200 },
+        ],
+        devices: [{ $group: { _id: { key: keyId, v: '$_device' }, n: { $sum: 1 } } }],
+        browsers: [{ $group: { _id: { key: keyId, v: '$_browser' }, n: { $sum: 1 } } }],
+        recent: [{ $limit: 1000 }, { $project: { _t: 1, _page: 1, _uid: 1, _device: 1, _browser: 1, k: 1 } }],
+      },
+    },
+  ];
+}
+
+function frictionKeyOf(id) {
+  return JSON.stringify(Object.keys(id || {}).sort().map((k) => [k, id[k] == null ? null : id[k]]));
+}
+
+function shapeFrictionDetail(facet, kind, { limit = 50, recentPerRow = 5 } = {}) {
+  const f = facet || {};
+  const splits = (rows) => {
+    const out = new Map();
+    for (const r of rows || []) {
+      const key = frictionKeyOf(r._id.key);
+      if (!out.has(key)) out.set(key, {});
+      out.get(key)[r._id.v || 'Unknown'] = r.n;
+    }
+    return out;
+  };
+  const devices = splits(f.devices);
+  const browsers = splits(f.browsers);
+  const recent = new Map();
+  const keyFieldNames = Object.keys(frictionKeyFields(kind)).filter((k) => k !== 'lastField');
+  for (const doc of f.recent || []) {
+    const id = { page: doc._page };
+    for (const k of keyFieldNames) id[k] = doc.k ? doc.k[k] : null;
+    const key = frictionKeyOf(id);
+    const list = recent.get(key) || [];
+    if (list.length < recentPerRow) {
+      list.push({ time: isoOrNull(doc._t), visitor: doc._uid || null, device: doc._device, browser: doc._browser, page: doc._page });
+      recent.set(key, list);
+    }
+  }
+  const groups = f.groups || [];
+  const rows = groups.slice(0, limit).map((g) => {
+    const key = frictionKeyOf(g._id);
+    const row = Object.assign({}, g._id, {
+      count: g.count,
+      visitors: (g.users || []).filter(Boolean).length,
+      firstSeen: isoOrNull(g.firstSeen),
+      lastSeen: isoOrNull(g.lastSeen),
+      devices: devices.get(key) || {},
+      browsers: browsers.get(key) || {},
+      recent: recent.get(key) || [],
+    });
+    if (kind === 'abandon') {
+      row.lastField = g.lastField || null;
+      row.avgFieldsCompleted = g.fieldsN ? Math.round((g.fieldsSum / g.fieldsN) * 10) / 10 : null;
+    }
+    for (const k of ['text', 'label', 'elementId', 'elementClass', 'source']) if (row[k] === '') row[k] = null;
+    return row;
+  });
+  const total = groups.reduce((s, g) => s + g.count, 0);
+  return { kind, rows, totalGroups: groups.length, totalEvents: total };
+}
+
 module.exports = {
+  frictionDetailPipeline,
+  shapeFrictionDetail,
+  FRICTION_DETAIL_EVENTS,
+  titleFromStamp,
   sourceInputsDoc,
   utmCandidateMatch,
   sourceGroupsPipeline,
