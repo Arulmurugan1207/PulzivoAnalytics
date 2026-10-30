@@ -1,5 +1,5 @@
-import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TitleStrategy } from '@angular/router';
@@ -14,7 +14,7 @@ import { AppTitleStrategy } from './services/title.strategy';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    importProvidersFrom(BrowserAnimationsModule),
+    provideAnimationsAsync(),
     providePrimeNG({
       theme: {
         preset: Lara
