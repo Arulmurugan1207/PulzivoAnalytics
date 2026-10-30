@@ -368,106 +368,20 @@
           </div>
         </div>
 
-        <div class="data-card source-board" [class.locked-section]="!hasFeature('utm_attribution')">
-          <div class="card-header">
-            <div class="panel-title">
-              <h3>How people got here
-                <button type="button" class="pi pi-info-circle section-info-icon"
-                  pTooltip="Where this date range’s page views started: search, a link from another site, social, email, paid, or a direct visit."
-                  tooltipPosition="top"></button>
-              </h3>
-              <p>Each row is the actual place. <strong>Referral</strong> means another site linked here. <strong>Social</strong> is Facebook, WhatsApp, X, and the rest.</p>
-            </div>
-            @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
-              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-            }
-          </div>
-          @if (!hasFeature('utm_attribution')) {
-            <div class="locked-overlay">
-              <div class="locked-content">
-                <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter</span>
-                <i class="pi pi-lock lock-icon"></i>
-                <h4>Traffic sources</h4>
-                <p>See whether people arrived from search, a referral, social, email, paid, or directly.</p>
-                <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">View plans <i class="pi pi-arrow-right"></i></a>
-              </div>
-            </div>
-          } @else if (loadingStates.trafficSources) {
-            <div class="source-list">
-              @for (item of [1,2,3,4,5]; track item) {
-                <p-skeleton width="100%" height="1.15rem" styleClass="mb-2"></p-skeleton>
-              }
-            </div>
-          } @else if (!trafficSources.length) {
-            <div class="state-panel">
-              <i class="pi pi-sign-in"></i>
-              <p>No traffic sources in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
-              <span>A source appears after a page view is tracked with a referrer, or as a direct visit.</span>
-            </div>
-          } @else {
-            <div class="source-split">
-              <div class="source-pie">
-                <p-chart type="doughnut" [data]="sourcePieData" [options]="sourcePieOptions"></p-chart>
-              </div>
-              <div class="source-list">
-                @for (src of sourceRows; track src.name + src.host) {
-                  <div class="source-row">
-                    <span class="source-swatch" [style.background]="src.color"></span>
-                    <span class="source-name">
-                      {{ src.name }}
-                      @if (src.host && src.host.toLowerCase() !== src.name.toLowerCase()) {
-                        <em>{{ src.host }}</em>
-                      }
-                    </span>
-                    @if (channelLabel(src.channel) && channelLabel(src.channel) !== src.name) {
-                      <span class="source-channel" [attr.title]="channelHint(src.channel)">{{ channelLabel(src.channel) }}</span>
-                    } @else {
-                      <span class="source-channel source-channel-spacer"></span>
-                    }
-                    <span class="source-bar-wrap" aria-hidden="true">
-                      <span class="source-bar" [style.width.%]="src.percentage" [style.background]="src.color"></span>
-                    </span>
-                    <span class="source-visits">{{ (src.visits || 0) | number }}</span>
-                    <span class="source-pct">{{ src.percentage | number:'1.0-0' }}%</span>
-                  </div>
-                }
-              </div>
-            </div>
-          }
-        </div>
+        <!-- Breakdown cards: Top pages · Top sources · Countries (same style as the home sample dashboard) -->
+        <div class="breakdown-grid">
 
-        <!-- Top Pages + Countries -->
-        <div class="tables-row">
-
-          <div class="data-card theme-indigo">
-            <div class="card-header">
-              <div class="panel-title">
-                <h3>Top pages
-                  <button type="button" class="pi pi-info-circle section-info-icon"
-                     pTooltip="Pages ranked by views in this date range. Share is the percent of all page views."
-                     tooltipPosition="top"></button>
-                </h3>
-                <p>Ranked by views in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
-              </div>
-              @if (loadingStates.topPages) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-              }
-            </div>
+          <app-breakdown-card title="Top pages" metric="Views" tone="pages" [rows]="topPageRows">
+            <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
+               pTooltip="Pages ranked by views in this date range. Hover a row for share, average time and scroll depth."
+               tooltipPosition="top"></button>
             @if (loadingStates.topPages) {
-              <div class="top-pages-list">
-                @for (item of [1,2,3,4,5]; track item) {
-                  <div class="top-page-card skeleton-card">
-                    <p-skeleton width="70%" height="1rem" styleClass="mb-2"></p-skeleton>
-                    <p-skeleton width="90%" height="0.8rem" styleClass="mb-3"></p-skeleton>
-                    <div class="top-page-metrics">
-                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
-                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
-                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
-                      <p-skeleton width="3.5rem" height="2rem"></p-skeleton>
-                    </div>
-                  </div>
-                }
-              </div>
+              <p-progressSpinner bc-head-extra [style]="{ width: '14px', height: '14px' }" strokeWidth="4"></p-progressSpinner>
+            }
+            @if (loadingStates.topPages) {
+              @for (item of [1,2,3,4,5]; track item) {
+                <p-skeleton width="100%" height="1.6rem" styleClass="mb-1"></p-skeleton>
+              }
             } @else if (loadErrors.topPages) {
               <div class="state-panel state-error">
                 <i class="pi pi-exclamation-circle"></i>
@@ -479,92 +393,63 @@
                 <i class="pi pi-file"></i>
                 <p>No pages viewed in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
               </div>
-            } @else {
-              <div class="scan-head">
-                <span>Page</span>
-                <span class="scan-cols">
-                  <span>Views</span><span>Share</span><span>Time</span><span>Scroll</span>
+            } @else if (topPagesTotal > topPagesRows) {
+              <div class="top-pages-pager">
+                <button type="button" class="pager-btn" [disabled]="topPagesPage <= 1"
+                  (click)="onTopPageChange({ first: (topPagesPage - 2) * topPagesRows, rows: topPagesRows })">
+                  <i class="pi pi-chevron-left"></i>
+                </button>
+                <span class="pager-info">
+                  {{ ((topPagesPage - 1) * topPagesRows) + 1 }}–{{ min(topPagesPage * topPagesRows, topPagesTotal) }}
+                  of {{ topPagesTotal }}
                 </span>
+                <button type="button" class="pager-btn" [disabled]="topPagesPage * topPagesRows >= topPagesTotal"
+                  (click)="onTopPageChange({ first: topPagesPage * topPagesRows, rows: topPagesRows })">
+                  <i class="pi pi-chevron-right"></i>
+                </button>
               </div>
-              <div class="top-pages-list">
-                @for (page of topPages; track page.path; let i = $index) {
-                  <div class="top-page-card">
-                    <div class="top-page-main">
-                      <span class="top-page-rank">{{ ((topPagesPage - 1) * topPagesRows) + i + 1 }}</span>
-                      <div class="top-page-info">
-                        @if (page.title) {
-                          <div class="page-title" [pTooltip]="page.title" tooltipPosition="top">{{ page.title }}</div>
-                        }
-                        <div class="page-path" [pTooltip]="page.path" tooltipPosition="top">{{ page.path }}</div>
-                      </div>
-                    </div>
-                    <div class="top-page-metrics">
-                      <div class="top-page-metric">
-                        <span class="metric-label">Views</span>
-                        <span class="metric-value">{{ page.views | number }}</span>
-                      </div>
-                      <div class="top-page-metric">
-                        <span class="metric-label">Share</span>
-                        <span class="metric-value">{{ page.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                      <div class="top-page-metric" pTooltip="Average time spent on this page" tooltipPosition="top">
-                        <span class="metric-label">Avg Time</span>
-                        <span class="metric-value">
-                          @if (page.avgTimeOnPage != null) {
-                            {{ formatDuration(page.avgTimeOnPage) }}
-                          } @else {
-                            <span class="no-data-dash">—</span>
-                          }
-                        </span>
-                      </div>
-                      <div class="top-page-metric" pTooltip="Average scroll depth reached on this page" tooltipPosition="top">
-                        <span class="metric-label">Scroll</span>
-                        <span class="metric-value">
-                          @if (page.avgScrollDepth != null) {
-                            {{ page.avgScrollDepth | number:'1.0-0' }}%
-                          } @else {
-                            <span class="no-data-dash">—</span>
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              @if (topPagesTotal > topPagesRows) {
-                <div class="top-pages-pager">
-                  <button type="button" class="pager-btn" [disabled]="topPagesPage <= 1"
-                    (click)="onTopPageChange({ first: (topPagesPage - 2) * topPagesRows, rows: topPagesRows })">
-                    <i class="pi pi-chevron-left"></i>
-                  </button>
-                  <span class="pager-info">
-                    {{ ((topPagesPage - 1) * topPagesRows) + 1 }}–{{ min(topPagesPage * topPagesRows, topPagesTotal) }}
-                    of {{ topPagesTotal }}
-                  </span>
-                  <button type="button" class="pager-btn" [disabled]="topPagesPage * topPagesRows >= topPagesTotal"
-                    (click)="onTopPageChange({ first: topPagesPage * topPagesRows, rows: topPagesRows })">
-                    <i class="pi pi-chevron-right"></i>
-                  </button>
-                </div>
-              }
             }
-          </div>
+          </app-breakdown-card>
 
-          <div class="data-card theme-teal" [class.locked-section]="!hasFeature('sessions')">
-            <div class="card-header">
-              <div class="panel-title">
-                <h3>Top countries
-                  <button type="button" class="pi pi-info-circle section-info-icon"
-                     pTooltip="Page views by country for this date range."
-                     tooltipPosition="top"></button>
-                </h3>
-                <p>Where those page views came from.</p>
+          <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('utm_attribution')"
+            title="Top sources" metric="Visits" tone="sources" [rows]="hasFeature('utm_attribution') && !loadingStates.trafficSources ? sourceBreakdownRows : []" [limit]="8">
+            <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
+              pTooltip="Where this date range’s page views started: search, a link from another site, social, email, paid, or a direct visit. Hover a row for its channel."
+              tooltipPosition="top"></button>
+            @if (hasFeature('utm_attribution') && loadingStates.trafficSources) {
+              <p-progressSpinner bc-head-extra [style]="{ width: '14px', height: '14px' }" strokeWidth="4"></p-progressSpinner>
+            }
+            @if (!hasFeature('utm_attribution')) {
+              <div class="locked-overlay">
+                <div class="locked-content">
+                  <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter</span>
+                  <i class="pi pi-lock lock-icon"></i>
+                  <h4>Traffic sources</h4>
+                  <p>See whether people arrived from search, a referral, social, email, paid, or directly.</p>
+                  <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">View plans <i class="pi pi-arrow-right"></i></a>
+                </div>
               </div>
-              @if (loadingStates.geography) {
-                <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            } @else if (loadingStates.trafficSources) {
+              @for (item of [1,2,3,4,5]; track item) {
+                <p-skeleton width="100%" height="1.6rem" styleClass="mb-1"></p-skeleton>
               }
-            </div>
+            } @else if (!trafficSources.length) {
+              <div class="state-panel">
+                <i class="pi pi-sign-in"></i>
+                <p>No traffic sources in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
+                <span>A source appears after a page view is tracked with a referrer, or as a direct visit.</span>
+              </div>
+            }
+          </app-breakdown-card>
+
+          <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('sessions')"
+            title="Countries" metric="Views" tone="geo" [rows]="hasFeature('sessions') && !loadingStates.geography ? geoRows : []">
+            <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
+               pTooltip="Page views by country for this date range."
+               tooltipPosition="top"></button>
+            @if (loadingStates.geography) {
+              <p-progressSpinner bc-head-extra [style]="{ width: '14px', height: '14px' }" strokeWidth="4"></p-progressSpinner>
+            }
             @if (!hasFeature('sessions')) {
               <div class="locked-overlay">
                 <div class="locked-content">
@@ -576,17 +461,9 @@
                 </div>
               </div>
             } @else if (loadingStates.geography) {
-              <div class="top-pages-list">
-                @for (item of [1,2,3,4,5]; track item) {
-                  <div class="top-page-card top-country-card skeleton-card">
-                    <p-skeleton width="55%" height="1rem" styleClass="mb-2"></p-skeleton>
-                    <div class="top-page-metrics top-country-metrics">
-                      <p-skeleton width="4rem" height="2rem"></p-skeleton>
-                      <p-skeleton width="4rem" height="2rem"></p-skeleton>
-                    </div>
-                  </div>
-                }
-              </div>
+              @for (item of [1,2,3,4,5]; track item) {
+                <p-skeleton width="100%" height="1.6rem" styleClass="mb-1"></p-skeleton>
+              }
             } @else if (loadErrors.geography) {
               <div class="state-panel state-error">
                 <i class="pi pi-exclamation-circle"></i>
@@ -599,57 +476,23 @@
                 <p>No country data in {{ dateRangeLabel || activePreset || 'this range' }}.</p>
                 <span>Country is stored with each session and shows up after visitors are tracked.</span>
               </div>
-            } @else {
-              <div class="scan-head scan-head-country">
-                <span>Country</span>
-                <span class="scan-cols">
-                  <span>Views</span><span>Share</span>
+            } @else if (geoData.length > geoDataRows) {
+              <div class="top-pages-pager">
+                <button type="button" class="pager-btn" [disabled]="geoDataPage <= 1"
+                  (click)="onGeoPageChange(geoDataPage - 1)">
+                  <i class="pi pi-chevron-left"></i>
+                </button>
+                <span class="pager-info">
+                  {{ ((geoDataPage - 1) * geoDataRows) + 1 }}–{{ min(geoDataPage * geoDataRows, geoData.length) }}
+                  of {{ geoData.length }}
                 </span>
+                <button type="button" class="pager-btn" [disabled]="geoDataPage * geoDataRows >= geoData.length"
+                  (click)="onGeoPageChange(geoDataPage + 1)">
+                  <i class="pi pi-chevron-right"></i>
+                </button>
               </div>
-              <div class="top-pages-list">
-                @for (geo of pagedGeoData; track geo.country; let i = $index) {
-                  <div class="top-page-card top-country-card">
-                    <div class="top-page-main">
-                      <span class="top-page-rank top-country-rank">{{ ((geoDataPage - 1) * geoDataRows) + i + 1 }}</span>
-                      <div class="top-page-info top-country-info">
-                        <div class="page-title country-title">
-                          <span class="country-flag">{{ geo.flag }}</span>
-                          <span>{{ geo.country }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="top-page-metrics top-country-metrics">
-                      <div class="top-page-metric">
-                        <span class="metric-label">Views</span>
-                        <span class="metric-value">{{ geo.visitors | number }}</span>
-                      </div>
-                      <div class="top-page-metric">
-                        <span class="metric-label">Share</span>
-                        <span class="metric-value">{{ geo.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              @if (geoData.length > geoDataRows) {
-                <div class="top-pages-pager">
-                  <button type="button" class="pager-btn" [disabled]="geoDataPage <= 1"
-                    (click)="onGeoPageChange(geoDataPage - 1)">
-                    <i class="pi pi-chevron-left"></i>
-                  </button>
-                  <span class="pager-info">
-                    {{ ((geoDataPage - 1) * geoDataRows) + 1 }}–{{ min(geoDataPage * geoDataRows, geoData.length) }}
-                    of {{ geoData.length }}
-                  </span>
-                  <button type="button" class="pager-btn" [disabled]="geoDataPage * geoDataRows >= geoData.length"
-                    (click)="onGeoPageChange(geoDataPage + 1)">
-                    <i class="pi pi-chevron-right"></i>
-                  </button>
-                </div>
-              }
             }
-          </div>
+          </app-breakdown-card>
         </div>
 
         <!-- World Map Card -->
