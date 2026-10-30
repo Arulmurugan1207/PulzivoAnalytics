@@ -5,8 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { clearAnalyticsCache } from '../../../services/analytics-request-cache';
-import { echarts } from '../../../charts/echarts-world';
-import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
+import { EchartDirective } from '../../../charts/echart.directive';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
@@ -91,8 +90,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  providers: [provideEchartsCore({ echarts })],
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent, BreakdownCard],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -444,10 +442,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     }
     this.http.get('/world.geojson').subscribe({
       next: (geoJson: any) => {
-        this.worldGeoJson = geoJson;
-        echarts.registerMap('world', geoJson);
-        // Now that GeoJSON is ready, build (geoData may already be loaded)
-        this.buildMapOptions();
+        import('../../../charts/echarts-world').then(({ echarts }) => {
+          echarts.registerMap('world', geoJson);
+          this.worldGeoJson = geoJson;
+          // Now that GeoJSON is ready, build (geoData may already be loaded)
+          this.buildMapOptions();
+          this.cdr.markForCheck();
+        });
       },
       error: (err) => console.warn('Failed to load world.geojson', err)
     });
