@@ -86,9 +86,9 @@
   <div class="activity-row">
 
     <!-- Top Event Types (ranked) -->
-    <div class="activity-card ranked-card">
+    <div class="activity-card ranked-card viz-card">
       <div class="card-header">
-        <h3>Top Event Types</h3>
+        <h3><i class="pi pi-chart-bar" style="color:#6366f1"></i> Top Event Types</h3>
         <span class="card-sub">Ranked by frequency</span>
         @if (loading.breakdown) {
           <p-progressSpinner [style]="{ width: '16px', height: '16px' }" strokeWidth="4"></p-progressSpinner>
@@ -104,32 +104,41 @@
           }
         </div>
       } @else {
-        <div class="ranked-list">
-          @for (evt of events; track evt.name; let idx = $index) {
-            <div class="ranked-row" (click)="filterEventType = evt.name; onFilterChange(); scrollToHistory()">
-              <span class="rank-num">{{ idx + 1 }}</span>
-              <i [class]="eventIcon(evt.name) + ' event-type-icon'" [style.color]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></i>
-              <div class="ranked-info">
-                <span class="ranked-name">{{ eventFriendlyLabel(evt.name) }}</span>
-                <span class="ranked-raw-name">{{ evt.name }}</span>
-              </div>
-              <div class="ranked-bar-wrap">
-                <div class="ranked-bar" [style.width.%]="evt.percentage" [style.background]="getCategoryForEvent(evt.name)?.color || '#94a3b8'"></div>
-              </div>
-              <span class="ranked-count">{{ evt.count | number }}</span>
-            </div>
+        <div class="viz-list">
+          @for (evt of eventTypeRows.slice(0, typeLimit); track evt.name) {
+            <button type="button" class="viz-row" [title]="evt.label + ' (' + evt.name + ')\n' + (evt.count | number) + ' events · ' + formatShare(evt.share) + ' of total\nClick to filter the event stream'"
+                    (click)="filterEventType = evt.name; onFilterChange(); scrollToHistory()">
+              <span class="viz-bar" [style.width.%]="evt.pct" [style.background]="tint(evt.color, 0.14)"></span>
+              <span class="viz-label">
+                <span class="viz-icon" [style.background]="tint(evt.color, 0.16)" [style.color]="evt.color"><i [class]="evt.icon"></i></span>
+                <span class="viz-text">{{ evt.label }}</span>
+              </span>
+              <span class="viz-val">
+                <span class="viz-share">{{ formatShare(evt.share) }}</span>
+                {{ evt.count | number }}
+              </span>
+            </button>
           }
-          @if (events.length === 0) {
+          @if (eventTypeRows.length === 0) {
             <div class="no-data">No events in this range for {{ siteContextLabel }}.</div>
           }
         </div>
+        @if (eventTypeRows.length > cardPageSize) {
+          <div class="viz-foot">
+            @if (typeLimit < eventTypeRows.length) {
+              <button type="button" class="viz-more" (click)="typeLimit = typeLimit + cardPageSize">Show {{ (eventTypeRows.length - typeLimit) < cardPageSize ? eventTypeRows.length - typeLimit : cardPageSize }} more</button>
+            } @else {
+              <button type="button" class="viz-more" (click)="typeLimit = cardPageSize">Show less</button>
+            }
+          </div>
+        }
       }
     </div>
 
     <!-- Top Clicked Elements -->
-    <div class="activity-card">
+    <div class="activity-card viz-card clicks-card">
       <div class="card-header">
-        <h3><i class="pi pi-hand-point-right" style="color:#2a6df6"></i> Top Clicks</h3>
+        <h3><i class="pi pi-bullseye" style="color:#2a6df6"></i> Top Clicks</h3>
         <span class="card-sub">Most clicked elements</span>
       </div>
         @if (loading.breakdown) {
@@ -142,57 +151,94 @@
             }
           </div>
         } @else {
-          <div class="data-list">
-            @for (click of topClicks; track click.element; let idx = $index) {
-              <div class="data-row">
-                <span class="rank-num sm">{{ idx + 1 }}</span>
-                <div class="click-info">
-                  <span class="element-name">{{ click.element || 'Unknown element' }}</span>
-                  <span class="page-hint">{{ click.page || '' }}</span>
-                </div>
-                <span class="count-badge">{{ click.count | number }}</span>
+          <div class="viz-list">
+            @for (click of clickRows.slice(0, clickLimit); track click.key) {
+              <div class="viz-row two-line" [title]="click.tooltip">
+                <span class="viz-bar" [style.width.%]="click.pct"></span>
+                <span class="viz-label stacked">
+                  <span class="viz-line">
+                    <span class="el-chip">{{ click.chip }}</span>
+                    <span class="viz-text">{{ click.label }}</span>
+                  </span>
+                  @if (click.href) {
+                    <a class="viz-path viz-link" [href]="click.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="click.path + ' (opens in a new tab)'">{{ click.path }}<i class="pi pi-external-link viz-ext" aria-hidden="true"></i></a>
+                  } @else {
+                    <span class="viz-path">{{ click.path || '—' }}@if (click.grouped > 1) { <em class="viz-grouped">· {{ click.grouped }} pages</em> }</span>
+                  }
+                </span>
+                <span class="viz-val">{{ click.count | number }}</span>
               </div>
             }
-            @if (topClicks.length === 0) {
+            @if (clickRows.length === 0) {
               <div class="no-data">No clicks in this range for {{ siteContextLabel }}.</div>
             }
           </div>
+          @if (clickRows.length > cardPageSize) {
+            <div class="viz-foot">
+              @if (clickLimit < clickRows.length) {
+                <button type="button" class="viz-more" (click)="clickLimit = clickLimit + cardPageSize">Show {{ (clickRows.length - clickLimit) < cardPageSize ? clickRows.length - clickLimit : cardPageSize }} more</button>
+              } @else {
+                <button type="button" class="viz-more" (click)="clickLimit = cardPageSize">Show less</button>
+              }
+            </div>
+          }
         }
       </div>
 
       <!-- Form Signals (enterprise) OR Custom Events (free+) -->
-      @if (isPlanAtLeast('enterprise')) {
-        <div class="activity-card signals-card">
+      @if (isPlanAtLeast('enterprise') || demoService.isDemoMode()) {
+        <div class="activity-card viz-card signals-card">
           <div class="card-header">
             <h3><i class="pi pi-file-edit" style="color:#f59e0b"></i> Form Signals</h3>
+            <span class="card-sub">Forms &amp; friction</span>
           </div>
           @if (loading.breakdown) {
-            <div class="signals-grid">
+            <div class="list-skeleton">
               @for (i of [1,2,3,4,5]; track i) {
-                <p-skeleton width="100%" height="56px" borderRadius="10px"></p-skeleton>
+                <p-skeleton width="100%" height="40px" borderRadius="10px"></p-skeleton>
               }
             </div>
           } @else {
-            <div class="signals-grid">
-              <div class="signal-item green">
-                <div class="signal-count">{{ summary.formSubmits | number }}</div>
-                <div class="signal-label">Submits</div>
+            <div [class]="'fs-insight ' + formInsight.tone">
+              <i [class]="formInsight.tone === 'warn' ? 'pi pi-exclamation-triangle' : formInsight.tone === 'good' ? 'pi pi-check-circle' : 'pi pi-info-circle'"></i>
+              <span>{{ formInsight.text }}</span>
+            </div>
+
+            <div class="fs-section-title">
+              Form funnel
+              @if (formCompletionRate !== null) {
+                <span class="fs-rate" title="Submits ÷ (submits + abandons)">{{ formCompletionRate }}% completion</span>
+              }
+            </div>
+            <div class="fs-funnel">
+              <div class="fs-step" [class.zero]="!summary.formFocuses" title="Form fields focused">
+                <span class="fs-bar blue" [style.width.%]="formBar(summary.formFocuses)"></span>
+                <span class="fs-name"><i class="pi pi-pencil"></i> Focuses</span>
+                <span class="fs-num">{{ summary.formFocuses | number }}</span>
               </div>
-              <div class="signal-item red">
-                <div class="signal-count">{{ summary.formAbandons | number }}</div>
-                <div class="signal-label">Abandons</div>
+              <div class="fs-step" [class.zero]="!summary.formSubmits" title="Forms submitted">
+                <span class="fs-bar green" [style.width.%]="formBar(summary.formSubmits)"></span>
+                <span class="fs-name"><i class="pi pi-send"></i> Submits</span>
+                <span class="fs-num">{{ summary.formSubmits | number }}</span>
               </div>
-              <div class="signal-item blue">
-                <div class="signal-count">{{ summary.formFocuses | number }}</div>
-                <div class="signal-label">Focuses</div>
+              <div class="fs-step" [class.zero]="!summary.formAbandons" [class.warn]="summary.formAbandons > 0" title="Forms started but not submitted">
+                <span class="fs-bar red" [style.width.%]="formBar(summary.formAbandons)"></span>
+                <span class="fs-name"><i class="pi pi-sign-out"></i> Abandons</span>
+                <span class="fs-num">{{ summary.formAbandons | number }}</span>
               </div>
-              <div class="signal-item orange">
-                <div class="signal-count">{{ summary.rageClicks | number }}</div>
-                <div class="signal-label">Rage Clicks</div>
+            </div>
+
+            <div class="fs-section-title">Friction signals</div>
+            <div class="fs-tiles">
+              <div class="fs-tile" [class.hot]="summary.rageClicks > 0" [class.zero]="!summary.rageClicks" title="Repeated rapid clicks on the same element">
+                <i class="pi pi-bolt"></i>
+                <span class="fs-tile-num">{{ summary.rageClicks | number }}</span>
+                <span class="fs-tile-label">Rage clicks</span>
               </div>
-              <div class="signal-item gray">
-                <div class="signal-count">{{ summary.deadClicks | number }}</div>
-                <div class="signal-label">Dead Clicks</div>
+              <div class="fs-tile" [class.hot]="summary.deadClicks > 0" [class.zero]="!summary.deadClicks" title="Clicks that produced no response">
+                <i class="pi pi-ban"></i>
+                <span class="fs-tile-num">{{ summary.deadClicks | number }}</span>
+                <span class="fs-tile-label">Dead clicks</span>
               </div>
             </div>
           }

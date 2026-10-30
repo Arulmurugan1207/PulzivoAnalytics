@@ -199,6 +199,9 @@ export class DemoService {
     { element: 'a[href="/pricing"]', page: '/', count: 312 },
     { element: 'button#get-started', page: '/pricing', count: 241 },
     { element: 'a[href="/docs"]', page: '/features', count: 198 },
+    { element: 'BUTTON', page: '/tournaments/6AA0EAF51C3E4B1F/matches/group', count: 120 },
+    { element: 'BUTTON', page: '/tournaments/9F21C07DD4A84E02/matches/group', count: 84 },
+    { element: 'A', page: '/blog/core-web-vitals', count: 76 },
   ];
 
   readonly eventsHistory = [
