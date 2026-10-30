@@ -368,12 +368,9 @@
           </div>
         </div>
 
-        <!-- Improve your site: rules-only top fixes from real visitor interactions -->
-        <app-improve-card class="improve-slot" [report]="improvements" [loading]="loadingStates.improvements" [error]="improvementsError" [domain]="selectedSiteDomain"></app-improve-card>
 
-        <!-- Breakdown cards: Top pages · Top sources · Countries (same style as the home sample dashboard) -->
+        <!-- Breakdown cards: Top pages · Top sources · Improve your site (same style as the home sample dashboard) -->
         <div class="breakdown-grid">
-
           <app-breakdown-card title="Top pages" metric="Views" tone="pages" [rows]="topPageRows">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
                pTooltip="Pages ranked by views in this date range. Hover a row for share, average time and scroll depth."
@@ -445,6 +442,74 @@
             }
           </app-breakdown-card>
 
+          <!-- Improve your site: rules-only top fixes from real visitor interactions -->
+          <app-improve-card class="improve-slot" [report]="improvements" [loading]="loadingStates.improvements" [error]="improvementsError" [domain]="selectedSiteDomain"></app-improve-card>
+        </div>
+
+        <!-- Geography: world map (2/3) + Countries list (1/3) -->
+        <div class="geo-section">
+        <!-- World Map Card -->
+        <div class="geo-map-card" [class.locked-section]="!hasFeature('sessions')">
+          <div class="card-header">
+            <div class="panel-title">
+              <h3><i class="pi pi-map"></i> World map
+                <button type="button" class="pi pi-info-circle section-info-icon"
+                   pTooltip="Page views by country. Scroll to zoom the map, drag to pan, double-click to reset."
+                   tooltipPosition="top"></button>
+              </h3>
+              <p>Page views by country, plotted on the map.</p>
+            </div>
+            <div class="map-hint">
+              <i class="pi pi-search-plus"></i> Scroll to zoom &nbsp;·&nbsp;
+              <i class="pi pi-arrows-alt"></i> Drag to pan
+            </div>
+            @if (loadingStates.geography) {
+              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
+            }
+          </div>
+          @if (!hasFeature('sessions')) {
+            <div class="locked-overlay">
+              <div class="locked-content">
+                <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter+ Feature</span>
+                <i class="pi pi-lock lock-icon"></i>
+                <h4>Visitor Geography Map</h4>
+                <p>Geographic data is available on Starter plan and above.</p>
+                <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">Upgrade to Starter <i class="pi pi-arrow-right"></i></a>
+              </div>
+            </div>
+          } @else {
+            <div class="geo-map-body">
+              <div class="map-container">
+                @if (loadingStates.geography) {
+                  <p-skeleton width="100%" height="360px"></p-skeleton>
+                } @else if (loadErrors.geography) {
+                  <div class="state-panel state-error">
+                    <i class="pi pi-exclamation-circle"></i>
+                    <p>{{ loadErrors.geography }}</p>
+                  </div>
+                } @else if (!geoData.length) {
+                  <div class="state-panel">
+                    <i class="pi pi-map"></i>
+                    <p>No countries to plot for {{ dateRangeLabel || activePreset || 'this range' }}.</p>
+                  </div>
+                } @else if (mapReady && mapOptions) {
+                  <div pzEchart [options]="mapOptions" class="world-map-chart"></div>
+                  <div class="map-zoom-hint">
+                    <span><i class="pi pi-search-plus"></i> Scroll to zoom</span>
+                    <span><i class="pi pi-arrows-alt"></i> Drag to pan</span>
+                    <span><i class="pi pi-refresh"></i> Double-click to reset</span>
+                  </div>
+                } @else {
+                  <div class="state-panel">
+                    <i class="pi pi-map"></i>
+                    <p>The map is still loading. The country list beside it is ready to read.</p>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
           <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('sessions')"
             title="Countries" metric="Views" tone="geo" [rows]="hasFeature('sessions') && !loadingStates.geography ? geoRows : []">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
@@ -496,94 +561,6 @@
               </div>
             }
           </app-breakdown-card>
-        </div>
-
-        <!-- World Map Card -->
-        <div class="geo-map-card" [class.locked-section]="!hasFeature('sessions')">
-          <div class="card-header">
-            <div class="panel-title">
-              <h3><i class="pi pi-map"></i> Countries
-                <button type="button" class="pi pi-info-circle section-info-icon"
-                   pTooltip="Page views by country. Scroll to zoom the map, drag to pan, double-click to reset."
-                   tooltipPosition="top"></button>
-              </h3>
-              <p>Same country totals as the list, plotted on the map.</p>
-            </div>
-            <div class="map-hint">
-              <i class="pi pi-search-plus"></i> Scroll to zoom &nbsp;·&nbsp;
-              <i class="pi pi-arrows-alt"></i> Drag to pan
-            </div>
-            @if (loadingStates.geography) {
-              <p-progressSpinner [style]="{ width: '20px', height: '20px' }" strokeWidth="4"></p-progressSpinner>
-            }
-          </div>
-          @if (!hasFeature('sessions')) {
-            <div class="locked-overlay">
-              <div class="locked-content">
-                <span class="plan-badge badge-starter"><i class="pi pi-star"></i> Starter+ Feature</span>
-                <i class="pi pi-lock lock-icon"></i>
-                <h4>Visitor Geography Map</h4>
-                <p>Geographic data is available on Starter plan and above.</p>
-                <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">Upgrade to Starter <i class="pi pi-arrow-right"></i></a>
-              </div>
-            </div>
-          } @else {
-            <div class="geo-map-body">
-              <div class="map-container">
-                @if (loadingStates.geography) {
-                  <p-skeleton width="100%" height="360px"></p-skeleton>
-                } @else if (loadErrors.geography) {
-                  <div class="state-panel state-error">
-                    <i class="pi pi-exclamation-circle"></i>
-                    <p>{{ loadErrors.geography }}</p>
-                  </div>
-                } @else if (!geoData.length) {
-                  <div class="state-panel">
-                    <i class="pi pi-map"></i>
-                    <p>No countries to plot for {{ dateRangeLabel || activePreset || 'this range' }}.</p>
-                  </div>
-                } @else if (mapReady && mapOptions) {
-                  <div pzEchart [options]="mapOptions" class="world-map-chart"></div>
-                  <div class="map-zoom-hint">
-                    <span><i class="pi pi-search-plus"></i> Scroll to zoom</span>
-                    <span><i class="pi pi-arrows-alt"></i> Drag to pan</span>
-                    <span><i class="pi pi-refresh"></i> Double-click to reset</span>
-                  </div>
-                } @else {
-                  <div class="state-panel">
-                    <i class="pi pi-map"></i>
-                    <p>The map is still loading. The country list beside it is ready to read.</p>
-                  </div>
-                }
-              </div>
-              <div class="geo-ranked-list">
-                @if (loadingStates.geography) {
-                  @for (item of [1,2,3,4,5,6,7,8]; track item) {
-                    <div class="skeleton-row">
-                      <p-skeleton width="100%" height="1.1rem" styleClass="mb-2"></p-skeleton>
-                    </div>
-                  }
-                } @else if (geoData.length === 0) {
-                  <div class="state-panel">
-                    <p>No countries in this range.</p>
-                  </div>
-                } @else {
-                  @for (geo of geoData; track geo.country; let i = $index) {
-                    <div class="geo-row">
-                      <span class="geo-rank">{{ i + 1 }}</span>
-                      <span class="geo-flag">{{ geo.flag }}</span>
-                      <span class="geo-name">{{ geo.country }}</span>
-                      <span class="geo-bar-wrap">
-                        <span class="geo-bar" [style.width.%]="geo.percentage"></span>
-                      </span>
-                      <span class="geo-count">{{ geo.visitors | number }}</span>
-                      <span class="geo-pct">{{ geo.percentage | number:'1.0-1' }}%</span>
-                    </div>
-                  }
-                }
-              </div>
-            </div>
-          }
         </div>
 
       </div>
