@@ -147,3 +147,14 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     assert.doesNotMatch(text, /smaller than (Plausible|Fathom)/i, `${f} claims smaller script than competitor`);
   }
 });
+
+test('every prerendered page links to the blog and all articles with plain <a href>', () => {
+  const { pages, render } = require('./scripts/prerender-seo.js');
+  const posts = require('./src/app/pages/blog/posts.json');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  for (const page of pages()) {
+    const html = render(template, page);
+    assert.match(html, /<a href="\/blog">/);
+    for (const p of posts) assert.ok(html.includes(`<a href="/blog/${p.slug}"`), `${page.path} missing ${p.slug}`);
+  }
+});
