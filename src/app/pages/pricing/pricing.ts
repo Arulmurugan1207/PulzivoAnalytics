@@ -59,13 +59,6 @@ export class Pricing implements OnDestroy {
   };
 
   constructor(private authService: AuthService, private meta: Meta, private titleService: Title, private router: Router, private ngZone: NgZone) {
-    this.meta.updateTag({ name: 'description', content: 'Simple, transparent pricing for Pulzivo Analytics — The Pulse of Modern Product Analytics. Start free, upgrade as you grow. No hidden fees.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/pricing' });
-      this.meta.updateTag({ property: 'og:title', content: 'Pricing | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'og:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/pricing' });
-      this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'twitter:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
 
     // Load actual plan from stored user data
     if (this.authService.isAuthenticated()) {

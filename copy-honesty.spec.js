@@ -110,3 +110,40 @@ test('Features Free badges match script + pricing (page views, clicks, custom ev
   assert.match(sdk, /free:\s*\[[^\]]*['"]clicks['"]/);
   assert.match(sdk, /free:\s*\[[^\]]*['"]custom_events['"]/);
 });
+
+test('sitemap.xml matches the prerendered SEO routes and blog posts', () => {
+  const { pages, canonicalFor } = require('./scripts/prerender-seo.js');
+  const xml = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).sort();
+  const expected = pages().map((p) => canonicalFor(p.path)).sort();
+  assert.deepEqual(locs, expected, 'regenerate with: node scripts/prerender-seo.js --sitemap YYYY-MM-DD > public/sitemap.xml');
+});
+
+test('prerendered pages render unique title, description and self canonical', () => {
+  const { pages, render, canonicalFor } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const titles = new Set();
+  for (const page of pages()) {
+    const html = render(template, page);
+    const title = html.match(/<title>([^<]*)<\/title>/)[1];
+    assert.ok(!titles.has(title), `duplicate title ${title}`);
+    titles.add(title);
+    assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor(page.path).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
+    assert.equal((html.match(/<meta name="description"/g) || []).length, 1);
+    assert.doesNotMatch(html, /noindex/);
+  }
+});
+
+test('marketing + blog copy avoids compliance and script-size-vs-competitor claims', () => {
+  const files = [
+    'src/index.html',
+    'src/app/seo/seo-routes.json',
+    'src/app/pages/blog/posts.json',
+    'src/app/pages/blog/posts-content.json',
+  ];
+  for (const f of files) {
+    const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    assert.doesNotMatch(text, /GDPR|CCPA/i, `${f} claims GDPR/CCPA`);
+    assert.doesNotMatch(text, /smaller than (Plausible|Fathom)/i, `${f} claims smaller script than competitor`);
+  }
+});

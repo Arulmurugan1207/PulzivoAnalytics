@@ -1,6 +1,18 @@
 <section class="blog">
   <div class="container">
-    <h2>Blog</h2>
-    <p>No posts yet. Check back soon for product updates and announcements.</p>
+    <h1>Blog</h1>
+    <p class="lead">Practical guides on simple, privacy-friendly web analytics.</p>
+    <ul class="post-list">
+      @for (post of posts; track post.slug) {
+        <li class="post-card">
+          <a [routerLink]="['/blog', post.slug]">
+            <h2>{{ post.title }}</h2>
+          </a>
+          <time [attr.datetime]="post.date">{{ post.date }}</time>
+          <p>{{ post.description }}</p>
+          <a class="read-more" [routerLink]="['/blog', post.slug]">Read article →</a>
+        </li>
+      }
+    </ul>
   </div>
 </section>
