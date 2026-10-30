@@ -183,7 +183,8 @@ section { padding: 1.75rem 0; }
       width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;
       break-inside: avoid; page-break-inside: avoid; overflow: hidden !important; box-shadow: none !important;
     }
-    .reports-page .chart-container { width: 100% !important; height: 240px !important; position: relative !important; }
+    .reports-page .chart-container { width: 100% !important; height: 260px !important; position: relative !important; overflow: hidden !important; }
+    .reports-page .chart-container canvas { max-height: 260px !important; }
     .reports-page canvas { max-width: 100% !important; }
     .reports-page .rank-grid { grid-template-columns: 1fr 1fr !important; }
     .reports-page .rank-card__more, .reports-page .rank-row__label .pi { display: none !important; }

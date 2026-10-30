@@ -294,7 +294,7 @@ export class DashboardReports implements OnInit, OnDestroy {
       { headers: this.getAuthHeaders() }
     ).subscribe({
       next: (res) => {
-        this.savedReports = res.reports.map(r => ({
+        this.savedReports = (res?.reports || []).map(r => ({
           id: r._id,
           name: r.name,
           template: r.template,
@@ -433,7 +433,7 @@ export class DashboardReports implements OnInit, OnDestroy {
 
   /** Resize Chart.js canvases to the printable width before/after printing so charts aren't clipped. */
   private resizeCharts = () => {
-    try { Object.values((Chart as any).instances || {}).forEach((c: any) => c?.resize?.()); } catch { /* ignore */ }
+    try { Object.values((Chart as any).instances || {}).forEach((c: any) => { if (c?.options) c.options.animation = false; c?.resize?.(); c?.update?.('none'); }); } catch { /* ignore */ }
   };
   private printMql: MediaQueryList | null = null;
   private onPrintChange = () => setTimeout(this.resizeCharts);
@@ -585,8 +585,15 @@ export class DashboardReports implements OnInit, OnDestroy {
   loadConversionData(dateRange: DateRange) {
     this.analyticsDataService.getConversionFunnel(dateRange).subscribe({
       next: (funnel) => {
-        this.funnelSteps = funnel?.steps || [];
-        this.updateFunnelChart(funnel || { steps: [] });
+        const raw: any[] = Array.isArray(funnel?.steps) ? funnel.steps : [];
+        const first = +(raw[0]?.visitors ?? raw[0]?.count ?? 0) || 0;
+        const steps = raw.map((st: any) => {
+          const visitors = +(st?.visitors ?? st?.count ?? 0) || 0;
+          const conversion = st?.conversion != null && isFinite(+st.conversion) ? +st.conversion : (first ? (visitors / first) * 100 : 0);
+          return { ...st, name: st?.name || st?.step || 'Step', visitors, conversion };
+        });
+        this.funnelSteps = steps;
+        this.updateFunnelChart({ steps });
         this.loading.set(false);
       },
       error: () => this.failReport()

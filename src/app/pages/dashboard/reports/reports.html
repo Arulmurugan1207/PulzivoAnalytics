@@ -67,7 +67,7 @@
         icon="pi pi-print"
         (click)="exportReport('pdf')"
         [outlined]="true"
-        class="export-btn"></button>
+        class="export-btn export-btn--outline"></button>
 
       <!-- Save Report -->
       <button 
@@ -313,7 +313,7 @@
                 <div class="charts-section">
                   <div class="chart-card chart-card--wide">
                     <h3>Acquisition Funnel</h3>
-                    <div class="chart-container">
+                    <div class="chart-container" [style.height.px]="60 + funnelSteps.length * 44">
                       <p-chart type="bar" [data]="chartData.funnel" [options]="chartOptions.funnel"></p-chart>
                     </div>
                   </div>
