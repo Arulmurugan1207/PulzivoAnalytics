@@ -155,6 +155,8 @@ test('every prerendered page links to the blog and all articles with plain <a hr
   for (const page of pages()) {
     const html = render(template, page);
     assert.match(html, /<a href="\/blog">/);
+    assert.match(html, /<nav class="prerendered-nav sr-only"[^>]*style="position:absolute;width:1px;height:1px;[^"]*clip-path:inset\(50%\)[^"]*"/, `${page.path} nav must be visually hidden`);
+    assert.doesNotMatch(html, /<nav[^>]*(display:\s*none|visibility:\s*hidden|\shidden[\s>])/);
     for (const p of posts) assert.ok(html.includes(`<a href="/blog/${p.slug}"`), `${page.path} missing ${p.slug}`);
   }
 });

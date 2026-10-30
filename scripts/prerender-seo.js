@@ -88,7 +88,7 @@ function siteNav() {
     ...posts.map((p) => [`/blog/${p.slug}`, p.title]),
     ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms'],
   ];
-  return `<nav class="prerendered-nav" aria-label="Site">${links.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join(' ')}</nav>`;
+  return `<nav class="prerendered-nav sr-only" aria-label="Site" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">${links.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join(' ')}</nav>`;
 }
 
 function staticBody(page) {
