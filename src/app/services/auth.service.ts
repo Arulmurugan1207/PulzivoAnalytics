@@ -47,6 +47,7 @@ import {
 /** How often an open tab re-checks whether its token should be slid forward. */
 export const REFRESH_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
+import { clearAnalyticsCache } from './analytics-request-cache';
 @Injectable({
   providedIn: 'root'
 })
@@ -126,6 +127,7 @@ export class AuthService {
   signout(redirect: boolean = true): void {
     this.stopRefreshWatch();
     clearStoredSession(localStorage);
+    clearAnalyticsCache();
     // NOTE: pulz_is_owner is intentionally NOT cleared here.
     // It is a browser-level "do not track this device" flag.
     // Only PulzivoAnalytics.enableTracking() should remove it.

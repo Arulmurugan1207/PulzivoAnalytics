@@ -29,10 +29,31 @@ interface NavItem {
   styleUrls: ['./header.scss'],
 })
 export class Header implements OnInit, AfterViewInit, OnDestroy {
-  @ViewChild(SignIn) signInModal!: SignIn;
-  @ViewChild(SignUp) signUpModal!: SignUp;
-  @ViewChild(Success) successModal!: Success;
-  @ViewChild(ForgotPassword) forgotPasswordModal!: ForgotPassword;
+  // Auth modals live in a @defer block (keeps forms/dialog code out of the
+  // initial marketing bundle). They load on idle, or immediately when requested.
+  signInModal!: SignIn;
+  signUpModal!: SignUp;
+  @ViewChild('successModal') successModal!: Success;
+  @ViewChild('forgotPasswordModal') forgotPasswordModal!: ForgotPassword;
+  @ViewChild('signUpModal') set signUpRef(v: SignUp) { this.signUpModal = v; }
+  @ViewChild('signInModal') set signInRef(v: SignIn) {
+    this.signInModal = v;
+    if (v && this.pendingModalAction) {
+      const fn = this.pendingModalAction;
+      this.pendingModalAction = null;
+      setTimeout(fn);
+    }
+  }
+  modalsRequested = signal(false);
+  private pendingModalAction: (() => void) | null = null;
+  private viewReady = false;
+
+  /** Run fn once the deferred auth modals are loaded (loads them now if needed). */
+  private withModals(fn: () => void) {
+    if (this.signInModal) { fn(); return; }
+    this.pendingModalAction = fn;
+    this.modalsRequested.set(true);
+  }
   @ViewChild('userMenu') userMenu!: Menu;
 
   mobileMenuOpen = signal(false);
@@ -75,13 +96,13 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
       if (userData) this.setLoggedInUser(`${userData.firstname} ${userData.lastname}`);
     }
     this.authService.openSignUp$.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      if (!this.signUpModal) return; // before view init: handled in ngAfterViewInit
+      if (!this.viewReady) return; // before view init: handled in ngAfterViewInit
       this.authService.pendingAuthModal = null;
       if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
       this.openSignUp();
     });
     this.authService.openSignIn$.pipe(takeUntil(this.destroy$)).subscribe(() => {
-      if (!this.signInModal) return;
+      if (!this.viewReady) return;
       this.authService.pendingAuthModal = null;
       if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
       this.openSignIn();
@@ -89,6 +110,7 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    this.viewReady = true;
     const pending = this.authService.pendingAuthModal;
     if (!pending) return;
     this.authService.pendingAuthModal = null;
@@ -124,9 +146,13 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
 
   openSignIn() {
     if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
-    this.signInModal.show();
+    this.withModals(() => this.signInModal.show());
   }
-  openSignUp() { if (this.isLoggedIn) return; this.signUpCompleted = false; this.signUpModal.show(); }
+  openSignUp() {
+    if (this.isLoggedIn) return;
+    this.signUpCompleted = false;
+    this.withModals(() => this.signUpModal.show());
+  }
   onSignUpClosed() { if (!this.signUpCompleted) this.authService.notifySignUpDismissed(); }
 
   onSwitchToSignUp() { this.signInModal.hide(); this.signUpModal.show(); }

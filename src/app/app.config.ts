@@ -1,5 +1,5 @@
-import { ApplicationConfig, importProvidersFrom, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TitleStrategy } from '@angular/router';
@@ -8,13 +8,13 @@ import { providePrimeNG } from 'primeng/config';
 import Lara from '@primeuix/themes/lara';
 import { MessageService } from 'primeng/api';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { analyticsCacheInterceptor } from './services/analytics-request-cache';
 import { AppTitleStrategy } from './services/title.strategy';
-import { provideEchartsCore } from 'ngx-echarts';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    importProvidersFrom(BrowserAnimationsModule),
+    provideAnimationsAsync(),
     providePrimeNG({
       theme: {
         preset: Lara
@@ -36,9 +36,8 @@ export const appConfig: ApplicationConfig = {
       }
     }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, analyticsCacheInterceptor])),
     MessageService,
     { provide: TitleStrategy, useClass: AppTitleStrategy },
-    provideEchartsCore({ echarts: () => import('echarts') }),
   ]
 };

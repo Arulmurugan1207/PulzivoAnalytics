@@ -4,8 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import * as echarts from 'echarts';
-import { NgxEchartsDirective } from 'ngx-echarts';
+import { clearAnalyticsCache } from '../../../services/analytics-request-cache';
+import { EchartDirective } from '../../../charts/echart.directive';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
@@ -91,7 +91,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent, BreakdownCard],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -443,10 +443,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     }
     this.http.get('/world.geojson').subscribe({
       next: (geoJson: any) => {
-        this.worldGeoJson = geoJson;
-        echarts.registerMap('world', geoJson);
-        // Now that GeoJSON is ready, build (geoData may already be loaded)
-        this.buildMapOptions();
+        import('../../../charts/echarts-world').then(({ echarts }) => {
+          echarts.registerMap('world', geoJson);
+          this.worldGeoJson = geoJson;
+          // Now that GeoJSON is ready, build (geoData may already be loaded)
+          this.buildMapOptions();
+          this.cdr.markForCheck();
+        });
       },
       error: (err) => console.warn('Failed to load world.geojson', err)
     });
@@ -918,6 +921,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     if (this.demoService.isDemoMode() || this.isRefreshing || !this.selectedApiKey) return;
     
     this.isRefreshing = true;
+    clearAnalyticsCache(); // manual refresh always hits the API
     this.showComparison = false;  // reset compare on refresh
     this.prevBarChartDataset = null;
     this.loadErrors = {};

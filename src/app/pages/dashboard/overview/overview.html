@@ -540,7 +540,7 @@
                     <p>No countries to plot for {{ dateRangeLabel || activePreset || 'this range' }}.</p>
                   </div>
                 } @else if (mapReady && mapOptions) {
-                  <div echarts [options]="mapOptions" class="world-map-chart"></div>
+                  <div pzEchart [options]="mapOptions" class="world-map-chart"></div>
                   <div class="map-zoom-hint">
                     <span><i class="pi pi-search-plus"></i> Scroll to zoom</span>
                     <span><i class="pi pi-arrows-alt"></i> Drag to pan</span>
