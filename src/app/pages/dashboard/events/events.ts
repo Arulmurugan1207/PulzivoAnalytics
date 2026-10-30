@@ -46,6 +46,78 @@ interface TopClick {
   element: string;
   page: string;
   count: number;
+  label?: string;
+  text?: string;
+}
+
+export interface ClickRow {
+  key: string;
+  label: string;
+  chip: string;
+  path: string;
+  href?: string;
+  count: number;
+  pct: number;
+  grouped: number;
+  tooltip: string;
+}
+
+export interface EventTypeRow {
+  name: string;
+  label: string;
+  icon: string;
+  color: string;
+  count: number;
+  pct: number;
+  share: number;
+}
+
+const ID_SEGMENT = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{12,}|\d{4,}|[A-Za-z0-9_-]{20,})$/i;
+
+/** Replace ID-like path segments (uuid, long hex, long numeric, long tokens) with '*'. */
+export function normalizeClickPath(path: string): string {
+  const p = (path || '').split(/[?#]/)[0];
+  return p.split('/').map(seg => (seg && ID_SEGMENT.test(seg) && /\d/.test(seg) ? '*' : seg)).join('/');
+}
+
+/** 'matches/group' -> 'Matches › Group' (last two non-ID segments). */
+export function friendlyPathLabel(path: string): string {
+  const segs = (path || '').split(/[?#]/)[0].split('/').filter(s => s && s !== '*');
+  if (!segs.length) return 'Home';
+  const nice = (s: string) => {
+    const t = decodeURIComponent(s).replace(/[-_]+/g, ' ').trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
+  return segs.slice(-2).map(nice).join(' › ');
+}
+
+/** Group clicks whose element + path differ only by ID-like segments; sorted desc. */
+export function groupClicks(clicks: TopClick[], domain: string | null): ClickRow[] {
+  const map = new Map<string, ClickRow>();
+  for (const c of clicks || []) {
+    const text = (c.label || c.text || '').trim();
+    const el = (c.element || '').trim();
+    const looksLikeSelector = /[#.\[]/.test(el);
+    const chip = (looksLikeSelector ? el.split(/[#.\[]/)[0] : el).toUpperCase() || 'ELEMENT';
+    const rawPath = (c.page || '').trim();
+    const path = normalizeClickPath(rawPath);
+    const label = text || (looksLikeSelector ? el : (path ? friendlyPathLabel(path) : 'Unknown element'));
+    const key = `${label}|${chip}|${path}`;
+    const row = map.get(key);
+    if (row) { row.count += c.count || 0; row.grouped++; continue; }
+    map.set(key, {
+      key, label, chip, path, count: c.count || 0, pct: 0, grouped: 1, tooltip: '',
+      href: domain && rawPath.startsWith('/') && !path.includes('*') ? `https://${domain}${rawPath}` : undefined,
+    });
+  }
+  const rows = [...map.values()].sort((a, b) => b.count - a.count);
+  const max = rows[0]?.count || 1;
+  for (const r of rows) {
+    r.pct = Math.max(2, (r.count / max) * 100);
+    if (r.grouped > 1) r.href = undefined;
+    r.tooltip = [r.label, `${r.chip} on ${r.path || '(unknown page)'}`, r.grouped > 1 ? `${r.grouped} pages grouped (ID segment shown as *)` : '', `${r.count.toLocaleString()} clicks`].filter(Boolean).join('\n');
+  }
+  return rows;
 }
 
 interface HistoryEvent {
@@ -166,6 +238,85 @@ export class DashboardEvents implements OnInit, OnDestroy {
   get siteContextLabel(): string {
     const match = this.availableApiKeys.find(key => key.apiKey === this.selectedApiKey);
     return match?.name?.trim() || 'No site selected';
+  }
+
+  // ── Activity cards (Top Event Types / Top Clicks / Form Signals) ──
+  readonly cardPageSize = 10;
+  typeLimit = 10;
+  clickLimit = 10;
+  private _typeRowsSrc: unknown; private _typeRows: EventTypeRow[] = [];
+  private _clickRowsSrc: unknown[] = []; private _clickRows: ClickRow[] = [];
+
+  get selectedSiteDomain(): string | null {
+    const key: any = this.availableApiKeys.find(k => k.apiKey === this.selectedApiKey);
+    const raw = (key?.allowedDomains?.find((d: string) => !!d && !d.includes('*')) || key?.name || '').trim().toLowerCase();
+    const host = raw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?$/.test(host) ? host : null;
+  }
+
+  get eventTypeRows(): EventTypeRow[] {
+    if (this._typeRowsSrc !== this.events) {
+      this._typeRowsSrc = this.events;
+      const list = [...(this.events || [])].sort((a, b) => b.count - a.count);
+      const max = list[0]?.count || 1;
+      const total = list.reduce((s, e) => s + (e.count || 0), 0) || 1;
+      this._typeRows = list.map(e => ({
+        name: e.name,
+        label: this.eventFriendlyLabel(e.name),
+        icon: this.eventIcon(e.name),
+        color: this.getCategoryForEvent(e.name)?.color || '#94a3b8',
+        count: e.count || 0,
+        pct: Math.max(2, ((e.count || 0) / max) * 100),
+        share: ((e.count || 0) / total) * 100,
+      }));
+    }
+    return this._typeRows;
+  }
+
+  get clickRows(): ClickRow[] {
+    const domain = this.selectedSiteDomain;
+    if (this._clickRowsSrc[0] !== this.topClicks || this._clickRowsSrc[1] !== domain) {
+      this._clickRowsSrc = [this.topClicks, domain];
+      this._clickRows = groupClicks(this.topClicks, domain);
+    }
+    return this._clickRows;
+  }
+
+  /** Hex colour -> rgba() tint for soft bars. */
+  tint(hex: string, alpha: number): string {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return `rgba(148,163,184,${alpha})`;
+    const n = parseInt(m[1], 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+  }
+
+  formatShare(p: number): string {
+    return p >= 10 ? `${Math.round(p)}%` : p >= 0.1 ? `${p.toFixed(1)}%` : '<0.1%';
+  }
+
+  /** Submit rate = submits / (submits + abandons) — only when there is form data. */
+  get formCompletionRate(): number | null {
+    const s = this.summary.formSubmits || 0, a = this.summary.formAbandons || 0;
+    return s + a > 0 ? Math.round((s / (s + a)) * 100) : null;
+  }
+
+  formBar(v: number): number {
+    const max = Math.max(this.summary.formFocuses || 0, this.summary.formSubmits || 0, this.summary.formAbandons || 0, 1);
+    return v > 0 ? Math.max(3, (v / max) * 100) : 0;
+  }
+
+  /** One-line insight built only from the summary counts we have. */
+  get formInsight(): { tone: 'warn' | 'good' | 'neutral'; text: string } {
+    const s = this.summary;
+    const rage = s.rageClicks || 0, dead = s.deadClicks || 0, ab = s.formAbandons || 0, sub = s.formSubmits || 0;
+    const n = (v: number) => v.toLocaleString();
+    if (rage || dead) {
+      const parts = [rage ? `${n(rage)} rage click${rage === 1 ? '' : 's'}` : '', dead ? `${n(dead)} dead click${dead === 1 ? '' : 's'}` : ''].filter(Boolean);
+      return { tone: 'warn', text: `${parts.join(' and ')} in this period — visitors hit friction.` };
+    }
+    if (ab) return { tone: 'warn', text: `${n(ab)} form${ab === 1 ? '' : 's'} abandoned in this period.` };
+    if (sub) return { tone: 'good', text: `${n(sub)} form submit${sub === 1 ? '' : 's'} and no friction signals in this period.` };
+    return { tone: 'neutral', text: 'No form or friction signals in this period.' };
   }
 
   get rangeContextLabel(): string {
@@ -1060,7 +1211,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
 
   private readonly EVENT_ICONS: Record<string, string> = {
     page_view:             'pi pi-file',
-    click:                 'pi pi-hand-point-right',
+    click:                 'pi pi-bullseye',
     scroll:                'pi pi-arrows-v',
     hover:                 'pi pi-eye',
     input:                 'pi pi-pencil',
