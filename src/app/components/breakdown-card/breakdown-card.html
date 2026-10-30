@@ -13,7 +13,16 @@
           <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
         }
         @if (r.href) {
-          <a class="bar-text bar-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></a>
+          @if (r.secondary) {
+            <a class="bar-text bar-link bar-stack" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">
+              <span class="bar-primary">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></span>
+              <span class="bar-secondary">{{ r.secondary }}</span>
+            </a>
+          } @else {
+            <a class="bar-text bar-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></a>
+          }
+        } @else if (r.secondary) {
+          <span class="bar-text bar-stack"><span class="bar-primary">{{ r.label }}</span><span class="bar-secondary">{{ r.secondary }}</span></span>
         } @else {
           <span class="bar-text">{{ r.label }}</span>
         }
