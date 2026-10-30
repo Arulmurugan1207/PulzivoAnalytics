@@ -4,8 +4,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import * as echarts from 'echarts';
-import { NgxEchartsDirective } from 'ngx-echarts';
+import { clearAnalyticsCache } from '../../../services/analytics-request-cache';
+import { echarts } from '../../../charts/echarts-world';
+import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { Observable, Subscription, BehaviorSubject } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { TableModule } from 'primeng/table';
@@ -90,6 +91,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
+  providers: [provideEchartsCore({ echarts })],
   imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent, BreakdownCard],
 
   templateUrl: './overview.html',
@@ -923,6 +925,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     if (this.demoService.isDemoMode() || this.isRefreshing || !this.selectedApiKey) return;
     
     this.isRefreshing = true;
+    clearAnalyticsCache(); // manual refresh always hits the API
     this.showComparison = false;  // reset compare on refresh
     this.prevBarChartDataset = null;
     this.loadErrors = {};

@@ -59,23 +59,25 @@
 </header>
 
 <!-- Modals -->
-<app-sign-in
+@defer (on idle; when modalsRequested()) {
+<app-sign-in #signInModal
   (switchToSignUp)="onSwitchToSignUp()"
   (switchToForgotPassword)="onSwitchToForgotPassword($event)"
   (signInSuccess)="onSignInSuccess($event)">
 </app-sign-in>
 
-<app-sign-up
+<app-sign-up #signUpModal
   (switchToSignIn)="onSwitchToSignIn()"
   (close)="onSignUpClosed()"
   (signUpSuccess)="onSignUpSuccess($event)">
 </app-sign-up>
 
-<app-forgot-password
+<app-forgot-password #forgotPasswordModal
   (backToSignIn)="onBackToSignIn()">
 </app-forgot-password>
 
-<app-success></app-success>
+<app-success #successModal></app-success>
+}
 
 <!-- Owner Mode Badge -->
 @if (isOwnerModeActive()) {

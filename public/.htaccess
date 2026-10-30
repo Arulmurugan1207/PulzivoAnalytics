@@ -23,6 +23,18 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
   Header set X-Robots-Tag "noindex, nofollow" env=PZ_NOINDEX
 </IfModule>
 
+# LiteSpeed page cache for public, prerendered marketing HTML only.
+# Pages are identical for every visitor (auth lives in localStorage, not
+# cookies), so they're safe to cache server-side. Short TTL (10 min) because
+# CI can't purge LSCache; a deploy shows up within 10 minutes.
+# Dashboard, auth, demo, API and everything else is never cached.
+<IfModule LiteSpeed>
+  CacheLookup on
+  RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
+  RewriteCond %{QUERY_STRING} ^$
+  RewriteRule ^(pricing|features|docs|blog|blog/[a-z0-9-]+|why-pulzivo|use-cases|contact|privacy|terms)?$ - [E=Cache-Control:max-age=600]
+</IfModule>
+
 # Never rewrite SEO files to the Angular app
 RewriteRule ^sitemap\.xml$ - [L]
 RewriteRule ^robots\.txt$ - [L]
@@ -44,4 +56,26 @@ RewriteRule . index.html [L]
 <IfModule mod_mime.c>
   AddType application/xml .xml
   AddType text/plain .txt
+</IfModule>
+
+# Browser caching
+# - Angular's content-hashed bundles (main-XXXXXXXX.js, chunk-*.js,
+#   polyfills-*.js, styles-*.css) and hashed media/ assets never change:
+#   cache for a year, immutable.
+# - HTML (index.html, prerendered route index.html), sitemap.xml, robots.txt:
+#   always revalidate so deploys are picked up immediately.
+# - Un-hashed public files (tracker script, images, geojson): short cache.
+<IfModule mod_headers.c>
+  <FilesMatch "^(main|chunk|polyfills|styles|scripts|worker)-[A-Za-z0-9]{8}\.(js|mjs|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "-[A-Za-z0-9]{8}\.(woff2?|ttf|eot|otf|svg|png|jpe?g|gif|webp|avif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  <FilesMatch "\.(html|xml|txt)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "^(pulzivo-analytics(\.min)?\.js|world\.geojson|favicon\.svg|og-image\.png)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
 </IfModule>

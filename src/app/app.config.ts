@@ -8,8 +8,8 @@ import { providePrimeNG } from 'primeng/config';
 import Lara from '@primeuix/themes/lara';
 import { MessageService } from 'primeng/api';
 import { authInterceptor } from './interceptors/auth.interceptor';
+import { analyticsCacheInterceptor } from './services/analytics-request-cache';
 import { AppTitleStrategy } from './services/title.strategy';
-import { provideEchartsCore } from 'ngx-echarts';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -36,9 +36,8 @@ export const appConfig: ApplicationConfig = {
       }
     }),
     provideRouter(routes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, analyticsCacheInterceptor])),
     MessageService,
     { provide: TitleStrategy, useClass: AppTitleStrategy },
-    provideEchartsCore({ echarts: () => import('echarts') }),
   ]
 };
