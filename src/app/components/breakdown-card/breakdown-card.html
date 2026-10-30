@@ -22,10 +22,12 @@
       </span>
     </div>
   }
+  <div class="bc-foot">
   @if (hiddenCount() > 0) {
     <button type="button" class="bc-more" (click)="expanded.set(!expanded())">
       {{ expanded() ? 'Show less' : 'Show ' + hiddenCount() + ' more' }}
     </button>
   }
   <ng-content></ng-content>
+  </div>
 </div>

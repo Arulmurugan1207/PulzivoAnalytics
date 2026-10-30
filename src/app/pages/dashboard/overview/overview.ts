@@ -117,13 +117,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
   topPages: PageData[] = [];
   topPagesTotal = 0;
   topPagesPage = 1;
-  topPagesRows = 5;
+  topPagesRows = 10;
   entryPages: PageData[] = [];
   insights: SiteInsights | null = null;
   exitPages: PageData[] = [];
   geoData: GeographicData[] = [];
   geoDataPage = 1;
-  geoDataRows = 5;
+  geoDataRows = 10;
   mapOptions: any = null;
   mapReady = false;
   private worldGeoJson: any = null;

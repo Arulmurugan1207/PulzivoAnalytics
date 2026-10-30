@@ -3,13 +3,13 @@ $ink: #0f172a;
 $muted: #64748b;
 $line: rgba(15, 23, 42, 0.08);
 
-:host { display: block; min-width: 0; }
+:host { display: block; min-width: 0; height: 100%; }
 
-.bc { background: #fff; border: 1px solid $line; border-radius: 12px; padding: 12px 14px; min-width: 0; height: 100%; box-sizing: border-box; }
+.bc { background: #fff; border: 1px solid $line; border-radius: 12px; padding: 12px 14px; min-width: 0; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
 .bc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: $muted; margin-bottom: 8px; }
 .bc-title { color: $ink; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .bc-metric { display: inline-flex; align-items: center; gap: 6px; }
-.bar-row { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px; font-size: 13px; color: $ink; }
+.bar-row { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 30px; box-sizing: border-box; padding: 6px 8px; margin-bottom: 4px; font-size: 13px; color: $ink; }
 .bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: rgba(99,102,241,0.12); }
 .bc-sources .bar { background: rgba(16,185,129,0.14); }
 .bc-geo .bar { background: rgba(236,72,153,0.11); }
@@ -27,3 +27,6 @@ $line: rgba(15, 23, 42, 0.08);
   repeating-linear-gradient(#b22234 0 7.7%, #fff 7.7% 15.4%); }
 .bc-more { background: none; border: 0; padding: 4px 8px; color: #6366f1; font-size: 12px; font-weight: 600; cursor: pointer; }
 .bc-more:hover { text-decoration: underline; }
+
+// Footer (show-more, pagers, states) sits at the bottom so side-by-side cards line up.
+.bc-foot { margin-top: auto; }
