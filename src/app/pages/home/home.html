@@ -80,24 +80,9 @@
         </div>
 
         <div class="dash-lists">
-          <div class="dash-list">
-            <div class="dash-list-head"><span>Top pages</span><span>Visitors</span></div>
-            @for (r of topPages; track r.label) {
-              <div class="bar-row"><div class="bar" [style.width.%]="r.pct"></div><span class="bar-label">{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
-            }
-          </div>
-          <div class="dash-list">
-            <div class="dash-list-head"><span>Top sources</span><span>Visitors</span></div>
-            @for (r of topSources; track r.label) {
-              <div class="bar-row"><div class="bar src" [style.width.%]="r.pct"></div><span class="bar-label">{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
-            }
-          </div>
-          <div class="dash-list">
-            <div class="dash-list-head"><span>Countries</span><span>Visitors</span></div>
-            @for (r of countries; track r.label) {
-              <div class="bar-row"><div class="bar geo" [style.width.%]="r.pct"></div><span class="bar-label"><span class="flag" [ngClass]="'flag-' + r.code" aria-hidden="true"></span>{{ r.label }}</span><span class="bar-val">{{ r.value }}</span></div>
-            }
-          </div>
+          <app-breakdown-card title="Top pages" tone="pages" [rows]="topPages"></app-breakdown-card>
+          <app-breakdown-card title="Top sources" tone="sources" [rows]="topSources"></app-breakdown-card>
+          <app-breakdown-card title="Countries" tone="geo" [rows]="countries"></app-breakdown-card>
         </div>
       </div>
     </div>

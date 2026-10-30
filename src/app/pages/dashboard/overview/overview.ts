@@ -50,6 +50,7 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
+import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/breakdown-card';
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -89,7 +90,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, NgxEchartsDirective, FirstEventOnboardingComponent, BreakdownCard],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -1558,6 +1559,58 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   min(a: number, b: number): number {
     return Math.min(a, b);
+  }
+
+  // ── Breakdown card rows (memoised so OnPush inputs keep a stable reference) ──
+  private rowCache = new Map<string, { deps: unknown[]; rows: BreakdownRow[] }>();
+  private memoRows(key: string, deps: unknown[], build: () => BreakdownRow[]): BreakdownRow[] {
+    const hit = this.rowCache.get(key);
+    if (hit && hit.deps.length === deps.length && hit.deps.every((d, i) => d === deps[i])) return hit.rows;
+    const rows = build();
+    this.rowCache.set(key, { deps, rows });
+    return rows;
+  }
+
+  get topPageRows(): BreakdownRow[] {
+    return this.memoRows('pages', [this.topPages], () => this.topPages.map(page => {
+      const extra = [
+        `${(page.percentage ?? 0).toFixed(1)}% of views`,
+        page.avgTimeOnPage != null ? `avg time ${this.formatDuration(page.avgTimeOnPage)}` : '',
+        page.avgScrollDepth != null ? `scroll ${Math.round(page.avgScrollDepth)}%` : '',
+      ].filter(Boolean).join(' · ');
+      return {
+        key: page.path,
+        label: page.path,
+        value: page.views || 0,
+        tooltip: `${page.title ? page.title + '\n' : ''}${page.path}\n${extra}`,
+      };
+    }));
+  }
+
+  get sourceBreakdownRows(): BreakdownRow[] {
+    return this.memoRows('sources', [this.sourceRows], () => this.sourceRows.map(src => {
+      const channel = this.channelLabel(src.channel);
+      const showHost = !!src.host && src.host.toLowerCase() !== (src.name || '').toLowerCase();
+      return {
+        key: `${src.name}|${src.host}`,
+        label: src.name,
+        sub: showHost ? src.host : undefined,
+        value: src.visits || 0,
+        tooltip: [channel && channel !== src.name ? `${channel}: ${this.channelHint(src.channel)}` : '', `${(src.percentage ?? 0).toFixed(0)}% of visits`]
+          .filter(Boolean).join('\n'),
+      };
+    }));
+  }
+
+  get geoRows(): BreakdownRow[] {
+    const paged = this.pagedGeoData;
+    return this.memoRows('geo', [this.geoData, this.geoDataPage, this.geoDataRows], () => paged.map(geo => ({
+      key: geo.country,
+      label: geo.country,
+      flag: (geo as any).flag || this.getFlagEmoji(geo.country),
+      value: geo.visitors || 0,
+      tooltip: `${(geo.percentage ?? 0).toFixed(1)}% of views`,
+    })));
   }
 
   get pagedGeoData(): GeographicData[] {

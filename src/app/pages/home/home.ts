@@ -6,6 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
+import { BreakdownCard } from '../../components/breakdown-card/breakdown-card';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
 
 declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
@@ -13,7 +14,7 @@ declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefi
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, TagModule, DividerModule],
+  imports: [CommonModule, RouterModule, ButtonModule, TagModule, DividerModule, BreakdownCard],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
@@ -106,10 +107,10 @@ export class Home implements OnInit, OnDestroy {
     { label: 'x.com', value: '910', pct: 15 },
   ];
   countries = [
-    { label: 'United States', code: 'us', value: '4,820', pct: 100 },
-    { label: 'Germany', code: 'de', value: '1,960', pct: 41 },
-    { label: 'India', code: 'in', value: '1,540', pct: 32 },
-    { label: 'France', code: 'fr', value: '1,010', pct: 21 },
+    { label: 'United States', flagClass: 'flag-us', value: '4,820', pct: 100 },
+    { label: 'Germany', flagClass: 'flag-de', value: '1,960', pct: 41 },
+    { label: 'India', flagClass: 'flag-in', value: '1,540', pct: 32 },
+    { label: 'France', flagClass: 'flag-fr', value: '1,010', pct: 21 },
   ];
   private readonly chartData = [210, 230, 220, 260, 250, 240, 290, 300, 280, 320, 310, 300, 340, 360, 330, 350, 380, 370, 360, 400, 420, 390, 430, 450, 440, 470, 500, 480, 520, 540];
   readonly chartLine: string;

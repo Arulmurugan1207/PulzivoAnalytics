@@ -1,0 +1,31 @@
+<div class="bc" [class]="'bc bc-' + tone()">
+  <div class="bc-head">
+    <span class="bc-title">{{ title() }}<ng-content select="[bc-title-extra]"></ng-content></span>
+    <span class="bc-metric">{{ metric() }}<ng-content select="[bc-head-extra]"></ng-content></span>
+  </div>
+  @for (r of visibleRows(); track r.key ?? r.label) {
+    <div class="bar-row" [attr.title]="r.tooltip || null">
+      <div class="bar" [style.width.%]="r.pct"></div>
+      <span class="bar-label">
+        @if (r.flagClass) {
+          <span class="flag" [class]="'flag ' + r.flagClass" aria-hidden="true"></span>
+        } @else if (r.flag) {
+          <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
+        }
+        <span class="bar-text">{{ r.label }}</span>
+        @if (r.sub) {
+          <em class="bar-sub">{{ r.sub }}</em>
+        }
+      </span>
+      <span class="bar-val">
+        @if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }
+      </span>
+    </div>
+  }
+  @if (hiddenCount() > 0) {
+    <button type="button" class="bc-more" (click)="expanded.set(!expanded())">
+      {{ expanded() ? 'Show less' : 'Show ' + hiddenCount() + ' more' }}
+    </button>
+  }
+  <ng-content></ng-content>
+</div>

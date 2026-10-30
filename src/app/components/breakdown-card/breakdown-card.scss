@@ -1,0 +1,29 @@
+// Styles lifted from the marketing home "sample dashboard" (PR #32).
+$ink: #0f172a;
+$muted: #64748b;
+$line: rgba(15, 23, 42, 0.08);
+
+:host { display: block; min-width: 0; }
+
+.bc { background: #fff; border: 1px solid $line; border-radius: 12px; padding: 12px 14px; min-width: 0; height: 100%; box-sizing: border-box; }
+.bc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: $muted; margin-bottom: 8px; }
+.bc-title { color: $ink; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.bc-metric { display: inline-flex; align-items: center; gap: 6px; }
+.bar-row { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px; font-size: 13px; color: $ink; }
+.bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: rgba(99,102,241,0.12); }
+.bc-sources .bar { background: rgba(16,185,129,0.14); }
+.bc-geo .bar { background: rgba(236,72,153,0.11); }
+.bar-label { position: relative; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.bar-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bar-sub { font-style: normal; color: $muted; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.bar-val { position: relative; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.flag-emoji { font-size: 15px; line-height: 1; flex-shrink: 0; }
+.flag { width: 18px; height: 12px; border-radius: 2px; flex-shrink: 0; box-shadow: 0 0 0 1px rgba(15,23,42,0.1); }
+.flag-de { background: linear-gradient(#000 33.3%, #dd0000 33.3% 66.6%, #ffce00 66.6%); }
+.flag-fr { background: linear-gradient(90deg, #0055a4 33.3%, #fff 33.3% 66.6%, #ef4135 66.6%); }
+.flag-in { background: radial-gradient(circle at 50% 50%, #000080 1.6px, transparent 2px), linear-gradient(#ff9933 33.3%, #fff 33.3% 66.6%, #138808 66.6%); }
+.flag-us { background:
+  linear-gradient(#3c3b6e, #3c3b6e) 0 0 / 45% 54% no-repeat,
+  repeating-linear-gradient(#b22234 0 7.7%, #fff 7.7% 15.4%); }
+.bc-more { background: none; border: 0; padding: 4px 8px; color: #6366f1; font-size: 12px; font-weight: 600; cursor: pointer; }
+.bc-more:hover { text-decoration: underline; }
