@@ -80,7 +80,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'traffic',
       name: 'Traffic Report',
-      description: 'Comprehensive overview of page views and visitor traffic',
+      description: 'Visits, page views and where they come from',
       icon: 'pi-chart-line',
       metrics: ['pageViews', 'visitors', 'sessions', 'bounceRate'],
       charts: ['pageViewsTrend', 'topPages', 'trafficSources']
@@ -88,7 +88,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'behavior',
       name: 'User Behavior',
-      description: 'Analyze user engagement and interaction patterns',
+      description: 'How people engage with your site',
       icon: 'pi-users',
       metrics: ['avgSessionDuration', 'pagesPerSession', 'bounceRate', 'exitRate'],
       charts: ['sessionDuration', 'pageDepth', 'exitPages']
@@ -96,7 +96,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'geographic',
       name: 'Geographic Analysis',
-      description: 'Visitor distribution by country and region',
+      description: 'Where your visitors are',
       icon: 'pi-map-marker',
       metrics: ['countries', 'topCountry', 'topRegion'],
       charts: ['geoMap', 'countryBreakdown', 'regionBreakdown']
@@ -104,7 +104,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'device',
       name: 'Device & Browser',
-      description: 'Device types, browsers, and screen resolutions',
+      description: 'Devices and browsers used',
       icon: 'pi-mobile',
       metrics: ['desktop', 'mobile', 'tablet'],
       charts: ['deviceBreakdown', 'browserBreakdown', 'screenResolution']
@@ -112,7 +112,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'content',
       name: 'Content Performance',
-      description: 'Most and least popular pages and content',
+      description: 'Your most and least viewed pages',
       icon: 'pi-file',
       metrics: ['topPage', 'avgTimeOnPage', 'scrollDepth'],
       charts: ['topPages', 'bottomPages', 'contentEngagement']
@@ -120,7 +120,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     {
       id: 'conversion',
       name: 'Conversion Funnel',
-      description: 'Track conversion rates and funnel drop-offs',
+      description: 'Where visitors drop off',
       icon: 'pi-filter',
       metrics: ['conversionRate', 'dropOffRate', 'completions'],
       charts: ['funnelSteps', 'dropOffPoints', 'conversionTrend'],
@@ -134,8 +134,11 @@ export class DashboardReports implements OnInit, OnDestroy {
   // Date range
   dateRangeValue: Date[] = [];
   tempDateRange: Date[] = [];
-  activePreset = 'Last 7 Days';
-  dateRangeLabel = 'Last 7 Days';
+  activePreset = 'Last 30 Days';
+  dateRangeLabel = 'Last 30 Days';
+  errorMessage = signal<string | null>(null);
+  summary = '';
+  private loadTimer: any;
 
   presets = [
     { label: 'Today', value: 'today' },
@@ -205,13 +208,14 @@ export class DashboardReports implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadUserPlan();
-    this.bindSharedApiKey();
     this.initializeDateRange();
+    this.bindSharedApiKey();
     this.loadSavedReports();
   }
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    clearTimeout(this.loadTimer);
   }
 
   loadUserPlan() {
@@ -258,7 +262,7 @@ export class DashboardReports implements OnInit, OnDestroy {
   initializeDateRange() {
     const end = new Date();
     const start = new Date();
-    start.setDate(start.getDate() - 7);
+    start.setDate(start.getDate() - 30);
     this.dateRangeValue = [start, end];
     this.tempDateRange = [...this.dateRangeValue];
   }
@@ -362,14 +366,39 @@ export class DashboardReports implements OnInit, OnDestroy {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  /** Always returns a valid range; falls back to the last 30 days. */
+  private safeDateRange(): DateRange {
+    const ok = (d: any) => d instanceof Date && !isNaN(d.getTime());
+    let [start, end] = this.dateRangeValue || [];
+    if (!ok(end)) end = new Date();
+    if (!ok(start)) start = new Date(end.getTime() - 30 * 86400000);
+    this.dateRangeValue = [start, end];
+    return { startDate: start, endDate: end };
+  }
+
+  private failReport(msg = "We couldn't load this report. Please try again in a moment.") {
+    clearTimeout(this.loadTimer);
+    this.loading.set(false);
+    this.errorMessage.set(msg);
+  }
+
   generateReport() {
     if (!this.selectedApiKey) return;
+    this.errorMessage.set(null);
     this.loading.set(true);
+    clearTimeout(this.loadTimer);
+    this.loadTimer = setTimeout(() => {
+      if (this.loading()) this.failReport('This report is taking too long. Please try again or pick a shorter date range.');
+    }, 30000);
+    try {
+      this.runReport(this.safeDateRange());
+    } catch (e) {
+      console.error(e);
+      this.failReport();
+    }
+  }
 
-    const dateRange: DateRange = {
-      startDate: this.dateRangeValue[0],
-      endDate: this.dateRangeValue[1]
-    };
+  private runReport(dateRange: DateRange) {
 
     // Load core metrics + real comparison trends in parallel
     forkJoin({
@@ -396,6 +425,7 @@ export class DashboardReports implements OnInit, OnDestroy {
       case 'device':     this.loadDeviceData(dateRange);     break;
       case 'content':    this.loadContentData(dateRange);    break;
       case 'conversion': this.loadConversionData(dateRange); break;
+      default:           this.loading.set(false);
     }
   }
 
@@ -412,7 +442,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         this.topPagesData = pages.pages || [];
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
@@ -428,7 +458,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         this.topPagesData = pages.pages || [];
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
@@ -442,7 +472,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         this.updateDeviceChart(device);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
@@ -458,7 +488,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         this.updateBrowserChart(this.browserData);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
@@ -476,18 +506,18 @@ export class DashboardReports implements OnInit, OnDestroy {
         this.exitPagesData = exit.pages || [];
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
   loadConversionData(dateRange: DateRange) {
     this.analyticsDataService.getConversionFunnel(dateRange).subscribe({
       next: (funnel) => {
-        this.funnelSteps = funnel.steps || [];
-        this.updateFunnelChart(funnel);
+        this.funnelSteps = funnel?.steps || [];
+        this.updateFunnelChart(funnel || { steps: [] });
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
@@ -510,11 +540,17 @@ export class DashboardReports implements OnInit, OnDestroy {
         if (results.sources) { this.trafficSources = results.sources.sources || []; this.updateTrafficSourceChart(this.trafficSources); }
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => this.failReport()
     });
   }
 
   buildReportMetrics(data: any, trends: any = {}) {
+    const pv = +(data?.totalPageViews || 0), uv = +(data?.uniqueVisitors || 0);
+    const t = trends?.uniqueVisitors;
+    this.summary = pv || uv
+      ? `${uv.toLocaleString()} visitors viewed ${pv.toLocaleString()} pages in ${this.dateRangeLabel.toLowerCase()}` +
+        (typeof t === 'number' && isFinite(t) && t !== 0 ? ` — visitors ${t > 0 ? 'up' : 'down'} ${Math.abs(t).toFixed(0)}% vs the previous period.` : '.')
+      : `No visits recorded in ${this.dateRangeLabel.toLowerCase()} yet.`;
     this.reportMetrics = [
       {
         key: 'pageViews',
