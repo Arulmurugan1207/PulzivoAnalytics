@@ -41,3 +41,6 @@ $line: rgba(15, 23, 42, 0.08);
 .bar-primary, .bar-secondary { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .bar-primary { font-weight: 500; }
 .bar-secondary { font-size: 11px; color: $muted; }
+
+// Sources: name in normal weight, domain link underneath.
+.bar-primary.bar-primary-plain { font-weight: 400; }

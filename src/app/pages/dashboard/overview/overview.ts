@@ -1636,12 +1636,11 @@ export class DashboardOverview implements OnInit, OnDestroy {
   get sourceBreakdownRows(): BreakdownRow[] {
     return this.memoRows('sources', [this.sourceRows], () => this.sourceRows.map(src => {
       const channel = this.channelLabel(src.channel);
-      const showHost = !!src.host && src.host.toLowerCase() !== (src.name || '').toLowerCase();
       return {
         key: `${src.name}|${src.host}`,
         label: src.name,
-        sub: showHost ? src.host : undefined,
-        href: this.externalHostUrl(src.host),
+        secondary: src.host || undefined,
+        secondaryHref: src.host ? this.externalHostUrl(src.host) : undefined,
         value: src.visits || 0,
         tooltip: [channel && channel !== src.name ? `${channel}: ${this.channelHint(src.channel)}` : '', `${(src.percentage ?? 0).toFixed(0)}% of visits`]
           .filter(Boolean).join('\n'),

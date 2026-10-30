@@ -12,7 +12,12 @@
         } @else if (r.flag) {
           <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
         }
-        @if (r.href) {
+        @if (r.secondaryHref && r.secondary) {
+          <span class="bar-text bar-stack">
+            <span class="bar-primary bar-primary-plain">{{ r.label }}</span>
+            <a class="bar-secondary bar-link" [href]="r.secondaryHref" target="_blank" rel="noopener" [attr.aria-label]="r.secondary + ' (opens in a new tab)'">{{ r.secondary }}</a>
+          </span>
+        } @else if (r.href) {
           @if (r.secondary) {
             <a class="bar-text bar-link bar-stack" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">
               <span class="bar-primary">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></span>
