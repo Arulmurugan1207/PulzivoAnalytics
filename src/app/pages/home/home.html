@@ -168,6 +168,22 @@
   </div>
 </section>
 
+<!-- From the blog -->
+<section class="h-section h-blog">
+  <div class="h-container">
+    <h2>From the blog</h2>
+    <ul class="h-blog-list">
+      @for (p of blogPosts; track p.slug) {
+        <li>
+          <a [href]="'/blog/' + p.slug" [routerLink]="['/blog', p.slug]">{{ p.title }}</a>
+          <p>{{ p.description }}</p>
+        </li>
+      }
+    </ul>
+    <a class="h-blog-all" href="/blog" routerLink="/blog">All articles →</a>
+  </div>
+</section>
+
 <!-- Trusted by -->
 <section class="trusted-section">
   <div class="h-container">

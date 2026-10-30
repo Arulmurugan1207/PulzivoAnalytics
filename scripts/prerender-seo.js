@@ -78,6 +78,19 @@ function setMeta(html, attr, key, value) {
   return html.replace(re, tag);
 }
 
+// Plain <a href> links present in the raw HTML of every prerendered page so
+// crawlers discover the blog without running JS. Angular replaces <app-root>
+// contents on bootstrap.
+function siteNav() {
+  const links = [
+    ['/', 'Home'], ['/features', 'Features'], ['/pricing', 'Pricing'], ['/docs', 'Docs'],
+    ['/why-pulzivo', 'Why Pulzivo'], ['/use-cases', 'Use cases'], ['/blog', 'Blog'],
+    ...posts.map((p) => [`/blog/${p.slug}`, p.title]),
+    ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms'],
+  ];
+  return `<nav class="prerendered-nav" aria-label="Site">${links.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join(' ')}</nav>`;
+}
+
 function staticBody(page) {
   if (page.post) {
     const p = page.post;
@@ -124,8 +137,8 @@ function render(template, page) {
     };
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
-  const body = staticBody(page);
-  if (body) html = html.replace(/<app-root><\/app-root>/, `<app-root>${body}</app-root>`);
+  const body = staticBody(page) + siteNav();
+  html = html.replace(/<app-root><\/app-root>/, `<app-root>${body}</app-root>`);
   return html;
 }
 

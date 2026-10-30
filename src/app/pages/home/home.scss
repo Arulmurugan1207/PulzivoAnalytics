@@ -274,3 +274,12 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
     to   { transform: translateY(0);    opacity: 1; }
   }
 }
+.h-blog {
+  .h-blog-list { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  li { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; }
+  li a { font-weight: 600; color: #0f172a; text-decoration: none; }
+  li a:hover { color: #6366f1; }
+  li p { color: #64748b; font-size: 0.9rem; margin: 0.5rem 0 0; }
+  .h-blog-all { color: #6366f1; font-weight: 600; text-decoration: none; }
+}
