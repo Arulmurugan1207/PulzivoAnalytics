@@ -234,6 +234,8 @@ export class DashboardEvents implements OnInit, OnDestroy {
   detailView: EventDetailView | null = null;
   showRawData = false;
   copiedKey: string | null = null;
+  /** Detail-modal rows whose values render as pastel chips. */
+  readonly detailChipLabels = new Set(['Event', 'Category', 'Device', 'Browser', 'OS', 'Country', 'How they got here']);
   private copiedKeyTimer: any;
 
   // Session Timeline

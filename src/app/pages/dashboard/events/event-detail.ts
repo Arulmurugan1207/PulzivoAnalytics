@@ -193,7 +193,8 @@ export function buildEventDetail(evt: DetailEvent | null | undefined, visitSourc
 
   const source: DetailRow[] = [];
   push(source, 'How they got here', visitSource);
-  push(source, 'Referrer', attr.referrer || d.referrer);
+  const ref = attr.referrer || d.referrer;
+  push(source, 'Referrer', ref, { link: typeof ref === 'string' && /^https?:\/\//.test(ref) ? ref : undefined });
   for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
     push(source, k.replace('utm_', 'UTM ').replace(/^UTM (\w)/, (_m: string, c: string) => `UTM ${c.toUpperCase()}`), attr[k]);
   }

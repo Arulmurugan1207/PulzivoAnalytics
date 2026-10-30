@@ -535,20 +535,23 @@
 
         <div class="detail-sections">
           @for (sec of [
-            { title: 'Event', icon: 'pi-bolt', rows: dv.event },
-            { title: 'Page', icon: 'pi-file', rows: dv.page },
-            { title: 'Source', icon: 'pi-directions', rows: dv.source },
-            { title: 'Device and location', icon: 'pi-globe', rows: dv.device }
+            { title: 'Event', icon: 'pi-bolt', accent: 'indigo', rows: dv.event },
+            { title: 'Page', icon: 'pi-file', accent: 'teal', rows: dv.page },
+            { title: 'Source', icon: 'pi-directions', accent: 'amber', rows: dv.source },
+            { title: 'Device and location', icon: 'pi-globe', accent: 'violet', rows: dv.device },
+            { title: 'Custom parameters', icon: 'pi-sliders-h', accent: 'pink', rows: dv.custom }
           ]; track sec.title) {
             @if (sec.rows.length) {
-              <section class="detail-section">
-                <h4><i [class]="'pi ' + sec.icon"></i> {{ sec.title }}</h4>
+              <section class="detail-section" [class]="'detail-section acc-' + sec.accent">
+                <h4><span class="ds-icon"><i [class]="'pi ' + sec.icon"></i></span> {{ sec.title }}<span class="ds-count">{{ sec.rows.length }}</span></h4>
                 <dl class="kv-list">
                   @for (row of sec.rows; track row.label) {
-                    <div class="kv-row">
-                      <dt>{{ row.label }}</dt>
-                      <dd [class.mono]="row.mono" [title]="row.title || ''">
-                        @if (row.link) { <a [href]="row.link" target="_blank" rel="noopener noreferrer">{{ row.value }}</a> } @else { {{ row.value }} }
+                    <div class="kv-row" [class.kv-ua]="row.label === 'User agent'">
+                      <dt [title]="row.label">{{ row.label }}</dt>
+                      <dd [class.mono]="row.mono" [title]="row.title || row.value">
+                        @if (row.link) { <a [href]="row.link" target="_blank" rel="noopener noreferrer">{{ row.value }}</a> }
+                        @else if (detailChipLabels.has(row.label)) { <span class="kv-chip">{{ row.value }}</span> }
+                        @else { <span class="kv-text">{{ row.value }}</span> }
                         @if (row.copy) {
                           <button class="icon-copy" (click)="copyText(row.label, row.value)" [title]="'Copy ' + row.label"><i [class]="copiedKey === row.label ? 'pi pi-check' : 'pi pi-copy'"></i></button>
                         }
@@ -560,19 +563,6 @@
             }
           }
         </div>
-
-        @if (dv.custom.length) {
-          <section class="detail-section">
-            <h4><i class="pi pi-sliders-h"></i> Custom parameters</h4>
-            <table class="custom-table">
-              <tbody>
-                @for (row of dv.custom; track row.label) {
-                  <tr><th>{{ row.label }}</th><td class="mono">{{ row.value }}</td></tr>
-                }
-              </tbody>
-            </table>
-          </section>
-        }
 
         <div class="event-data-section">
           <div class="event-data-header">
