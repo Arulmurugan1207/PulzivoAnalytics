@@ -66,13 +66,6 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   private viewedSections = new Set<string>();
 
   constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute, private router: Router, private el: ElementRef) {
-    this.meta.updateTag({ name: 'description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more — the pulse of modern product analytics.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/docs' });
-      this.meta.updateTag({ property: 'og:title', content: 'Documentation | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'og:description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/docs' });
-      this.meta.updateTag({ property: 'twitter:title', content: 'Documentation | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'twitter:description', content: 'Complete documentation for Pulzivo Analytics. Zero-config setup, automatic tracking, custom events, and more.' });
 
     // Developers reading docs = high activation intent
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
@@ -156,7 +149,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'What data is collected automatically?',
-      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and user identity. Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
+      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and opt-in identification of signed-in users (IDs you supply). Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
     },
     {
       question: 'Can I track custom events on the free plan?',
@@ -184,7 +177,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Does it use cookies?',
-      answer: 'Pulzivo sets no cookies and collects no personal data. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
+      answer: 'Pulzivo sets no cookies and collects no personal data by default. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
     },
     {
       question: 'Can I self-host the SDK?',

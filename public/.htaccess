@@ -1,6 +1,13 @@
 # Pulzivo marketing SPA (cPanel / LiteSpeed)
 # Static files (sitemap.xml, robots.txt, hashed assets) are served as-is.
-# Unknown paths fall through to index.html.
+# Public marketing routes are prerendered at build time to <route>/index.html
+# (scripts/prerender-seo.js) and served without a trailing slash.
+# Unknown paths (dashboard, auth, demo) fall through to the SPA index.html.
+
+# Don't 301 /pricing -> /pricing/ just because a prerendered directory exists;
+# canonical URLs have no trailing slash.
+DirectorySlash Off
+DirectoryIndex index.html
 
 RewriteEngine On
 
@@ -12,7 +19,7 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
 
 # Defence in depth: app routes never get indexed even if linked externally
 <IfModule mod_headers.c>
-  SetEnvIf Request_URI "^/(dashboard|reset-password)" PZ_NOINDEX
+  SetEnvIf Request_URI "^/(dashboard|reset-password|login|signin|signup|register|demo)" PZ_NOINDEX
   Header set X-Robots-Tag "noindex, nofollow" env=PZ_NOINDEX
 </IfModule>
 
@@ -20,6 +27,16 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
 RewriteRule ^sitemap\.xml$ - [L]
 RewriteRule ^robots\.txt$ - [L]
 
+# Trailing slash -> canonical slash-less URL (301), except the site root
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.+)/$ https://pulzivo.com/$1 [R=301,L]
+
+# Prerendered marketing routes: /pricing -> pricing/index.html, /blog/x -> blog/x/index.html
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.+)$ $1/index.html [L]
+
+# Everything else that isn't a real file: SPA fallback
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . index.html [L]

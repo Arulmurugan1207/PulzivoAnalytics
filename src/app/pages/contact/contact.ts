@@ -149,7 +149,7 @@ export class Contact {
     },
     {
       question: 'Is my data secure?',
-      answer: 'Absolutely. We use HTTPS encryption, anonymize IP addresses immediately, and are fully GDPR & CCPA compliant. We never sell or share your data.'
+      answer: 'Absolutely. We use HTTPS encryption, anonymize IP addresses immediately, set no cookies and collect no personal data by default. We never sell or share your data.'
     },
     {
       question: 'Can I export my data?',

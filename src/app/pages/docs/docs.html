@@ -96,7 +96,7 @@
             <i class="pi" [ngClass]="anchorCopied() === 'getting-started' ? 'pi-check' : 'pi-link'"></i>
           </button>
         </div>
-        <p class="lead">One script tag, no cookies, no personal data, about 9KB gzip. Paste it into your <code>&lt;head&gt;</code> and page views start flowing in.</p>
+        <p class="lead">One script tag, no cookies, no personal data collected by default, about 9KB gzip. Paste it into your <code>&lt;head&gt;</code> and page views start flowing in.</p>
 
         <div class="steps-container">
           <div class="step-item">
@@ -613,10 +613,10 @@
         <div class="warning-box">
           <h4><i class="pi pi-shield"></i> Privacy Considerations</h4>
           <ul>
-            <li>Email is stored locally (localStorage) - never sent to servers</li>
-            <li>Only used to tag events as authenticated vs anonymous</li>
-            <li>Clear on logout to maintain privacy</li>
-            <li>GDPR compliant by design</li>
+            <li>Opt-in: nothing identifies a visitor unless you call <code>identify</code> / <code>setUserEmail</code></li>
+            <li>Once set, the identifier is stored in localStorage and sent with events as <code>user_email</code>, so it appears in your dashboard for identified users</li>
+            <li>Prefer an internal user ID over an email address if you don't need the email</li>
+            <li>Call <code>clearUserEmail()</code> on logout</li>
           </ul>
         </div>
       </section>

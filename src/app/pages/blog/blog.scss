@@ -1,0 +1,31 @@
+.blog {
+  padding: 6rem 1.5rem 4rem;
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 2.25rem; line-height: 1.2; margin-bottom: 0.75rem; }
+  .lead { color: #64748b; margin-bottom: 2rem; }
+  time { display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
+  a { color: #6366f1; }
+  .back { display: inline-block; margin-bottom: 1.5rem; text-decoration: none; }
+}
+.post-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.5rem; }
+.post-card {
+  border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem;
+  h2 { font-size: 1.35rem; margin: 0 0 0.25rem; color: #0f172a; }
+  > a { text-decoration: none; }
+  time { margin-bottom: 0.75rem; }
+  p { color: #475569; margin: 0 0 0.75rem; }
+  .read-more { font-weight: 600; text-decoration: none; }
+}
+.post-body {
+  line-height: 1.7; color: #334155;
+  ::ng-deep {
+    h2 { font-size: 1.5rem; margin: 2rem 0 0.75rem; color: #0f172a; }
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 0.4rem; }
+    pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; font-size: 0.875rem; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.95rem; }
+    th, td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: #f8fafc; }
+  }
+}

@@ -1,68 +1,76 @@
-import { Routes } from '@angular/router';
+import { Route, Routes } from '@angular/router';
 import { AuthGuard, guestGuard } from './guards/auth.guard';
 
 // Home is eager (landing page); other public pages are lazy-loaded to keep the initial bundle small
 import { Home } from './pages/home/home';
+import seoRoutes from './seo/seo-routes.json';
+import posts from './pages/blog/posts.json';
+
+// Title/description for public marketing routes live in seo-routes.json so the
+// build-time prerender (scripts/prerender-seo.mjs) and the router stay in sync.
+function seo(path: string): Pick<Route, 'title' | 'data'> {
+  const r = seoRoutes.find(x => x.path === path);
+  if (!r) throw new Error(`Missing SEO entry for /${path}`);
+  return { title: r.title, data: { description: r.description } };
+}
+
+const blogPostRoutes: Routes = posts.map(p => ({
+  path: `blog/${p.slug}`,
+  title: `${p.title} | Pulzivo Analytics`,
+  data: { description: p.description, slug: p.slug },
+  loadComponent: () => import('./pages/blog/blog-post').then(m => m.BlogPost),
+}));
 
 export const routes: Routes = [
   {
     path: '',
-    title: 'Pulzivo Analytics — Free, Privacy-First Web & Product Analytics',
-    data: { description: 'Free, privacy-first, cookieless web and product analytics in one script tag. Track page views, clicks, custom events and sessions — about 9KB gzip, no personal data.' },
+    ...seo(''),
     component: Home
   },
   {
     path: 'pricing',
-    title: 'Pricing — Free Plan & Paid Tiers | Pulzivo Analytics',
-    data: { description: 'Pulzivo pricing: free forever plan with 10,000 events/month, plus paid tiers for higher volume. No credit card required, cookieless and GDPR compliant.' },
+    ...seo('pricing'),
     loadComponent: () => import('./pages/pricing/pricing').then(m => m.Pricing)
   },
   {
     path: 'docs',
-    title: 'Documentation — Install & Track Events | Pulzivo Analytics',
-    data: { description: 'Install Pulzivo with one script tag, then track page views, clicks, custom events and sessions. Setup guides, API reference and FAQs for developers.' },
+    ...seo('docs'),
     loadComponent: () => import('./pages/docs/docs').then(m => m.Docs)
   },
   {
     path: 'features',
-    title: 'Features — Cookieless Auto-Tracking SDK | Pulzivo Analytics',
-    data: { description: 'Auto page views, click and scroll tracking, custom events, UTM attribution, funnels and real-time reports — in an analytics SDK of about 9KB gzip.' },
+    ...seo('features'),
     loadComponent: () => import('./pages/features/features').then(m => m.Features)
   },
   {
     path: 'why-pulzivo',
-    title: 'Why Pulzivo — A Google Analytics Alternative | Pulzivo Analytics',
-    data: { description: 'How Pulzivo compares with Google Analytics and other tools: privacy-first, no cookies or personal data, about 9KB gzip, zero configuration, free to start.' },
+    ...seo('why-pulzivo'),
     loadComponent: () => import('./pages/why-pulzivo/why-pulzivo').then(m => m.WhyPulzivo)
   },
   {
     path: 'use-cases',
-    title: 'Use Cases — Marketing Sites, SaaS & Apps | Pulzivo Analytics',
-    data: { description: 'See how teams use Pulzivo to measure marketing sites, SaaS products and web apps with one privacy-first analytics script and custom events.' },
+    ...seo('use-cases'),
     loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
   },
   {
     path: 'blog',
-    title: 'Blog | Pulzivo Analytics',
-    data: { description: 'Product updates and announcements from Pulzivo Analytics.', robots: 'noindex, follow' },
+    ...seo('blog'),
     loadComponent: () => import('./pages/blog/blog').then(m => m.Blog)
   },
+  ...blogPostRoutes,
   {
     path: 'contact',
-    title: 'Contact Us — Support & Sales | Pulzivo Analytics',
-    data: { description: 'Questions about Pulzivo Analytics? Contact support or sales at support@pulzivo.com, or browse common questions about setup, privacy and pricing.' },
+    ...seo('contact'),
     loadComponent: () => import('./pages/contact/contact').then(m => m.Contact)
   },
   {
     path: 'privacy',
-    title: 'Privacy Policy | Pulzivo Analytics',
-    data: { description: 'How Pulzivo Analytics handles data: cookieless tracking, no personal data collected from your visitors, and how account data is stored and protected.' },
+    ...seo('privacy'),
     loadComponent: () => import('./pages/privacy/privacy').then(m => m.Privacy)
   },
   {
     path: 'terms',
-    title: 'Terms of Service | Pulzivo Analytics',
-    data: { description: 'The terms of service governing use of the Pulzivo Analytics website, tracking SDK, dashboard and paid plans.' },
+    ...seo('terms'),
     loadComponent: () => import('./pages/terms/terms').then(m => m.Terms)
   },
   {

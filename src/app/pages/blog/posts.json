@@ -1,0 +1,20 @@
+[
+  {
+    "slug": "simple-google-analytics-alternative",
+    "title": "A Simple Google Analytics Alternative for Small Sites and Side Projects",
+    "description": "When GA4 is more than you need: what a simple analytics tool should cover, what you give up, and how to set up Pulzivo with one script tag.",
+    "date": "2026-10-29"
+  },
+  {
+    "slug": "privacy-friendly-analytics-small-sites",
+    "title": "Privacy-Friendly Analytics for Small Sites: A Practical Checklist",
+    "description": "How to measure a small website without cookies or personal data by default: what to collect, what to skip, and questions to ask any analytics vendor.",
+    "date": "2026-10-29"
+  },
+  {
+    "slug": "pulzivo-vs-ga4-vs-plausible-pricing",
+    "title": "Pulzivo vs GA4 vs Plausible vs Fathom: Pricing Compared (Oct 2026)",
+    "description": "Side-by-side pricing for Pulzivo, Google Analytics 4, Plausible and Fathom as of October 2026, plus what each plan actually counts.",
+    "date": "2026-10-29"
+  }
+]

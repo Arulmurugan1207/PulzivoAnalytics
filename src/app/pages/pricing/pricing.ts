@@ -59,13 +59,6 @@ export class Pricing implements OnDestroy {
   };
 
   constructor(private authService: AuthService, private meta: Meta, private titleService: Title, private router: Router, private ngZone: NgZone) {
-    this.meta.updateTag({ name: 'description', content: 'Simple, transparent pricing for Pulzivo Analytics — The Pulse of Modern Product Analytics. Start free, upgrade as you grow. No hidden fees.' });
-    this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/pricing' });
-      this.meta.updateTag({ property: 'og:title', content: 'Pricing | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'og:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
-    this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/pricing' });
-      this.meta.updateTag({ property: 'twitter:title', content: 'Pricing | Pulzivo Analytics' });
-    this.meta.updateTag({ property: 'twitter:description', content: 'Simple, transparent pricing for Pulzivo Analytics. Start free, upgrade as you grow.' });
 
     // Load actual plan from stored user data
     if (this.authService.isAuthenticated()) {
@@ -149,7 +142,7 @@ export class Pricing implements OnDestroy {
         'Performance metrics',
         'UTM & attribution tracking',
         'Traffic source & referrer data',
-        'User identity tracking',
+        'Identify signed-in users (opt-in, IDs you supply)',
         'Custom exports (CSV)',
         'Email support'
       ]
@@ -235,7 +228,7 @@ export class Pricing implements OnDestroy {
       case 'starter':
         return ['Auto click & scroll tracking', 'Session & bounce rate analytics', 'Unique visitor tracking', 'Geographic analytics', 'UTM & attribution tracking'];
       case 'pro':
-        return ['Performance metrics', 'User identity tracking', 'Element visibility tracking', 'Entry & exit page tracking', 'Custom exports (CSV)'];
+        return ['Performance metrics', 'Identify signed-in users (opt-in, IDs you supply)', 'Element visibility tracking', 'Entry & exit page tracking', 'Custom exports (CSV)'];
       case 'enterprise':
         return ['Form tracking & abandonment', 'Rage/dead click detection', 'Web Vitals (LCP, FID, CLS)', 'Tooltip & UX confusion insights', 'Client Hints (browser & OS)', 'Priority support'];
       default:
@@ -281,7 +274,7 @@ export class Pricing implements OnDestroy {
         { feature: 'Geographic analytics',     free: false, starter: true,  pro: true,  enterprise: true  },
         { feature: 'UTM & attribution',        free: false, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Performance metrics',      free: false, starter: false, pro: true,  enterprise: true  },
-        { feature: 'User identity tracking',   free: false, starter: false, pro: true,  enterprise: true  },
+        { feature: 'Identify signed-in users (opt-in, IDs you supply)',   free: false, starter: false, pro: true,  enterprise: true  },
         { feature: 'Element visibility',       free: false, starter: false, pro: true,  enterprise: true  },
         { feature: 'Custom exports (CSV)',     free: false, starter: false, pro: true,  enterprise: true  },
       ]
