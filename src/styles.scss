@@ -163,3 +163,29 @@ section { padding: 1.75rem 0; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Reports print layout (global: must reach dashboard shell outside the component) ── */
+@media print {
+  @page { size: auto; margin: 12mm; }
+  body:has(.reports-page) {
+    .sidebar, .topbar, .demo-banner, .welcome-banner, app-header, app-footer { display: none !important; }
+    .dashboard-layout, .main-panel, .content-area {
+      display: block !important; width: 100% !important; max-width: 100% !important;
+      margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important;
+      grid-template-columns: none !important; position: static !important;
+    }
+    .reports-page { width: 100% !important; max-width: 100% !important; padding: 0 !important; overflow: visible !important; }
+    .reports-page .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+    .reports-page .metric-card { min-width: 0 !important; padding: 10px 12px !important; break-inside: avoid; }
+    .reports-page .metric-card * { white-space: normal !important; overflow-wrap: anywhere; }
+    .reports-page .charts-section { display: block !important; }
+    .reports-page .chart-card, .reports-page .rank-card, .reports-page .table-card, .reports-page .report-summary {
+      width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;
+      break-inside: avoid; page-break-inside: avoid; overflow: hidden !important; box-shadow: none !important;
+    }
+    .reports-page .chart-container { width: 100% !important; height: 240px !important; position: relative !important; }
+    .reports-page canvas { max-width: 100% !important; }
+    .reports-page .rank-grid { grid-template-columns: 1fr 1fr !important; }
+    .reports-page .rank-card__more, .reports-page .rank-row__label .pi { display: none !important; }
+  }
+}

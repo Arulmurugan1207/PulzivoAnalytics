@@ -226,34 +226,7 @@
                   </div>
                 }
               </div>
-              @if (trafficSources.length > 0) {
-                <div class="table-card">
-                  <h3>Traffic Source Breakdown</h3>
-                  <div class="source-table">
-                    @for (source of trafficSources; track source.source) {
-                      <div class="source-row">
-                        <span class="source-name">{{ source.source }}</span>
-                        <div class="source-bar-wrap">
-                          <div class="source-bar" [style.width.%]="source.percentage"></div>
-                        </div>
-                        <span class="source-visits">{{ source.visits }}</span>
-                        <span class="source-pct">{{ source.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-              @if (topPagesData.length > 0) {
-                <div class="table-card">
-                  <h3>Top Pages</h3>
-                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
-                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Bounce Rate</th></tr></ng-template>
-                    <ng-template pTemplate="body" let-page>
-                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.bounceRate }}%</td></tr>
-                    </ng-template>
-                  </p-table>
-                </div>
-              }
+              <div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'sources', title: 'Top Sources', col: 'Source', metric: 'Visits' }"></ng-container><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'pages', title: 'Top Pages', col: 'Page', metric: 'Views' }"></ng-container></div>
             }
 
             <!-- ── BEHAVIOR ────────────────────────────────── -->
@@ -276,17 +249,7 @@
                   </div>
                 }
               </div>
-              @if (topPagesData.length > 0) {
-                <div class="table-card">
-                  <h3>Top Pages by Engagement</h3>
-                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
-                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Avg. Time</th><th>Bounce Rate</th></tr></ng-template>
-                    <ng-template pTemplate="body" let-page>
-                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.avgTime }}</td><td>{{ page.bounceRate }}%</td></tr>
-                    </ng-template>
-                  </p-table>
-                </div>
-              }
+              <div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'pages', title: 'Top Pages', col: 'Page', metric: 'Views' }"></ng-container></div>
             }
 
             <!-- ── GEOGRAPHIC ──────────────────────────────── -->
@@ -301,23 +264,7 @@
                   </div>
                 }
               </div>
-              @if (geographicData.length > 0) {
-                <div class="table-card">
-                  <h3>Views by Country</h3>
-                  <div class="source-table">
-                    @for (country of geographicData; track country.country) {
-                      <div class="source-row">
-                        <span class="source-name">{{ country.flag }} {{ country.country }}</span>
-                        <div class="source-bar-wrap">
-                          <div class="source-bar" [style.width.%]="country.percentage"></div>
-                        </div>
-                        <span class="source-visits">{{ country.visitors | number }}</span>
-                        <span class="source-pct">{{ country.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              } @else {
+              @if (geographicData.length > 0) {<div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'geo', title: 'Countries', col: 'Country', metric: 'Visitors' }"></ng-container></div>} @else {
                 <div class="empty-section"><i class="pi pi-map"></i><p>No geographic data yet for this period.</p></div>
               }
             }
@@ -342,36 +289,7 @@
                   </div>
                 }
               </div>
-              @if (browserData.length > 0) {
-                <div class="table-card">
-                  <h3>Browser Details</h3>
-                  <div class="source-table">
-                    @for (b of browserData; track b.name) {
-                      <div class="source-row">
-                        <span class="source-name">{{ b.name }}</span>
-                        <div class="source-bar-wrap"><div class="source-bar" [style.width.%]="b.percentage"></div></div>
-                        <span class="source-visits">{{ b.count }}</span>
-                        <span class="source-pct">{{ b.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-              @if (osData.length > 0) {
-                <div class="table-card" style="margin-top:20px">
-                  <h3>Operating Systems</h3>
-                  <div class="source-table">
-                    @for (os of osData; track os.name) {
-                      <div class="source-row">
-                        <span class="source-name">{{ os.name }}</span>
-                        <div class="source-bar-wrap"><div class="source-bar" [style.width.%]="os.percentage"></div></div>
-                        <span class="source-visits">{{ os.count }}</span>
-                        <span class="source-pct">{{ os.percentage | number:'1.1-1' }}%</span>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
+              <div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'browsers', title: 'Browsers', col: 'Browser', metric: 'Visits' }"></ng-container><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'os', title: 'Operating Systems', col: 'OS', metric: 'Visits' }"></ng-container></div>
             }
 
             <!-- ── CONTENT ─────────────────────────────────── -->
@@ -386,37 +304,7 @@
                   </div>
                 }
               </div>
-              @if (topPagesData.length > 0) {
-                <div class="table-card">
-                  <h3>Top Pages by Traffic</h3>
-                  <p-table [value]="topPagesData" [paginator]="true" [rows]="10">
-                    <ng-template pTemplate="header"><tr><th>Page</th><th>Views</th><th>Unique Visitors</th><th>Avg. Time</th><th>Bounce Rate</th></tr></ng-template>
-                    <ng-template pTemplate="body" let-page>
-                      <tr><td>{{ page.url || page.path }}</td><td>{{ page.views }}</td><td>{{ page.uniqueVisitors }}</td><td>{{ page.avgTime }}</td><td>{{ page.bounceRate }}%</td></tr>
-                    </ng-template>
-                  </p-table>
-                </div>
-              }
-              <div class="two-col-tables">
-                @if (entryPagesData.length > 0) {
-                  <div class="table-card">
-                    <h3><i class="pi pi-sign-in"></i> Entry Pages</h3>
-                    <p-table [value]="entryPagesData" [rows]="5">
-                      <ng-template pTemplate="header"><tr><th>Page</th><th>Entrances</th></tr></ng-template>
-                      <ng-template pTemplate="body" let-p><tr><td>{{ p.url || p.path || p.page }}</td><td>{{ p.entrances || p.count }}</td></tr></ng-template>
-                    </p-table>
-                  </div>
-                }
-                @if (exitPagesData.length > 0) {
-                  <div class="table-card">
-                    <h3><i class="pi pi-sign-out"></i> Exit Pages</h3>
-                    <p-table [value]="exitPagesData" [rows]="5">
-                      <ng-template pTemplate="header"><tr><th>Page</th><th>Exits</th><th>Exit Rate</th></tr></ng-template>
-                      <ng-template pTemplate="body" let-p><tr><td>{{ p.url || p.path || p.page }}</td><td>{{ p.exits || p.count }}</td><td>{{ p.exitRate || 0 }}%</td></tr></ng-template>
-                    </p-table>
-                  </div>
-                }
-              </div>
+              <div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'pages', title: 'Top Pages', col: 'Page', metric: 'Views' }"></ng-container></div><div class="rank-grid"><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'entry', title: 'Entry Pages', col: 'Page', metric: 'Entrances' }"></ng-container><ng-container *ngTemplateOutlet="rankCard; context: { kind: 'exit', title: 'Exit Pages', col: 'Page', metric: 'Exits' }"></ng-container></div>
             }
 
             <!-- ── CONVERSION ──────────────────────────────── -->
@@ -630,3 +518,28 @@
     </div>
   }
 </div>
+
+<ng-template #rankCard let-kind="kind" let-title="title" let-col="col" let-metric="metric">
+  @if (rankRows(kind).length > 0) {
+    <div class="rank-card" [style.--accent]="accents[kind]">
+      <div class="rank-card__head"><h3>{{ title }}</h3><span class="rank-card__cols">{{ metric }}</span></div>
+      <ul class="rank-list">
+        @for (r of visibleRows(kind); track $index) {
+          <li class="rank-row">
+            <span class="rank-row__bar" [style.width.%]="r.pct"></span>
+            @if (r.href) {
+              <a class="rank-row__label" [href]="r.href" target="_blank" rel="noopener noreferrer" [title]="r.label">{{ r.label }}<i class="pi pi-external-link"></i></a>
+            } @else {
+              <span class="rank-row__label" [title]="r.label">{{ r.label }}</span>
+            }
+            @if (r.sub) { <span class="rank-row__sub">{{ r.sub }}</span> }
+            <span class="rank-row__value">{{ r.value | number }}</span>
+          </li>
+        }
+      </ul>
+      @if (rankRows(kind).length > rowLimit) {
+        <button type="button" class="rank-card__more" (click)="toggleRows(kind)">{{ expanded[kind] ? 'Show less' : 'Show all ' + rankRows(kind).length }}</button>
+      }
+    </div>
+  }
+</ng-template>

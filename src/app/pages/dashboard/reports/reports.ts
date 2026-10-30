@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Chart } from 'chart.js';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ChartModule } from 'primeng/chart';
@@ -207,6 +208,12 @@ export class DashboardReports implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeprint', this.resizeCharts);
+      window.addEventListener('afterprint', this.resizeCharts);
+      this.printMql = window.matchMedia?.('print') ?? null;
+      this.printMql?.addEventListener?.('change', this.onPrintChange);
+    }
     this.loadUserPlan();
     this.initializeDateRange();
     this.bindSharedApiKey();
@@ -216,6 +223,11 @@ export class DashboardReports implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
     clearTimeout(this.loadTimer);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeprint', this.resizeCharts);
+      window.removeEventListener('afterprint', this.resizeCharts);
+      this.printMql?.removeEventListener?.('change', this.onPrintChange);
+    }
   }
 
   loadUserPlan() {
@@ -366,6 +378,66 @@ export class DashboardReports implements OnInit, OnDestroy {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  // ── Rank-list rows (home-page sample style) ──────────────────────
+  readonly rowLimit = 10;
+  expanded: Record<string, boolean> = {};
+  accents: Record<string, string> = {
+    pages: '#6366f1', sources: '#0ea5e9', geo: '#10b981', browsers: '#f59e0b',
+    os: '#ec4899', entry: '#14b8a6', exit: '#f97316'
+  };
+
+  private siteOrigin(): string {
+    const key = this.availableApiKeys?.find((k: any) => k.apiKey === this.selectedApiKey) as any;
+    const d = key?.allowedDomains?.[0];
+    if (!d) return '';
+    return (/^https?:\/\//.test(d) ? d : `https://${d}`).replace(/\/+$/, '');
+  }
+
+  pageHref(path: string): string | null {
+    if (!path) return null;
+    if (/^https?:\/\//i.test(path)) return path;
+    const origin = this.siteOrigin();
+    return origin && path.startsWith('/') ? origin + path : null;
+  }
+
+  sourceHref(src: string): string | null {
+    if (!src) return null;
+    if (/^https?:\/\//i.test(src)) return src;
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/.*)?$/i.test(src.trim()) ? `https://${src.trim()}` : null;
+  }
+
+  /** Normalised rows for each list card: label, value, bar % (relative to max), optional link. */
+  rankRows(kind: string): { label: string; value: number; pct: number; href: string | null; sub?: string }[] {
+    let rows: { label: string; value: number; href: string | null; sub?: string }[] = [];
+    const n = (v: any) => +(v || 0);
+    const arr = (a: any) => Array.isArray(a) ? a : [];
+    switch (kind) {
+      case 'pages':    rows = arr(this.topPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.views), href: this.pageHref(l) }; }); break;
+      case 'entry':    rows = arr(this.entryPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.entrances ?? p.count), href: this.pageHref(l) }; }); break;
+      case 'exit':     rows = arr(this.exitPagesData).map(p => { const l = p.url || p.path || p.page || '/'; return { label: l, value: n(p.exits ?? p.count), href: this.pageHref(l), sub: p.exitRate != null ? `${p.exitRate}% exit` : undefined }; }); break;
+      case 'sources':  rows = arr(this.trafficSources).map(s => ({ label: s.source || 'Direct', value: n(s.visits), href: this.sourceHref(s.source) })); break;
+      case 'geo':      rows = arr(this.geographicData).map(c => ({ label: `${c.flag || ''} ${c.country || 'Unknown'}`.trim(), value: n(c.visitors), href: null })); break;
+      case 'browsers': rows = arr(this.browserData).map(b => ({ label: b.name || 'Unknown', value: n(b.count), href: null })); break;
+      case 'os':       rows = arr(this.osData).map(o => ({ label: o.name || 'Unknown', value: n(o.count), href: null })); break;
+    }
+    const max = Math.max(1, ...rows.map(r => r.value));
+    return rows.map(r => ({ ...r, pct: Math.max(2, (r.value / max) * 100) }));
+  }
+
+  visibleRows(kind: string) {
+    const all = this.rankRows(kind);
+    return this.expanded[kind] ? all : all.slice(0, this.rowLimit);
+  }
+
+  toggleRows(kind: string) { this.expanded[kind] = !this.expanded[kind]; }
+
+  /** Resize Chart.js canvases to the printable width before/after printing so charts aren't clipped. */
+  private resizeCharts = () => {
+    try { Object.values((Chart as any).instances || {}).forEach((c: any) => c?.resize?.()); } catch { /* ignore */ }
+  };
+  private printMql: MediaQueryList | null = null;
+  private onPrintChange = () => setTimeout(this.resizeCharts);
+
   /** Always returns a valid range; falls back to the last 30 days. */
   private safeDateRange(): DateRange {
     const ok = (d: any) => d instanceof Date && !isNaN(d.getTime());
@@ -433,7 +505,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     forkJoin({
       trend:   this.analyticsDataService.getPageViewsTrend(dateRange),
       sources: this.analyticsDataService.getTrafficSources(dateRange),
-      pages:   this.analyticsDataService.getTopPages(dateRange)
+      pages:   this.analyticsDataService.getTopPages(dateRange, 1, 25)
     }).subscribe({
       next: ({ trend, sources, pages }: any) => {
         this.updatePageViewsChart(trend);
@@ -450,7 +522,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     forkJoin({
       trend:  this.analyticsDataService.getPageViewsTrend(dateRange),
       device: this.analyticsDataService.getDeviceBreakdown(dateRange),
-      pages:  this.analyticsDataService.getTopPages(dateRange)
+      pages:  this.analyticsDataService.getTopPages(dateRange, 1, 25)
     }).subscribe({
       next: ({ trend, device, pages }: any) => {
         this.updatePageViewsChart(trend);
@@ -495,7 +567,7 @@ export class DashboardReports implements OnInit, OnDestroy {
   loadContentData(dateRange: DateRange) {
     forkJoin({
       trend: this.analyticsDataService.getPageViewsTrend(dateRange),
-      pages: this.analyticsDataService.getTopPages(dateRange, 1, 20),
+      pages: this.analyticsDataService.getTopPages(dateRange, 1, 50),
       entry: this.analyticsDataService.getEntryPages(dateRange),
       exit:  this.analyticsDataService.getExitPages(dateRange)
     }).subscribe({

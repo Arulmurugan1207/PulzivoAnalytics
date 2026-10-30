@@ -955,3 +955,22 @@
 .template-card p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .template-grid{grid-auto-rows:1fr}
 @media (max-width:640px){.template-grid{grid-template-columns:1fr 1fr!important;gap:.5rem}.report-error .retry-btn{margin-left:0}}
+
+/* Rank-list cards (home-page sample style) */
+.rank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;margin-top:14px}
+.rank-card{--accent:#6366f1;background:#fff;border:1px solid #eef0f4;border-top:3px solid var(--accent);border-radius:12px;padding:14px 16px 10px;min-width:0}
+.rank-card__head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px}
+.rank-card__head h3{margin:0;font-size:.95rem;font-weight:600;color:#1e293b}
+.rank-card__cols{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8}
+.rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.rank-row{position:relative;display:flex;align-items:center;gap:8px;min-height:30px;padding:0 8px;border-radius:6px;font-size:.85rem;overflow:hidden}
+.rank-row__bar{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.12;border-radius:6px;pointer-events:none}
+.rank-row__label{position:relative;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#334155;text-decoration:none}
+a.rank-row__label:hover{color:var(--accent);text-decoration:underline}
+.rank-row__label .pi{font-size:.6rem;margin-left:5px;opacity:.45}
+.rank-row__sub{position:relative;font-size:.75rem;color:#94a3b8;white-space:nowrap}
+.rank-row__value{position:relative;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums}
+.rank-card__more{display:block;width:100%;margin-top:8px;padding:6px;border:0;background:transparent;color:var(--accent);font-size:.8rem;font-weight:600;cursor:pointer;border-radius:6px}
+.rank-card__more:hover{background:#f8fafc}
+.charts-section:empty{display:none}
+@media (max-width:640px){.rank-grid{gap:10px}.rank-card{padding:12px}.rank-row{font-size:.8rem}}
