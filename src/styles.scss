@@ -178,15 +178,23 @@ section { padding: 1.75rem 0; }
     .reports-page .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
     .reports-page .metric-card { min-width: 0 !important; padding: 10px 12px !important; break-inside: avoid; }
     .reports-page .metric-card * { white-space: normal !important; overflow-wrap: anywhere; }
-    .reports-page .charts-section { display: block !important; }
     .reports-page .chart-card, .reports-page .rank-card, .reports-page .table-card, .reports-page .report-summary {
       width: 100% !important; max-width: 100% !important; box-sizing: border-box !important;
       break-inside: avoid; page-break-inside: avoid; overflow: hidden !important; box-shadow: none !important;
     }
-    .reports-page .chart-container { width: 100% !important; height: 260px !important; position: relative !important; overflow: hidden !important; }
-    .reports-page .chart-container canvas { max-height: 260px !important; }
+    .reports-page .chart-card .chart-container { width: 100% !important; height: 200px !important; position: relative !important; overflow: hidden !important; }
+    .reports-page .chart-card .chart-container--donut { height: 190px !important; }
+    .reports-page .chart-container canvas { max-height: 200px !important; }
     .reports-page canvas { max-width: 100% !important; }
-    .reports-page .rank-grid { grid-template-columns: 1fr 1fr !important; }
+    .reports-page .rank-grid { display: block !important; margin: 0 !important; }
+    .reports-page .rank-card { display: block !important; width: 100% !important; margin: 0 0 10px !important; break-inside: auto !important; page-break-inside: auto !important; }
+    .reports-page .rank-row { break-inside: avoid; min-height: 0 !important; padding-top: 3px !important; padding-bottom: 3px !important; }
+    .reports-page .rank-row__label, .reports-page .rank-row__title, .reports-page .rank-row__path {
+      white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere;
+    }
+    .reports-page .charts-section { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; margin-bottom: 10px !important; }
+    .reports-page .charts-section > .chart-card:only-child, .reports-page .charts-section > .chart-card--wide { grid-column: 1 / -1; }
+    .reports-page .chart-card { margin: 0 !important; padding: 10px 12px !important; }
     .reports-page .rank-card__more, .reports-page .rank-row__label .pi { display: none !important; }
   }
 }

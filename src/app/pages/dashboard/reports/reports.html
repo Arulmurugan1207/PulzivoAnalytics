@@ -220,7 +220,7 @@
                 @if (chartData.trafficSources && trafficSources.length > 0) {
                   <div class="chart-card">
                     <h3>Traffic Sources</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-container--donut">
                       <p-chart height="100%" type="doughnut" [data]="chartData.trafficSources" [options]="chartOptions.trafficSources"></p-chart>
                     </div>
                   </div>
@@ -243,7 +243,7 @@
                 @if (chartData.devices) {
                   <div class="chart-card">
                     <h3>Device Breakdown</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-container--donut">
                       <p-chart height="100%" type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
                     </div>
                   </div>
@@ -258,7 +258,7 @@
                 @if (chartData.devices) {
                   <div class="chart-card">
                     <h3>Device Breakdown</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-container--donut">
                       <p-chart height="100%" type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
                     </div>
                   </div>
@@ -275,7 +275,7 @@
                 @if (chartData.devices) {
                   <div class="chart-card">
                     <h3>Device Breakdown</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-container--donut">
                       <p-chart height="100%" type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
                     </div>
                   </div>
@@ -283,7 +283,7 @@
                 @if (chartData.browsers && browserData.length > 0) {
                   <div class="chart-card">
                     <h3>Browser Breakdown</h3>
-                    <div class="chart-container">
+                    <div class="chart-container chart-container--donut">
                       <p-chart height="100%" type="doughnut" [data]="chartData.browsers" [options]="chartOptions.browsers"></p-chart>
                     </div>
                   </div>
@@ -443,7 +443,7 @@
             @if (chartData.devices && isChartChecked('deviceBreakdown')) {
               <div class="chart-card" style="margin-top:20px">
                 <h3>Device Breakdown</h3>
-                <div class="chart-container">
+                <div class="chart-container chart-container--donut">
                   <p-chart height="100%" type="doughnut" [data]="chartData.devices" [options]="chartOptions.devices"></p-chart>
                 </div>
               </div>
@@ -451,7 +451,7 @@
             @if (chartData.trafficSources && isChartChecked('trafficSources') && trafficSources.length > 0) {
               <div class="chart-card" style="margin-top:20px">
                 <h3>Traffic Sources</h3>
-                <div class="chart-container">
+                <div class="chart-container chart-container--donut">
                   <p-chart height="100%" type="doughnut" [data]="chartData.trafficSources" [options]="chartOptions.trafficSources"></p-chart>
                 </div>
               </div>

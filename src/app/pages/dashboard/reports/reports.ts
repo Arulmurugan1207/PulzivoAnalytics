@@ -211,6 +211,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeprint', this.resizeCharts);
       window.addEventListener('afterprint', this.resizeCharts);
+      window.addEventListener('resize', this.resizeCharts);
       this.printMql = window.matchMedia?.('print') ?? null;
       this.printMql?.addEventListener?.('change', this.onPrintChange);
     }
@@ -226,6 +227,7 @@ export class DashboardReports implements OnInit, OnDestroy {
     if (typeof window !== 'undefined') {
       window.removeEventListener('beforeprint', this.resizeCharts);
       window.removeEventListener('afterprint', this.resizeCharts);
+      window.removeEventListener('resize', this.resizeCharts);
       this.printMql?.removeEventListener?.('change', this.onPrintChange);
     }
   }
@@ -673,11 +675,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140']
       }]
     };
-    this.chartOptions.trafficSources = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'right' } }
-    };
+    this.chartOptions.trafficSources = this.donutOptions();
   }
 
   updateBrowserChart(browsers: any[]) {
@@ -688,11 +686,7 @@ export class DashboardReports implements OnInit, OnDestroy {
         backgroundColor: ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
       }]
     };
-    this.chartOptions.browsers = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom' } }
-    };
+    this.chartOptions.browsers = this.donutOptions();
   }
 
   updateFunnelChart(funnel: any) {
@@ -758,11 +752,36 @@ export class DashboardReports implements OnInit, OnDestroy {
       }]
     };
 
-    this.chartOptions.devices = {
+    this.chartOptions.devices = this.donutOptions();
+  }
+
+  /** Compact donut: centred, sane radius, legend right (below on mobile) with value + %, zero slices hidden. */
+  donutOptions(): any {
+    const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
+    return {
       responsive: true,
       maintainAspectRatio: false,
+      radius: '92%',
+      cutout: '62%',
+      layout: { padding: 8 },
       plugins: {
-        legend: { position: 'bottom' }
+        legend: {
+          position: narrow ? 'bottom' : 'right',
+          align: 'center',
+          labels: {
+            boxWidth: 10, boxHeight: 10, padding: 10, font: { size: 12 },
+            generateLabels: (chart: any) => {
+              const ds = chart.data?.datasets?.[0] || {};
+              const vals: number[] = (ds.data || []).map((v: any) => +v || 0);
+              const total = vals.reduce((a, b) => a + b, 0) || 1;
+              return (chart.data?.labels || []).map((label: string, i: number) => ({
+                text: `${label}  ${vals[i].toLocaleString()} (${Math.round((vals[i] / total) * 100)}%)`,
+                fillStyle: Array.isArray(ds.backgroundColor) ? ds.backgroundColor[i % ds.backgroundColor.length] : ds.backgroundColor,
+                strokeStyle: '#fff', lineWidth: 0, hidden: !chart.getDataVisibility(i), index: i
+              })).filter((_: any, i: number) => vals[i] > 0);
+            }
+          }
+        }
       }
     };
   }
