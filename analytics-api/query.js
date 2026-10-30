@@ -474,10 +474,11 @@ function classifySource(data = {}, doc = {}) {
   if (utmMedium === 'social') return 'Social Media';
   if (utmSource) {
     const s = String(utmSource).toLowerCase();
-    if (/google|bing|duckduckgo|yahoo|baidu/.test(s)) {
+    const known = knownSourceName(s);
+    if (SEARCH_NAMES.has(known) || /google|bing|duckduckgo|yahoo|baidu/.test(s)) {
       return utmMedium === 'cpc' ? 'Paid Search' : 'Organic Search';
     }
-    if (SOCIAL_HOST.test(s)) return 'Social Media';
+    if (SOCIAL_NAMES.has(known) || SOCIAL_HOST.test(s)) return 'Social Media';
     return 'Referral';
   }
   const ref = attr.referrer_domain || hostnameOf(attr.referrer || payload.referrer);
@@ -487,37 +488,14 @@ function classifySource(data = {}, doc = {}) {
   return 'Referral';
 }
 
+const SEARCH_NAMES = new Set(['Google', 'Bing', 'DuckDuckGo', 'Yahoo', 'Baidu', 'Brave Search']);
+const SOCIAL_NAMES = new Set(['YouTube', 'Instagram', 'Facebook', 'X', 'WhatsApp', 'LinkedIn', 'Reddit', 'TikTok', 'Pinterest', 'Snapchat', 'Telegram', 'Threads']);
 const SOCIAL_HOST = /facebook|fb\.me|fb\.com|twitter|instagram|linkedin|reddit|tiktok|youtube|t\.co|x\.com|whatsapp|wa\.me|telegram|t\.me|snapchat|pinterest|threads\.net/;
 
-const NAMED_REFERRERS = [
-  [/(^|\.)facebook\.com$|^fb\.com$|^fb\.me$/, 'Facebook'],
-  [/(^|\.)whatsapp\.com$|^wa\.me$/, 'WhatsApp'],
-  [/(^|\.)twitter\.com$|^t\.co$|^x\.com$/, 'X'],
-  [/(^|\.)instagram\.com$/, 'Instagram'],
-  [/(^|\.)linkedin\.com$|^lnkd\.in$/, 'LinkedIn'],
-  [/(^|\.)youtube\.com$|^youtu\.be$/, 'YouTube'],
-  [/(^|\.)reddit\.com$|^redd\.it$/, 'Reddit'],
-  [/(^|\.)tiktok\.com$/, 'TikTok'],
-  [/(^|\.)pinterest\.com$|^pin\.it$/, 'Pinterest'],
-  [/(^|\.)snapchat\.com$/, 'Snapchat'],
-  [/(^|\.)telegram\.org$|^t\.me$/, 'Telegram'],
-  [/(^|\.)threads\.net$/, 'Threads'],
-  [/(^|\.)google\.[a-z.]+$/, 'Google'],
-  [/(^|\.)bing\.com$/, 'Bing'],
-  [/(^|\.)duckduckgo\.com$/, 'DuckDuckGo'],
-  [/(^|\.)yahoo\.[a-z.]+$/, 'Yahoo'],
-  [/(^|\.)baidu\.com$/, 'Baidu'],
-  [/news\.ycombinator\.com$/, 'Hacker News'],
-  [/(^|\.)github\.com$/, 'GitHub'],
-];
+const { knownSourceName, canonicalSourceName, normalizeHost } = require('./sources');
 
 function namedReferrer(value) {
-  const host = String(value || '').replace(/^www\./, '').toLowerCase();
-  if (!host) return '';
-  for (const [pattern, name] of NAMED_REFERRERS) {
-    if (pattern.test(host)) return name;
-  }
-  return '';
+  return knownSourceName(value);
 }
 
 /** The actual place a visit came from, plus the bucket that place belongs to. */
@@ -525,12 +503,12 @@ function referrerIdentity(data = {}, doc = {}) {
   const payload = data && typeof data === 'object' ? data : {};
   const attr = payload.attribution && typeof payload.attribution === 'object' ? payload.attribution : {};
   const channel = classifySource(payload, doc);
-  const host = String(attr.referrer_domain || hostnameOf(attr.referrer || payload.referrer) || '').replace(/^www\./, '');
+  const host = normalizeHost(attr.referrer_domain || hostnameOf(attr.referrer || payload.referrer) || '');
   const utm = String(extractUtm(payload, doc).utm_source || '').trim();
   if (channel === 'Direct' && !host && !utm) {
     return { name: 'Direct', channel: 'Direct', host: '' };
   }
-  const name = namedReferrer(host) || namedReferrer(utm) || host || utm || channel;
+  const name = namedReferrer(host) || namedReferrer(utm) || host || canonicalSourceName(utm) || channel;
   return { name, channel, host };
 }
 

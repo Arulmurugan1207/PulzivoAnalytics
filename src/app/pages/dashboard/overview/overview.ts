@@ -52,6 +52,7 @@ import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
 import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/breakdown-card';
 import { ImproveCard, ImproveReport } from '../../../components/improve-card/improve-card';
+import { mergeSourceRows } from '../../../utils/source-name';
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -2592,8 +2593,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   private applySourceBreakdown(): void {
+    // mergeSourceRows: same canonical mapping as the API (analytics-api/sources.js), so
+    // duplicates like "ig" + Instagram collapse even against an older API build.
     const detailed = this.referrers.length
-      ? this.referrers
+      ? mergeSourceRows(this.referrers)
       : this.trafficSources.map(source => ({
           name: source.source,
           channel: source.source,

@@ -1,0 +1,103 @@
+{
+  "YouTube": [
+    "youtube",
+    "YT",
+    "youtu.be",
+    "m.youtube.com",
+    "youtube.com",
+    "https://www.youtube.com/watch?v=1",
+    "android-app://com.google.android.youtube"
+  ],
+  "Instagram": [
+    "ig",
+    "Instagram",
+    "l.instagram.com",
+    "instagram.com"
+  ],
+  "Facebook": [
+    "fb",
+    "facebook",
+    "facebook.com",
+    "m.facebook.com",
+    "lm.facebook.com",
+    "l.facebook.com"
+  ],
+  "X": [
+    "x",
+    "twitter",
+    "t.co",
+    "x.com",
+    "twitter.com",
+    "mobile.twitter.com"
+  ],
+  "WhatsApp": [
+    "whatsapp",
+    "wa",
+    "wa.me",
+    "api.whatsapp.com",
+    "web.whatsapp.com"
+  ],
+  "Google": [
+    "google",
+    "google.com",
+    "google.ca",
+    "www.google.co.uk",
+    "android-app://com.google.android.gm"
+  ],
+  "Bing": [
+    "bing",
+    "bing.com",
+    "cn.bing.com"
+  ],
+  "Yahoo": [
+    "yahoo",
+    "ca.search.yahoo.com",
+    "search.yahoo.co.jp"
+  ],
+  "DuckDuckGo": [
+    "duckduckgo",
+    "duckduckgo.com"
+  ],
+  "Brave Search": [
+    "brave",
+    "search.brave.com",
+    "Brave Search"
+  ],
+  "ChatGPT": [
+    "chatgpt.com",
+    "chat.openai.com",
+    "chatgpt"
+  ],
+  "Perplexity": [
+    "perplexity",
+    "www.perplexity.ai"
+  ],
+  "Reddit": [
+    "reddit",
+    "old.reddit.com"
+  ],
+  "LinkedIn": [
+    "linkedin",
+    "lnkd.in",
+    "www.linkedin.com"
+  ],
+  "Copied link": [
+    "copy",
+    "COPY",
+    "Copied link"
+  ],
+  "tabletennistube.com": [
+    "TableTennisTube.com",
+    "https://www.TableTennisTube.com/x"
+  ],
+  "example.org": [
+    "https://www.Example.org/a"
+  ],
+  "rallyto": [
+    "Rallyto",
+    "rallyto"
+  ],
+  "notgoogle.com.evil": [
+    "notgoogle.com.evil"
+  ]
+}
