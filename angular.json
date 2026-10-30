@@ -45,7 +45,7 @@
                 {
                   "glob": "**/*",
                   "input": "public",
-                  "ignore": ["pulzivo-analytics.js"]
+                  "ignore": ["pulzivo-analytics.js", "pulzivo-analytics-extras.js"]
                 }
               ],
               "budgets": [

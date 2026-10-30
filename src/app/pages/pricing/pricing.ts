@@ -96,6 +96,8 @@ export class Pricing implements OnDestroy {
         'Page view tracking',
         'Click tracking',
         'Custom event tracking',
+        'Scroll depth',
+        'Web Vitals (LCP, INP, CLS)',
         'Basic dashboard',
         'Community support'
       ]
@@ -140,6 +142,7 @@ export class Pricing implements OnDestroy {
         'Geographic analytics',
         'Element visibility tracking',
         'Performance metrics',
+        'Error & crash tracking',
         'UTM & attribution tracking',
         'Traffic source & referrer data',
         'Identify signed-in users (opt-in, IDs you supply)',
@@ -159,9 +162,7 @@ export class Pricing implements OnDestroy {
         'Unlimited events',
         '24-month data retention',
         'Form tracking & abandonment',
-        'Error & crash tracking',
         'Rage click & dead click detection',
-        'Web Vitals (LCP, FID, CLS)',
         'Resource timing monitoring',
         'Heatmap data collection',
         'Client Hints (browser & OS detection)',
@@ -224,13 +225,13 @@ export class Pricing implements OnDestroy {
   getKeyFeatures(plan: Plan): string[] {
     switch (plan.type) {
       case 'free':
-        return ['Page view tracking', 'Click tracking', 'Custom event tracking', '30-day data retention', 'Community support'];
+        return ['Page view tracking', 'Click tracking', 'Web Vitals (LCP, INP, CLS)', 'Scroll depth', '30-day data retention'];
       case 'starter':
         return ['Auto click & scroll tracking', 'Session & bounce rate analytics', 'Unique visitor tracking', 'Geographic analytics', 'UTM & attribution tracking'];
       case 'pro':
         return ['Performance metrics', 'Identify signed-in users (opt-in, IDs you supply)', 'Element visibility tracking', 'Entry & exit page tracking', 'Custom exports (CSV)'];
       case 'enterprise':
-        return ['Form tracking & abandonment', 'Rage/dead click detection', 'Web Vitals (LCP, FID, CLS)', 'Tooltip & UX confusion insights', 'Client Hints (browser & OS)', 'Priority support'];
+        return ['Form tracking & abandonment', 'Rage/dead click detection', 'Unlimited websites & events', 'Tooltip & UX confusion insights', 'Client Hints (browser & OS)', 'Priority support'];
       default:
         return plan.features.slice(0, 5);
     }
@@ -262,7 +263,8 @@ export class Pricing implements OnDestroy {
         { feature: 'Click tracking',         free: true, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Custom events',          free: true, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Auto click tracking',    free: false, starter: true,  pro: true,  enterprise: true  },
-        { feature: 'Scroll depth',           free: false, starter: true,  pro: true,  enterprise: true  },
+        { feature: 'Scroll depth',           free: true,  starter: true,  pro: true,  enterprise: true  },
+        { feature: 'Web Vitals (LCP, INP, CLS)', free: true, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Session analytics',      free: false, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Unique visitors',        free: false, starter: true,  pro: true,  enterprise: true  },
       ]
@@ -274,6 +276,7 @@ export class Pricing implements OnDestroy {
         { feature: 'Geographic analytics',     free: false, starter: true,  pro: true,  enterprise: true  },
         { feature: 'UTM & attribution',        free: false, starter: true,  pro: true,  enterprise: true  },
         { feature: 'Performance metrics',      free: false, starter: false, pro: true,  enterprise: true  },
+        { feature: 'Error & crash tracking',   free: false, starter: false, pro: true,  enterprise: true  },
         { feature: 'Identify signed-in users (opt-in, IDs you supply)',   free: false, starter: false, pro: true,  enterprise: true  },
         { feature: 'Element visibility',       free: false, starter: false, pro: true,  enterprise: true  },
         { feature: 'Custom exports (CSV)',     free: false, starter: false, pro: true,  enterprise: true  },
@@ -283,9 +286,7 @@ export class Pricing implements OnDestroy {
       name: 'Enterprise Features',
       rows: [
         { feature: 'Form tracking & abandonment',   free: false, starter: false, pro: false, enterprise: true },
-        { feature: 'Error & crash tracking',         free: false, starter: false, pro: false, enterprise: true },
         { feature: 'Rage & dead click detection',    free: false, starter: false, pro: false, enterprise: true },
-        { feature: 'Web Vitals (LCP, FID, CLS)',     free: false, starter: false, pro: false, enterprise: true },
         { feature: 'Heatmap data collection',        free: false, starter: false, pro: false, enterprise: true },
         { feature: 'Client Hints (browser & OS)',    free: false, starter: false, pro: false, enterprise: true },
         { feature: 'Tooltip & UX confusion insights',free: false, starter: false, pro: false, enterprise: true },

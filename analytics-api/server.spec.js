@@ -775,3 +775,37 @@ test('page-stats date filter includes numeric timestamps from ingest', async () 
     assert.equal((await res.json()).totalPageViews, 1);
   });
 });
+
+test('ingest keeps short click text but drops email-like or number-only text', () => {
+  const body = { events: [
+    { event_name: 'click', apiKey: 'K', data: { text: '  Start   free trial ' } },
+    { event_name: 'click', apiKey: 'K', data: { text: 'jane@example.com' } },
+    { event_name: 'click', apiKey: 'K', data: { text: '4111 1111 1111 1111' } },
+    { event_name: 'click', apiKey: 'K', data: { text: 'x'.repeat(100) } },
+  ] };
+  const events = normalizeEvents({ body, query: {} });
+  assert.equal(events[0].data.text, 'Start free trial');
+  assert.equal(events[1].data.text, '');
+  assert.equal(events[2].data.text, '');
+  assert.equal(events[3].data.text.length, 60);
+});
+
+test('report endpoints are cached for 60s per apiKey + query; /analytics/metrics is not', async () => {
+  const { createMemoryDb: mk } = require('./memory-db');
+  const db = mk({ events: [{ event_name: 'page_view', apiKey: 'K', timestamp: Date.now(), data: { page: '/' } }] });
+  const { server, url } = await listen(createApp({ db, reportCacheTtlMs: 60000 }));
+  try {
+    const a = await fetch(`${url}/analytics/top-pages?apiKey=K`);
+    assert.equal(a.headers.get('x-report-cache'), 'miss');
+    assert.match(a.headers.get('cache-control'), /private, max-age=60/);
+    const b = await fetch(`${url}/analytics/top-pages?apiKey=K`);
+    assert.equal(b.headers.get('x-report-cache'), 'hit');
+    assert.deepEqual(await a.json(), await b.json());
+    const other = await fetch(`${url}/analytics/top-pages?apiKey=OTHER`);
+    assert.equal(other.headers.get('x-report-cache'), 'miss');
+    const m = await fetch(`${url}/analytics/metrics?apiKey=K`);
+    assert.equal(m.headers.get('x-report-cache'), null);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});

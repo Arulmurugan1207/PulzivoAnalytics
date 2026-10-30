@@ -510,7 +510,7 @@
         </div>
         <p class="lead">Find broken links and learn what visitors are looking for, with no extra events to design.</p>
         <h3>404 pages</h3>
-        <p>On a static site, add one meta tag to your 404 template. Every view of that page is recorded as a <code>not_found</code> event with the path and referrer.</p>
+        <p>Pages whose title looks like a 404 (“404”, “Not Found”, “Page not found”) are detected automatically. Otherwise, on a static site, add one meta tag to your 404 template. Every view of that page is recorded as a <code>not_found</code> event with the path and referrer.</p>
         <div class="code-block-wrapper">
           <button pButton type="button" [label]="isCopied('notfound-meta') ? 'Copied!' : 'Copy'" [icon]="isCopied('notfound-meta') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['notfound-meta'])" [class.p-button-success]="isCopied('notfound-meta')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['notfound-meta'] }}</code></pre>
@@ -579,7 +579,8 @@
               <tr><td><code>trackNotFound(path?)</code></td><td>Mark the current view as a 404. Command form: <code>('404')</code></td></tr>
               <tr><td><code>trackPageView(title?, path?)</code></td><td>Manual page view (automatic by default)</td></tr>
               <tr><td><code>trackError(error, data?)</code></td><td>Report a caught error</td></tr>
-              <tr><td><code>setUserEmail(email)</code> / <code>clearUserEmail()</code></td><td>Attach / remove a user identity. Command form: <code>('identify', email)</code></td></tr>
+              <tr><td><code>identify(id, &#123; email? &#125;)</code> / <code>reset()</code></td><td>Opt-in: attach your own user ID (and optionally an email) / forget it on sign-out. Command form: <code>('identify', id)</code>, <code>('reset')</code></td></tr>
+              <tr><td><code>setUserEmail(email)</code> / <code>clearUserEmail()</code></td><td>Attach / remove just an email (kept for this tab only)</td></tr>
               <tr><td><code>optOut()</code> / <code>optIn()</code> / <code>isOptedOut()</code></td><td>Visitor privacy choice, stored in this browser</td></tr>
               <tr><td><code>setOwner(flag, persist?)</code></td><td>Exclude your own visits</td></tr>
               <tr><td><code>sendBatch()</code></td><td>Send queued events now instead of waiting for the batch interval</td></tr>
@@ -613,10 +614,11 @@
         <div class="warning-box">
           <h4><i class="pi pi-shield"></i> Privacy Considerations</h4>
           <ul>
+            <li>By default visitors get an anonymous ID that changes every day; nothing links one day's visit to the next</li>
             <li>Opt-in: nothing identifies a visitor unless you call <code>identify</code> / <code>setUserEmail</code></li>
-            <li>Once set, the identifier is stored in localStorage and sent with events as <code>user_email</code>, so it appears in your dashboard for identified users</li>
+            <li><code>identify(id)</code> keeps your ID in localStorage so a signed-in user is recognised across days; an email is held in memory and sessionStorage (this tab) only, and sent with events as <code>user_email</code></li>
             <li>Prefer an internal user ID over an email address if you don't need the email</li>
-            <li>Call <code>clearUserEmail()</code> on logout</li>
+            <li>Call <code>reset()</code> on logout</li>
           </ul>
         </div>
       </section>

@@ -26,9 +26,9 @@ import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
 const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['page_views', 'clicks', 'custom_events'],
-  starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
-  pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
+  free: ['page_views', 'clicks', 'custom_events', 'scroll_depth', 'page_exit', 'web_vitals'],
+  starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events', 'web_vitals'],
+  pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'web_vitals', 'error_tracking'],
   enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
 };
 
@@ -51,7 +51,7 @@ const FEATURE_DESCRIPTIONS: Record<string, { label: string; description: string 
   error_tracking: { label: 'Error Tracking', description: 'Capture JavaScript errors and exceptions' },
   rage_clicks: { label: 'Rage Clicks', description: 'Detect frustrated user behavior' },
   dead_clicks: { label: 'Dead Clicks', description: 'Track clicks on non-interactive elements' },
-  web_vitals: { label: 'Web Vitals', description: 'Monitor Core Web Vitals (LCP, FID, CLS)' },
+  web_vitals: { label: 'Web Vitals', description: 'Monitor Core Web Vitals (LCP, INP, CLS)' },
   resource_timing: { label: 'Resource Timing', description: 'Track resource loading performance' },
   heatmap_data: { label: 'Heatmap Data', description: 'Collect data for click and scroll heatmaps' },
   custom_dimensions: { label: 'Custom Dimensions', description: 'Add custom data to events' }

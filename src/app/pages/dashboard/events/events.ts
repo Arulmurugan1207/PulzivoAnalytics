@@ -34,6 +34,9 @@ interface EventSummary {
   formSubmits: number;
   formAbandons: number;
   formFocuses: number;
+  /** Page with the most rage clicks in the range. */
+  rageTopPage?: string | null;
+  rageTopPageCount?: number;
 }
 
 interface EventBreakdown {
@@ -311,7 +314,8 @@ export class DashboardEvents implements OnInit, OnDestroy {
     const rage = s.rageClicks || 0, dead = s.deadClicks || 0, ab = s.formAbandons || 0, sub = s.formSubmits || 0;
     const n = (v: number) => v.toLocaleString();
     if (rage || dead) {
-      const parts = [rage ? `${n(rage)} rage click${rage === 1 ? '' : 's'}` : '', dead ? `${n(dead)} dead click${dead === 1 ? '' : 's'}` : ''].filter(Boolean);
+      const where = rage && s.rageTopPage ? `, mostly on ${s.rageTopPage}` : '';
+      const parts = [rage ? `${n(rage)} rage click${rage === 1 ? '' : 's'}${where}` : '', dead ? `${n(dead)} dead click${dead === 1 ? '' : 's'}` : ''].filter(Boolean);
       return { tone: 'warn', text: `${parts.join(' and ')} in this period — visitors hit friction.` };
     }
     if (ab) return { tone: 'warn', text: `${n(ab)} form${ab === 1 ? '' : 's'} abandoned in this period.` };

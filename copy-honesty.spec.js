@@ -100,6 +100,10 @@ test('Features Free badges match script + pricing (page views, clicks, custom ev
   assert.equal(featureTag(features, 'Page Views'), 'Free');
   assert.equal(featureTag(features, 'Click Tracking'), 'Free');
   assert.equal(featureTag(features, 'Custom Events API'), 'Free');
+  assert.equal(featureTag(features, 'Scroll Depth'), 'Free');
+  assert.equal(featureTag(features, 'Core Web Vitals'), 'Free');
+  assert.equal(featureTag(features, 'Error Tracking'), 'Pro');
+  assert.doesNotMatch(features, /LCP, FID/);
 
   const freePlan = pricing.slice(pricing.indexOf("type: 'free'"), pricing.indexOf("type: 'starter'"));
   assert.match(freePlan, /Page view tracking/);

@@ -141,6 +141,19 @@ Merge / push to `main` runs [`.github/workflows/deploy-cpanel.yml`](.github/work
 1. If `cdn.pulzivo.com` is the same cPanel `public_html` (or a CNAME to it), the new min.js is live once FTP finishes — purge any CDN cache if the file is cached.
 2. If `cdn.pulzivo.com` is a distinct origin, copy `public/pulzivo-analytics.min.js` there after minify. There is no `gcloud` / npm script here that does that.
 
+### Core + extras (since the GA4-simplify tracker update)
+
+The tracker ships as two files, both built by `npm run minify:analytics` (terser config: `terser.tracker.json`):
+
+| File | What | Size budget |
+| --- | --- | --- |
+| `pulzivo-analytics.min.js` | Core: page views, clicks (+ visible text), scroll depth, Web Vitals, SPA routing, outbound/downloads, UTMs, goals/revenue, 404s, error buffering, bot checks | ≤ 9 KB gzip (`tests/tracker.spec.js` enforces it at gzip -1 and -9) |
+| `pulzivo-analytics-extras.min.js` | Plan modules: impressions, forms, tooltips, error reporting, rage/dead clicks | loaded on demand |
+
+The core loads extras **from the same folder as itself** (`document.currentScript`), so wherever `pulzivo-analytics.min.js` is published, `pulzivo-analytics-extras.min.js` must be published next to it. Override with `extrasUrl` in the `init` config.
+
+Visitor identity: the default visitor ID is anonymous and rotates daily (`pz_vid`). A persistent ID exists only after the site calls `PulzivoAnalytics.identify(id)` (`pz_uid`); emails are never written to localStorage (memory + sessionStorage only). `reset()` clears both.
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

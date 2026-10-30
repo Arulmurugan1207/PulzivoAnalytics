@@ -54,11 +54,12 @@ import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/
 
 // Plan feature access map
 const PLAN_FEATURES: Record<string, string[]> = {
-  free: ['page_views', 'clicks', 'custom_events'],
+  free: ['page_views', 'clicks', 'custom_events', 'scroll_depth', 'page_exit', 'web_vitals'],
   starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
-            'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
+            'unique_visitors', 'sessions', 'utm_attribution', 'custom_events', 'web_vitals'],
   pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
-        'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
+        'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events',
+        'web_vitals', 'error_tracking'],
   enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility',
                'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity',
                'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks',
@@ -634,13 +635,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   private loadAnalyticsPreferences(): void {
-    // Get available features for the plan
-    const PLAN_FEATURES: Record<string, string[]> = {
-      free: ['page_views', 'clicks', 'custom_events'],
-      starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
-      pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
-      enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals', 'resource_timing', 'heatmap_data', 'custom_dimensions']
-    };
+    // Get available features for the plan (module-level map, kept in sync with the SDK)
     
     this.availableFeatures = PLAN_FEATURES[this.userPlan] || PLAN_FEATURES['free'];
     

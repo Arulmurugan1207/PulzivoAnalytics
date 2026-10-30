@@ -946,9 +946,10 @@ function eventsBreakdownPipeline(match) {
         _page: pageExpr(),
         _element: clickElementExpr(),
         _label: firstPresentString(['$data.event_label', '$data.label']),
+        _text: firstPresentString(['$data.text']),
       },
     },
-    { $project: { event_name: 1, _t: 1, _page: 1, _element: 1, _label: 1 } },
+    { $project: { event_name: 1, _t: 1, _page: 1, _element: 1, _label: 1, _text: 1 } },
     {
       $facet: {
         names: [
@@ -973,12 +974,19 @@ function eventsBreakdownPipeline(match) {
               _id: {
                 element: '$_element',
                 label: { $ifNull: ['$_label', ''] },
+                text: { $ifNull: ['$_text', ''] },
                 page: '$_page',
               },
               count: { $sum: 1 },
             },
           },
           { $sort: { count: -1, '_id.element': 1 } },
+        ],
+        rageTop: [
+          { $match: { event_name: 'rage_click' } },
+          { $group: { _id: '$_page', count: { $sum: 1 } } },
+          { $sort: { count: -1, _id: 1 } },
+          { $limit: 1 },
         ],
         summary: [
           {
@@ -1135,6 +1143,7 @@ function shapeEventsBreakdown(facet, { clicksPage, clicksLimit, customPage, cust
   const custom = (facet && facet.custom) || [];
   const clicks = (facet && facet.clicks) || [];
   const summary = (facet && facet.summary && facet.summary[0]) || {};
+  const rageTop = (facet && facet.rageTop && facet.rageTop[0]) || null;
   const totalEvents = summary.total || names.reduce((sum, row) => sum + row.count, 0);
   const nameCounts = new Map(names.map((row) => [row._id, row.count]));
   const customTotal = custom.reduce((sum, row) => sum + row.count, 0);
@@ -1162,6 +1171,7 @@ function shapeEventsBreakdown(facet, { clicksPage, clicksLimit, customPage, cust
     topClicks: clicks.slice(clickStart, clickStart + clicksLimit).map((row) => ({
       element: row._id.element,
       label: row._id.label || '',
+      text: row._id.text || '',
       page: row._id.page,
       count: row.count,
     })),
@@ -1172,6 +1182,8 @@ function shapeEventsBreakdown(facet, { clicksPage, clicksLimit, customPage, cust
       formSubmits: summary.formSubmits || 0,
       formAbandons: summary.formAbandons || 0,
       formFocuses: summary.formFocuses || 0,
+      rageTopPage: rageTop && rageTop._id ? rageTop._id : null,
+      rageTopPageCount: rageTop ? rageTop.count : 0,
     },
     categoryCounts,
     totalEvents,
@@ -1604,6 +1616,98 @@ function shapeRageRows(rows) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Source / UTM inputs, projected server-side.
+// classifySource / extractUtm / referrerIdentity stay the single source of
+// truth (JS); Mongo only ships the handful of fields they read. URL-ish
+// fields are only kept when they contain "utm_" (utmFromUrlString ignores
+// anything else), which collapses page paths and keeps groups small.
+// ---------------------------------------------------------------------------
+const SRC_UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+const SRC_URL_KEYS = ['page', 'url', 'href', 'location', 'route', 'previousUrl', 'previous_url',
+  'document_url', 'documentUrl', 'landing_page'];
+
+function utmUrlOnly(path) {
+  return {
+    $cond: [
+      { $eq: [{ $type: path }, 'string'] },
+      { $cond: [{ $regexMatch: { input: path, regex: 'utm_' } }, path, null] },
+      null,
+    ],
+  };
+}
+
+function objectSubset(path, keys, urlKeys = []) {
+  const out = {};
+  for (const key of keys) out[key] = `${path}.${key}`;
+  for (const key of urlKeys) out[key] = utmUrlOnly(`${path}.${key}`);
+  return { $cond: [{ $eq: [{ $type: path }, 'object'] }, out, null] };
+}
+
+/** A pseudo-event with exactly the fields the source/UTM classifiers read. */
+function sourceInputsDoc({ withSession = false, withTime = false } = {}) {
+  const data = {
+    attribution: objectSubset('$data.attribution', [...SRC_UTM_KEYS, 'referrer', 'referrer_domain'], SRC_URL_KEYS),
+    utm_attribution: objectSubset('$data.utm_attribution', SRC_UTM_KEYS, ['landing_page']),
+    custom_parameters: objectSubset('$data.custom_parameters', SRC_UTM_KEYS),
+    custom: objectSubset('$data.custom', SRC_UTM_KEYS),
+    referrer: '$data.referrer',
+  };
+  for (const key of SRC_UTM_KEYS) data[key] = `$data.${key}`;
+  for (const key of SRC_URL_KEYS) data[key] = utmUrlOnly(`$data.${key}`);
+  if (withSession) data.session_id = '$data.session_id';
+  const doc = {
+    page: utmUrlOnly('$page'),
+    url: utmUrlOnly('$url'),
+    href: utmUrlOnly('$href'),
+    data: { $cond: [{ $eq: [{ $type: '$data' }, 'object'] }, data, null] },
+  };
+  for (const key of SRC_UTM_KEYS) doc[key] = `$${key}`;
+  if (withSession) doc.session_id = '$session_id';
+  if (withTime) {
+    doc.timestamp = '$timestamp';
+    doc.createdAt = '$createdAt';
+    doc.receivedAt = '$receivedAt';
+  }
+  return doc;
+}
+
+/** Superset filter: any event that could yield UTM values. */
+function utmCandidateMatch() {
+  const or = [];
+  const rx = { $regex: 'utm_' };
+  for (const f of ['page', 'url', 'href']) or.push({ [f]: rx });
+  for (const f of SRC_URL_KEYS) {
+    or.push({ [`data.${f}`]: rx });
+    or.push({ [`data.attribution.${f}`]: rx });
+  }
+  or.push({ 'data.utm_attribution.landing_page': rx });
+  for (const key of SRC_UTM_KEYS) {
+    for (const base of ['', 'data.', 'data.attribution.', 'data.utm_attribution.', 'data.custom_parameters.', 'data.custom.']) {
+      or.push({ [`${base}${key}`]: { $exists: true } });
+    }
+  }
+  return { $or: or };
+}
+
+/** Distinct source inputs with visit counts (first-seen time breaks ties). */
+function sourceGroupsPipeline(match, { withSession = false } = {}) {
+  return [
+    { $match: match },
+    { $project: { _id: 0, k: sourceInputsDoc({ withSession }), _t: eventTimeExpr() } },
+    { $group: { _id: '$k', n: { $sum: 1 }, t: { $min: '$_t' } } },
+    { $sort: { t: 1 } },
+  ];
+}
+
+/** Compact per-event rows for session attribution, in scan order. */
+function attributionInputsPipeline(match) {
+  return [
+    { $match: match },
+    { $project: { _id: 0, ...sourceInputsDoc({ withSession: true, withTime: true }) } },
+  ];
+}
+
 function attributionPipeline(match) {
   return [
     { $match: match },
@@ -1797,6 +1901,10 @@ function shapeInsights(row = {}) {
 }
 
 module.exports = {
+  sourceInputsDoc,
+  utmCandidateMatch,
+  sourceGroupsPipeline,
+  attributionInputsPipeline,
   INSIGHT_EVENTS,
   insightsPipeline,
   shapeInsights,

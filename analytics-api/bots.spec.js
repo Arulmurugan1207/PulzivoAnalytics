@@ -61,3 +61,22 @@ test('tracker and dashboard crawler patterns stay in sync with the API list', ()
     assert.equal(copy, CRAWLER_UA_PATTERN, file);
   }
 });
+
+test('rate guard drops a visitor flooding events, not normal visitors', () => {
+  const { createRateGuard } = require('./bots');
+  let t = 0;
+  const guard = createRateGuard({ limit: 5, windowMs: 1000, now: () => t });
+  const ev = (uid) => ({ apiKey: 'K', user_id: uid, event_name: 'click' });
+  assert.equal(guard([ev('a'), ev('a'), ev('a')]).kept.length, 3);
+  const out = guard([ev('a'), ev('a'), ev('a'), ev('b')]);
+  assert.equal(out.kept.length, 3);
+  assert.equal(out.dropped, 1);
+  assert.equal(guard([{ apiKey: 'K', event_name: 'x' }]).kept.length, 1);
+  t = 1000;
+  assert.equal(guard([ev('a')]).kept.length, 1);
+});
+
+test('jsdom and Cypress user agents are treated as automation', () => {
+  assert.equal(isCrawlerUserAgent('Mozilla/5.0 (linux) AppleWebKit/537.36 (KHTML, like Gecko) jsdom/22.1.0'), true);
+  assert.equal(isCrawlerUserAgent('Mozilla/5.0 Chrome/120 Cypress/13.6.0 Electron/27'), true);
+});

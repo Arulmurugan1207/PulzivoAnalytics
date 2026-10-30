@@ -264,3 +264,176 @@ test('email set by the site is sent; incidental emails stay redacted', async () 
   const ev2 = b.sent.find((e) => e.event_name === 'after_identify');
   assert.equal(ev2.data.user_email, 'member2@site.test');
 });
+
+// ── Privacy-friendly visitor ID, opt-in identity ───────────────────────────
+test('default visitor ID is anonymous, rotates daily and is not a permanent ID', async () => {
+  const local = storage();
+  local.setItem('analytics_user_id', 'legacy-permanent-id');
+  local.setItem('userEmail', 'old@site.test');
+  const a = createBrowser({ local });
+  await a.load();
+  await a.flush();
+  const id1 = a.sent[0].user_id;
+  assert.match(id1, /^a-/);
+  assert.equal(local.getItem('analytics_user_id'), null);
+  assert.equal(local.getItem('userEmail'), null);
+  assert.ok(!JSON.stringify(a.sent).includes('old@site.test'));
+  // Same day, new page load: same anonymous ID (unique visitors per day still work).
+  const b = createBrowser({ local });
+  await b.load();
+  await b.flush();
+  assert.equal(b.sent[0].user_id, id1);
+  // Next day: a fresh ID, nothing links the two days.
+  local.setItem('pz_vid', 'Mon Jan 01 2001|' + id1);
+  const c = createBrowser({ local });
+  await c.load();
+  await c.flush();
+  assert.notEqual(c.sent[0].user_id, id1);
+  assert.equal(c.sent[0].data.user_type, 'anonymous');
+});
+
+test('identify(id) persists a stable ID; email stays out of localStorage; reset forgets', async () => {
+  const local = storage();
+  const session = storage();
+  const a = createBrowser({ local, session });
+  await a.load();
+  a.api().identify('user-42', { email: 'member@site.test' });
+  a.api().trackEvent('after', {});
+  await a.flush();
+  const ev = a.sent.find((e) => e.event_name === 'after');
+  assert.equal(ev.user_id, 'user-42');
+  assert.equal(ev.user_email, 'member@site.test');
+  assert.equal(ev.data.user_type, 'authenticated');
+  assert.equal(local.getItem('pz_uid'), 'user-42');
+  assert.ok(![...local._m.values()].some((v) => String(v).includes('member@site.test')));
+  // Another day, same browser: still user-42.
+  local.setItem('pz_vid', 'Mon Jan 01 2001|a-x');
+  const b = createBrowser({ local });
+  await b.load();
+  await b.flush();
+  assert.equal(b.sent[0].user_id, 'user-42');
+  b.window.PulzivoAnalytics('reset');
+  b.api().trackEvent('signed_out', {});
+  await b.flush();
+  const out = b.sent.find((e) => e.event_name === 'signed_out');
+  assert.match(out.user_id, /^a-/);
+  assert.equal(local.getItem('pz_uid'), null);
+});
+
+// ── Plans: vitals + scroll on Free, extras only when needed ────────────────
+test('free plan: web vitals and scroll depth are sent; extras module not fetched', async () => {
+  const b = createBrowser({ plan: 'free' });
+  await b.load();
+  b.window.pageYOffset = 1200;
+  b.window.dispatch('scroll');
+  await b.settle();
+  b.perf('largest-contentful-paint', [{ startTime: 700, renderTime: 700 }]);
+  b.hide();
+  assert.equal(b.sent.filter((e) => e.event_name === 'web_vital_lcp').length, 1);
+  const exit = b.sent.find((e) => e.event_name === 'page_exit');
+  assert.equal(exit.data.scroll_depth, 100);
+  assert.equal(b.scripts.length, 0);
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'public', 'pulzivo-analytics.js'), 'utf8');
+  assert.match(src, /batchIntervalMs: 5000,/);
+});
+
+test('pro plan: JS errors (incl. ones thrown before the module loads) are tracked; free is not', async () => {
+  const pro = createBrowser({ plan: 'pro' });
+  await pro.load();
+  assert.ok(pro.scripts.some((s) => /pulzivo-analytics-extras/.test(s)));
+  pro.window.dispatch('error', { message: 'late boom' });
+  pro.window.dispatch('unhandledrejection', { reason: { message: 'nope' } });
+  await pro.flush();
+  assert.ok(pro.names().includes('javascript_error'));
+  assert.ok(pro.names().includes('promise_rejection'));
+  const free = createBrowser({ plan: 'free' });
+  await free.load();
+  free.window.dispatch('error', { message: 'boom' });
+  await free.flush();
+  assert.equal(free.names().includes('javascript_error'), false);
+});
+
+// ── Click text ─────────────────────────────────────────────────────────────
+function el(tag, text, extra = {}) {
+  const e = Object.assign({
+    tagName: tag, innerText: text, textContent: text, id: '', className: '', type: '', value: '',
+    getAttribute: (k) => extra.attrs?.[k] ?? null,
+    hasAttribute: (k) => !!extra.attrs && k in extra.attrs,
+    querySelector: () => null,
+    matches: () => false,
+  }, extra);
+  e.closest = (sel) => (/button/.test(sel) && /^(BUTTON|A)$/.test(tag) ? e : (/data-click/.test(sel) && extra.attrs?.['data-click'] != null ? e : null));
+  return e;
+}
+
+test('clicks carry trimmed element text; emails, bare numbers and typed values are dropped', async () => {
+  const b = createBrowser({ plan: 'pro' });
+  await b.load();
+  b.document.dispatch('click', { target: el('BUTTON', '   Start   free\n trial  ' + 'x'.repeat(80)) });
+  b.document.dispatch('click', { target: el('BUTTON', 'jane@site.test') });
+  b.document.dispatch('click', { target: el('BUTTON', '+1 (416) 555-0100') });
+  b.document.dispatch('click', { target: el('INPUT', '', { type: 'text', value: 'secret typed', attrs: { 'data-click': 'field' } }) });
+  await b.flush();
+  const clicks = b.sent.filter((e) => e.event_name === 'click');
+  assert.equal(clicks[0].data.text, ('Start free trial ' + 'x'.repeat(80)).substring(0, 60));
+  assert.equal(clicks[1].data.text, '');
+  assert.equal(clicks[2].data.text, '');
+  assert.equal(clicks[3].data.text, '');
+  assert.ok(!JSON.stringify(b.sent).includes('secret typed'));
+});
+
+test('rage clicks record page path, element and text', async () => {
+  const b = createBrowser({ url: 'https://site.test/checkout' });
+  await b.load();
+  const btn = el('BUTTON', 'Pay now');
+  for (let i = 0; i < 3; i++) b.document.dispatch('click', { target: btn });
+  await b.flush();
+  const rage = b.sent.find((e) => e.event_name === 'rage_click');
+  assert.equal(rage.data.page, '/checkout');
+  assert.equal(rage.data.element, 'BUTTON');
+  assert.equal(rage.data.text, 'Pay now');
+  assert.equal(rage.data.click_count, 3);
+});
+
+// ── 404 by title, bots ─────────────────────────────────────────────────────
+test('404 auto-detected from the page title (once per view); normal titles are not', async () => {
+  const b = createBrowser({ url: 'https://site.test/nope' });
+  b.document.title = 'Page not found | Shop';
+  await b.load();
+  b.api().trackNotFound();
+  await b.flush();
+  assert.equal(b.sent.filter((e) => e.event_name === 'not_found').length, 1);
+  for (const title of ['404 - Shop', 'Error 404', 'Not Found']) {
+    const c = createBrowser();
+    c.document.title = title;
+    await c.load();
+    await c.flush();
+    assert.equal(c.names().includes('not_found'), true, title);
+  }
+  for (const title of ['Pricing', 'Model 4040 review', 'Shop v1.404']) {
+    const c = createBrowser();
+    c.document.title = title;
+    await c.load();
+    await c.flush();
+    assert.equal(c.names().includes('not_found'), false, title);
+  }
+});
+
+test('automated browsers (webdriver, no languages, jsdom) send nothing', async () => {
+  for (const opts of [{ webdriver: true }, { languages: [] }, { ua: 'Mozilla/5.0 (linux) AppleWebKit/537.36 (KHTML, like Gecko) jsdom/22.1.0' }]) {
+    const b = createBrowser(opts);
+    await b.load();
+    await b.flush();
+    assert.equal(b.sent.length, 0, JSON.stringify(opts));
+  }
+});
+
+test('core tracker stays <= 9 KB gzip (level 9 and CDN-like level 1); extras is separate', () => {
+  const fs = require('node:fs');
+  const zlib = require('node:zlib');
+  const path = require('node:path');
+  const min = fs.readFileSync(path.join(__dirname, '..', 'public', 'pulzivo-analytics.min.js'));
+  assert.ok(zlib.gzipSync(min, { level: 9 }).length <= 9216);
+  assert.ok(zlib.gzipSync(min, { level: 1 }).length <= 9216);
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', 'pulzivo-analytics-extras.min.js')));
+});

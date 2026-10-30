@@ -25,7 +25,7 @@
   let config = {
     apiUrl: 'https://pulzivo-analytics-api-167308220305.us-east1.run.app/analytics/log',
     apiKey: 'unknown', // Changed from serviceName to apiKey
-    batchIntervalMs: 15000, // Increased from 5s to 15s to reduce rate limiting
+    batchIntervalMs: 5000, // unload/hidden flushes go out immediately via sendBeacon
     debug: false,
     autoTrackPageViews: true,
     autoTrackClicks: true,
@@ -35,11 +35,13 @@
   };
 
   // Plan-based feature gating
+  // Web Vitals and scroll depth (reported on page_exit) are on every plan. KEEP IN SYNC
+  // with analytics-api/plans.js (plans.spec.js fails on drift).
   const PLAN_FEATURES = {
-    free: ['page_views', 'clicks', 'custom_events'],
-    starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events'],
-    pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events'],
-    enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'tooltip_tracking', 'error_tracking', 'rage_clicks', 'web_vitals']
+    free: ['page_views', 'clicks', 'custom_events', 'scroll_depth', 'page_exit', 'web_vitals'],
+    starter: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'utm_attribution', 'custom_events', 'web_vitals'],
+    pro: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'web_vitals', 'error_tracking'],
+    enterprise: ['page_views', 'clicks', 'auto_clicks', 'scroll_depth', 'page_exit', 'visibility', 'unique_visitors', 'sessions', 'performance', 'utm_attribution', 'user_identity', 'custom_events', 'client_hints', 'form_tracking', 'tooltip_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks', 'web_vitals']
   };
 
   let currentPlan = 'free';
@@ -110,26 +112,11 @@
    */
   function readOwnerFlagFromUrl() {
     try {
-      if (typeof window === 'undefined' || !window.location) return null;
       const params = new URLSearchParams(window.location.search || '');
-      const keys = ['pulz_owner', 'exclude_owner', 'pulz_exclude_owner'];
-      let raw = null;
-      for (const key of keys) {
-        if (params.has(key)) {
-          raw = params.get(key);
-          break;
-        }
-      }
-      if (raw === null) return null;
-      const normalized = String(raw).trim().toLowerCase();
-      if (normalized === '' || normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on') {
-        return true;
-      }
-      if (normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'off') {
-        return false;
-      }
-      // Any other non-empty value still enables owner mode (e.g. ?pulz_owner=me)
-      return true;
+      const key = ['pulz_owner', 'exclude_owner', 'pulz_exclude_owner'].find((k) => params.has(k));
+      if (!key) return null;
+      // Empty or any value other than 0/false/no/off enables owner mode (e.g. ?pulz_owner=me).
+      return !/^(0|false|no|off)$/.test(String(params.get(key)).trim().toLowerCase());
     } catch (e) {
       return null;
     }
@@ -236,6 +223,24 @@
     return l.pathname + (/^#!?\//.test(h) ? h.replace(/\?.*$/, '') : '');
   }
 
+  // Human-readable element name for click reports: aria-label, visible text, title, or image alt.
+  function elLabel(el, max) {
+    if (!el || !el.getAttribute) return '';
+    const img = el.querySelector && el.querySelector('img[alt]');
+    const raw = el.getAttribute('aria-label') || el.innerText || el.textContent ||
+      el.getAttribute('title') || (img && img.getAttribute('alt')) ||
+      (/^(submit|button|reset)$/.test(el.type) ? el.value : '') || '';
+    return String(raw).replace(/\s+/g, ' ').trim().substring(0, max);
+  }
+  // Element text sent with clicks: max 60 chars, never what someone typed into a field,
+  // and nothing that looks like an email or a bare number (order ids, phone numbers, totals).
+  function clickText(el) {
+    if (!el || (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && !/^(submit|button|reset)$/.test(el.type)) ||
+        (el.isContentEditable)) return '';
+    const t = elLabel(el, 60);
+    return !t || t.search(EMAIL_RE) !== -1 || /^[\d\s.,:;+\-\/()$€£¥%#*]+$/.test(t) ? '' : t;
+  }
+
   // Known crawlers / headless agents never count in stats. KEEP IN SYNC with
   // analytics-api/bots.js (bots.spec.js fails on drift). In-app browsers such as
   // FBAN/FBAV, Instagram, Twitter or LinkedInApp are real people and do not match.
@@ -245,14 +250,19 @@
     'facebookcatalog|meta-externalagent|headlesschrome|phantomjs|lighthouse|pagespeed|ptst\\/|' +
     'gtmetrix|pingdom|uptimerobot|' +
     'scrapy|bytespider|petalbot|baiduspider|semrush|ahrefs|mj12bot|dotbot|gptbot|claudebot|' +
-    'ccbot|amazonbot|applebot|duckduckbot';
+    'ccbot|amazonbot|applebot|duckduckbot|jsdom|cypress\\/';
   const CRAWLER_UA = new RegExp(CRAWLER_UA_PATTERN, 'i');
   let crawlerCache = null;
 
   function isKnownCrawler() {
     if (crawlerCache !== null) return crawlerCache;
-    const ua = typeof navigator !== 'undefined' && navigator.userAgent ? String(navigator.userAgent) : '';
-    crawlerCache = Boolean(ua) && CRAWLER_UA.test(ua.replace(/cubot/gi, ''));
+    const n = typeof navigator !== 'undefined' ? navigator : {};
+    const ua = n.userAgent ? String(n.userAgent) : '';
+    // Automation: WebDriver (Selenium, Puppeteer, Playwright), PhantomJS, Nightmare,
+    // and headless browsers that report no languages at all.
+    crawlerCache = n.webdriver === true || !!(window.callPhantom || window._phantom || window.__nightmare) ||
+      (Array.isArray(n.languages) && n.languages.length === 0) ||
+      (Boolean(ua) && CRAWLER_UA.test(ua.replace(/cubot/gi, '')));
     return crawlerCache;
   }
 
@@ -446,15 +456,30 @@
     sessionId = sid;
   }
 
+  // Visitor ID. By default an anonymous random ID that rotates every calendar day
+  // (Plausible-style): nothing links today's visit to yesterday's. Only a site that calls
+  // identify(id) gets a stable, persisted ID ('pz_uid'). Emails set via identify /
+  // setUserEmail live in memory + sessionStorage (this tab only), never localStorage.
+  let idDay = '';
+  function visitorId() {
+    const known = getStorageItem('pz_uid');
+    if (known) return known;
+    const day = new Date().toDateString();
+    if (day === idDay && userId) return userId;
+    const raw = getStorageItem('pz_vid') || '';
+    const i = raw.indexOf('|');
+    idDay = day;
+    if (i > 0 && raw.slice(0, i) === day) return raw.slice(i + 1);
+    const id = 'a-' + generateUUID();
+    setStorageItem('pz_vid', day + '|' + id);
+    return id;
+  }
   function initializeSession() {
     touchSession();
-    if (isLocalStorageAvailable()) {
-      userId = getStorageItem('analytics_user_id') || generateUUID();
-      setStorageItem('analytics_user_id', userId);
-      userEmail = getStorageItem('userEmail');
-    } else {
-      userId = generateUUID();
-    }
+    // Older versions kept a permanent ID and the email in localStorage; drop both.
+    try { localStorage.removeItem('analytics_user_id'); localStorage.removeItem('userEmail'); } catch (e) {}
+    userEmail = getStorageItem('pz_email', window.sessionStorage) || null;
+    userId = visitorId();
   }
 
   // Track unique visitor (both per session and per day)
@@ -518,6 +543,7 @@
       landingUtmApplied = true;
     }
     touchSession();
+    userId = visitorId();
     if (newSessionPending && planLoaded) {
       newSessionPending = false;
       if (hasFeature('sessions')) queueEvent('session_start', { category: 'session', custom: { session_type: 'new' } });
@@ -532,7 +558,7 @@
       user_id: userId,
       session_id: sessionId,
       view_id: viewId,
-      user_type: userEmail ? 'authenticated' : 'anonymous',
+      user_type: userEmail || getStorageItem('pz_uid') ? 'authenticated' : 'anonymous',
       first_visit: getStorageItem('analytics_first_visit') || new Date().toISOString(),
       visit_count: parseInt(getStorageItem('analytics_visit_count') || '0'),
       page: pagePath(),
@@ -546,17 +572,7 @@
 
     // Sanitize page path — strip whitespace/encoded newlines/trailing slash that create duplicate Top Pages rows
     if (eventData.page && typeof eventData.page === 'string') {
-      let page = eventData.page;
-      for (let i = 0; i < 3; i++) {
-        page = page
-          .replace(/%0A/gi, '')
-          .replace(/%0D/gi, '')
-          .replace(/%09/gi, '')
-          .replace(/\r/g, '')
-          .replace(/\n/g, '')
-          .replace(/\t/g, '');
-      }
-      page = page.trim();
+      let page = eventData.page.replace(/%0[ad9]|[\r\n\t]/gi, '').trim();
       if (page.length > 1) page = page.replace(/\/+$/, '');
       eventData.page = redact(page) || '/';
     }
@@ -658,7 +674,7 @@
 
   function stopInvalidKey() {
     isApiKeyInvalid = true;
-    console.warn('[Analytics] API key is invalid (401) - tracking stopped');
+    console.error('[Analytics] API key is invalid (401) - tracking stopped');
     if (batchTimer) { clearInterval(batchTimer); batchTimer = null; }
     eventQueue = [];
   }
@@ -799,13 +815,20 @@
     const t = searchTerm();
     return pagePath() + (t ? '?' + t[0] : '');
   }
-  // After each page view: site search, and 404 pages marked with <meta name="pulzivo:404">.
+  // After each page view: site search, and 404 pages (<meta name="pulzivo:404">, or a
+  // title such as "404", "Not Found", "Page not found"). SPAs can call trackNotFound().
+  const NOT_FOUND_TITLE = /(^|[^\w.])404([^\w.]|$)|\bnot found\b/i;
   function afterView() {
     const t = searchTerm();
     if (t) queueEvent('site_search', { category: 'search', label: t[0], term: t[0], search_param: t[1] });
-    if (document.querySelector && document.querySelector('meta[name="pulzivo:404"]')) trackNotFound();
+    if ((document.querySelector && document.querySelector('meta[name="pulzivo:404"]')) ||
+        NOT_FOUND_TITLE.test(document.title || '')) trackNotFound();
+    if (planLoaded && hasImpressions()) loadExtras();
   }
+  let notFoundView = '';
   function trackNotFound(path) {
+    if (notFoundView === viewId && !path) return; // once per page view
+    notFoundView = viewId;
     queueEvent('not_found', {
       category: 'error',
       label: 'Not found',
@@ -827,6 +850,49 @@
       afterView();
     }, 50);
   }
+
+  // Optional modules (public/pulzivo-analytics-extras.js), loaded on demand. Errors thrown
+  // before it arrives are buffered (max 20) so early errors are not lost.
+  const EXTRA_FEATURES = ['form_tracking', 'tooltip_tracking', 'error_tracking', 'rage_clicks', 'dead_clicks'];
+  const SELF_SRC = (document.currentScript && document.currentScript.src) || '';
+  const errBuf = [];
+  let onErr = null;
+  function bufferError(args) {
+    if (onErr) onErr.apply(null, args);
+    else if (errBuf.length < 20) errBuf.push(args);
+  }
+  function listenErrors() {
+    window.addEventListener('error', (e) => {
+      // Resource load errors have no message.
+      if (e && e.message) bufferError(['javascript_error', e.message, e.error && e.error.stack, { filename: cleanUrl(e.filename), line: e.lineno, column: e.colno }]);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const r = e && e.reason;
+      bufferError(['promise_rejection', (r && r.message) || String(r || 'Promise rejected'), r && r.stack, {}]);
+    });
+  }
+  let extrasRequested = false;
+  function hasImpressions() {
+    return hasFeature('custom_events') && !!(document.querySelector && document.querySelector('[data-track-impression]'));
+  }
+  function loadExtras() {
+    if (extrasRequested) return;
+    extrasRequested = true;
+    const src = config.extrasUrl ||
+      (/pulzivo-analytics(\.min)?\.js/.test(SELF_SRC) ? SELF_SRC.replace(/pulzivo-analytics(\.min)?\.js/, 'pulzivo-analytics-extras$1.js')
+        : 'https://cdn.pulzivo.com/pulzivo-analytics-extras.min.js');
+    try {
+      const el = document.createElement('script');
+      el.src = src;
+      el.async = true;
+      (document.head || document.documentElement).appendChild(el);
+    } catch (e) {}
+  }
+  // Internals shared with the extras module only (not a public API).
+  const internals = {
+    q: queueEvent, label: elLabel, text: clickText, page: pagePath, redact: redact, has: hasFeature, hide: hideHooks,
+    errors: function(fn) { onErr = fn; errBuf.splice(0).forEach((a) => fn.apply(null, a)); }
+  };
 
   // Setup automatic tracking
   function setupAutomaticTracking() {
@@ -895,17 +961,6 @@
     document.addEventListener('click', onLink, true);
     document.addEventListener('auxclick', onLink, true);
 
-    // Track clicks on elements with data-click attribute
-  // Human-readable element name for click reports: aria-label, visible text, title, or image alt.
-  function elLabel(el, max) {
-    if (!el || !el.getAttribute) return '';
-    const img = el.querySelector && el.querySelector('img[alt]');
-    const raw = el.getAttribute('aria-label') || el.innerText || el.textContent ||
-      el.getAttribute('title') || (img && img.getAttribute('alt')) ||
-      (/^(submit|button|reset)$/.test(el.type) ? el.value : '') || '';
-    return String(raw).replace(/\s+/g, ' ').trim().substring(0, max);
-  }
-
     if (config.autoTrackClicks) {
       document.addEventListener('click', (event) => {
         if (!event.target || !event.target.closest) return;
@@ -918,6 +973,7 @@
           queueEvent('click', {
             category: 'interaction',
             label: elLabel(target, 100),
+            text: clickText(target),
             element: target.tagName,
             href: target.href || null,
             click_type: clickType,
@@ -939,6 +995,7 @@
             queueEvent('click', {
               category: 'interaction',
               label: label || href,
+              text: clickText(clickableTarget),
               element: clickableTarget.tagName,
               href: href,
               click_type: 'auto',
@@ -949,348 +1006,13 @@
       });
     }
 
-    // Track impressions with Intersection Observer (Pro+ only)
-    if (hasFeature('custom_events') && 'IntersectionObserver' in window) {
-      const impressionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const element = entry.target;
-            const impressionId = element.getAttribute('data-track-impression');
-            const impressionName = element.getAttribute('data-impression-name') || impressionId;
-            const impressionCategory = element.getAttribute('data-impression-category') || 'general';
-            
-            if (impressionId) {
-              queueEvent('impression', {
-                category: impressionCategory,
-                impression_id: impressionId,
-                impression_name: impressionName,
-                location: window.location.pathname,
-                element: element.tagName.toLowerCase(),
-                custom: {
-                  visible_ratio: Math.round(entry.intersectionRatio * 100)
-                }
-              });
-              
-              // Stop observing after first impression
-              impressionObserver.unobserve(element);
-            }
-          }
-        });
-      }, {
-        threshold: 0.5 // Element must be 50% visible
-      });
+    // Forms, tooltips, JS errors, rage/dead clicks live in a separate small file that is
+    // only fetched when the plan enables one of them (keeps the core script small).
+    // Impressions (data-track-impression) also live there; afterView() loads it when such
+    // elements appear.
+    if (EXTRA_FEATURES.some(hasFeature) || hasImpressions()) loadExtras();
 
-      // Observe all elements with data-track-impression
-      const observeImpressions = () => {
-        document.querySelectorAll('[data-track-impression]').forEach(el => {
-          impressionObserver.observe(el);
-        });
-      };
-
-      // Initial observation
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', observeImpressions);
-      } else {
-        observeImpressions();
-      }
-
-      // Re-observe when new elements are added (for SPAs)
-      if ('MutationObserver' in window) {
-        const mutationObserver = new MutationObserver(() => {
-          observeImpressions();
-        });
-        mutationObserver.observe(document.body, {
-          childList: true,
-          subtree: true
-        });
-      }
-
-      // Track clicks on impression-tracked elements (Pro+ only)
-      document.addEventListener('click', (event) => {
-        if (!event.target || !event.target.closest) return;
-        const impressionElement = event.target.closest('[data-track-impression]');
-        if (impressionElement) {
-          const impressionId = impressionElement.getAttribute('data-track-impression');
-          const impressionName = impressionElement.getAttribute('data-impression-name') || impressionId;
-          const impressionCategory = impressionElement.getAttribute('data-impression-category') || 'general';
-          const clickTarget = event.target;
-          
-          queueEvent('impression_click', {
-            category: impressionCategory,
-            impression_id: impressionId,
-            impression_name: impressionName,
-            location: window.location.pathname,
-            element: impressionElement.tagName.toLowerCase(),
-            clicked_element: clickTarget.tagName.toLowerCase(),
-            label: elLabel(clickTarget, 100),
-            custom: {
-              x: event.clientX,
-              y: event.clientY
-            }
-          });
-        }
-      });
-    }
-
-    // Track form interactions (Enterprise only)
-    if (hasFeature('form_tracking')) {
-      const formInteractions = new Map();
-      
-      // Track form start and field interactions
-      document.addEventListener('focus', (event) => {
-        if (event.target && event.target.matches && event.target.matches('input, textarea, select')) {
-          const form = event.target.form;
-          const formId = form?.id || form?.name || 'unknown-form';
-          const fieldName = event.target.name || event.target.id || event.target.type;
-          
-          // Track form_start on first field interaction
-          if (!formInteractions.has(formId)) {
-            formInteractions.set(formId, { 
-              startTime: Date.now(), 
-              fields: new Set(),
-              started: false 
-            });
-            
-            // Track form_start event
-            queueEvent('form_start', {
-              formId: formId,
-              page: window.location.pathname
-            });
-            formInteractions.get(formId).started = true;
-          }
-          
-          // Track form_field_interaction
-          queueEvent('form_field_interaction', {
-            formId: formId,
-            fieldName: fieldName,
-            action: 'focus',
-            page: window.location.pathname
-          });
-          
-          formInteractions.get(formId).fields.add(fieldName);
-        }
-      }, true);
-
-      // Track form submission
-      document.addEventListener('submit', (event) => {
-        if (event.target && event.target.matches && event.target.matches('form')) {
-          const formId = event.target.id || event.target.name || 'unknown-form';
-          const interaction = formInteractions.get(formId);
-          const timeToComplete = interaction ? Date.now() - interaction.startTime : 0;
-          
-          queueEvent('form_submit', {
-            formId: formId,
-            success: true,
-            timeToComplete: timeToComplete,
-            page: window.location.pathname,
-            fields_interacted: interaction ? Array.from(interaction.fields) : [],
-            form_action: event.target.action || window.location.href
-          });
-          formInteractions.delete(formId);
-        }
-      }, true);
-
-      // Track form abandonment on page exit
-      hideHooks.push((unloading) => {
-        if (unloading) formInteractions.forEach((interaction, formId) => {
-          if (interaction.started && interaction.fields.size > 0) {
-            queueEvent('form_abandon', {
-              formId: formId,
-              fieldsCompleted: interaction.fields.size,
-              totalFields: interaction.fields.size, // Approximation
-              time_spent: Date.now() - interaction.startTime,
-              page: window.location.pathname
-            });
-          }
-        });
-      });
-    }
-
-    // Track tooltip/help interactions (Enterprise only)
-    if (hasFeature('tooltip_tracking')) {
-      const tooltipViews = new Map(); // Track unique views per session
-      const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|Windows Phone/i.test(navigator.userAgent);
-      
-      // Helper to track tooltip view
-      const trackTooltipView = (target, interactionType) => {
-        const tooltipText = target.getAttribute('data-tooltip') || 
-                           target.getAttribute('ptooltip') || 
-                           target.getAttribute('title') || 
-                           'unknown';
-        const tooltipId = target.getAttribute('data-tooltip-id') || 
-                         target.id || 
-                         tooltipText.substring(0, 50);
-        const section = target.getAttribute('data-tooltip-section') || 
-                       target.closest('[data-section]')?.getAttribute('data-section') || 
-                       'unknown';
-        
-        // Track only once per session per tooltip to avoid spam
-        const viewKey = `${section}:${tooltipId}`;
-        if (!tooltipViews.has(viewKey)) {
-          tooltipViews.set(viewKey, true);
-          
-          queueEvent('tooltip_view', {
-            tooltip_id: tooltipId,
-            tooltip_text: tooltipText.substring(0, 100),
-            section: section,
-            page: window.location.pathname,
-            element_type: target.tagName.toLowerCase(),
-            element_class: target.className || null,
-            interaction_type: interactionType, // 'hover' or 'click'
-            device_type: isMobile ? 'mobile' : 'desktop'
-          });
-        }
-      };
-      
-      // Desktop: Track on hover (mouseenter)
-      document.addEventListener('mouseenter', (event) => {
-        if (isMobile) return; // Skip on mobile to avoid duplicate tracking
-        if (!(event.target instanceof Element)) return;
-        const target = event.target.closest('[data-tooltip], [ptooltip], [title]');
-        if (!target) return;
-        
-        // Don't track if it's an info icon (those are tracked via click)
-        if (target.classList.contains('info-icon') || 
-            target.classList.contains('section-info-icon') ||
-            target.hasAttribute('data-info-icon')) {
-          return;
-        }
-        
-        trackTooltipView(target, 'hover');
-      }, true);
-      
-      // Mobile & Desktop: Track clicks on tooltip elements (but not info icons)
-      document.addEventListener('click', (event) => {
-        if (!(event.target instanceof Element)) return;
-        
-        // Check if it's an info icon first (different tracking)
-        const isInfoIcon = event.target.closest('.info-icon, .section-info-icon, [data-info-icon]');
-        if (isInfoIcon) return; // Let the help_icon_click handler deal with it
-        
-        // Track tooltip click (mainly for mobile)
-        const target = event.target.closest('[data-tooltip], [ptooltip], [title]');
-        if (!target) return;
-        
-        trackTooltipView(target, 'click');
-      }, true);
-      
-      // Track clicks on info icons specifically
-      document.addEventListener('click', (event) => {
-        if (!(event.target instanceof Element)) return;
-        const target = event.target.closest('.info-icon, .section-info-icon, [data-info-icon]');
-        if (!target) return;
-        
-        const section = target.closest('[data-section]')?.getAttribute('data-section') || 
-                       target.getAttribute('data-section') ||
-                       'unknown';
-        const tooltipText = target.getAttribute('ptooltip') || 
-                           target.getAttribute('title') || 
-                           'unknown';
-        
-        queueEvent('help_icon_click', {
-          section: section,
-          tooltip_text: tooltipText.substring(0, 100),
-          page: window.location.pathname,
-          icon_class: target.className || null
-        });
-      }, true);
-    }
-
-    // Track JavaScript errors (Enterprise only). Capped per page load so a looping error
-    // cannot flood the queue; URLs in messages/stacks lose their query strings.
-    if (hasFeature('error_tracking')) {
-      let errorCount = 0;
-      const scrub = (v, max) => redact(String(v || '').replace(/(https?:\/\/[^\s?#)]+)[?#][^\s)]*/g, '$1')).substring(0, max);
-      const reportError = (name, message, stack, extra) => {
-        if (++errorCount > 20) return;
-        const msg = scrub(message, 300);
-        queueEvent(name, {
-          category: 'error',
-          label: msg,
-          message: msg,
-          custom: Object.assign({ error_message: msg, error_stack: scrub(stack, 1000), page: pagePath() }, extra)
-        });
-      };
-      window.addEventListener('error', (event) => {
-        if (!event || !event.message) return; // resource load errors have no message
-        reportError('javascript_error', event.message, event.error && event.error.stack, {
-          filename: cleanUrl(event.filename),
-          line: event.lineno,
-          column: event.colno
-        });
-      });
-      window.addEventListener('unhandledrejection', (event) => {
-        const r = event && event.reason;
-        reportError('promise_rejection', (r && r.message) || String(r || 'Promise rejected'), r && r.stack, {});
-      });
-    }
-
-    // Track rage clicks and dead clicks (Enterprise only)
-    if (hasFeature('rage_clicks') || hasFeature('dead_clicks')) {
-      const clickTracking = new Map();
-      const RAGE_THRESHOLD = 3; // 3 clicks in 1 second
-      const RAGE_WINDOW = 1000; // 1 second
-
-      document.addEventListener('click', (event) => {
-        const target = event.target;
-        const elementKey = target.tagName + (target.id || '') + (target.className || '');
-        
-        // Track rage clicks
-        if (hasFeature('rage_clicks')) {
-          const now = Date.now();
-          const clicks = clickTracking.get(elementKey) || [];
-          
-          // Remove old clicks outside the window
-          const recentClicks = clicks.filter(time => now - time < RAGE_WINDOW);
-          recentClicks.push(now);
-          clickTracking.set(elementKey, recentClicks);
-          
-          if (recentClicks.length >= RAGE_THRESHOLD) {
-            queueEvent('rage_click', {
-              category: 'frustration',
-              label: elLabel(target, 50) || 'Unknown element',
-              custom: {
-                element: target.tagName,
-                element_id: target.id || null,
-                element_class: target.className || null,
-                clicks_count: recentClicks.length,
-                page: window.location.pathname
-              }
-            });
-            clickTracking.delete(elementKey); // Reset after reporting
-          }
-        }
-
-        // Track dead clicks (clicks that don't navigate or trigger visible changes)
-        if (hasFeature('dead_clicks')) {
-          const beforeUrl = window.location.href;
-          const beforeScroll = window.pageYOffset;
-          
-          setTimeout(() => {
-            const afterUrl = window.location.href;
-            const afterScroll = window.pageYOffset;
-            
-            // If nothing changed, it might be a dead click
-            if (beforeUrl === afterUrl && beforeScroll === afterScroll && 
-                !target.matches('input, textarea, select, label')) {
-              queueEvent('dead_click', {
-                category: 'frustration',
-                label: elLabel(target, 50) || 'Unknown element',
-                custom: {
-                  element: target.tagName,
-                  element_id: target.id || null,
-                  element_class: target.className || null,
-                  href: target.href || null,
-                  page: window.location.pathname
-                }
-              });
-            }
-          }, 500); // Wait 500ms to see if anything changes
-        }
-      }, true);
-    }
-
-    // Core Web Vitals (Enterprise only): LCP, INP, CLS (largest 5s session window, as
+    // Core Web Vitals (all plans): LCP, INP, CLS (largest 5s session window, as
     // Google defines it), FCP and TTFB. Reported when the tab is hidden, and again only if
     // a value changed afterwards.
     if (hasFeature('web_vitals') && 'PerformanceObserver' in window) {
@@ -1406,20 +1128,15 @@
         return;
       }
 
-      // Skip tracking for headless browsers / automated tools
-      if (typeof navigator !== 'undefined' && navigator.webdriver === true) {
-        if (config.debug) console.log('[Analytics] Headless browser detected — tracking suppressed.');
-        return;
-      }
-
-      // Skip tracking for known crawlers (AdSense Mediapartners-Google, Googlebot, bingbot, ...)
+      // Skip known crawlers and automated / headless browsers.
       if (isKnownCrawler()) {
-        if (config.debug) console.log('[Analytics] Crawler user agent detected — tracking suppressed.');
+        if (config.debug) console.log('[Analytics] Crawler or automated browser — tracking suppressed.');
         return;
       }
 
       // Initialize session
       initializeSession();
+      listenErrors();
 
       // Load user preferences from localStorage
       loadUserPreferences();
@@ -1582,25 +1299,36 @@
       });
     },
 
-    // User management
+    // Opt-in identity (signed-in users). identify('user-123') keeps that ID in this
+    // browser (localStorage 'pz_uid') so the same person is recognised across days.
+    // identify('user-123', { email }) or setUserEmail(email) also attach an email, held in
+    // memory and sessionStorage (this tab) only. reset() on sign-out forgets both.
+    identify: function(id, traits) {
+      if (id == null || id === '') return;
+      id = String(id).trim().substring(0, 128);
+      if (id.indexOf('@') > 0) {
+        Analytics.setUserEmail(id);
+      } else {
+        setStorageItem('pz_uid', id);
+        userId = id;
+      }
+      if (traits && traits.email) Analytics.setUserEmail(traits.email);
+    },
+    reset: function() {
+      try { localStorage.removeItem('pz_uid'); } catch (e) {}
+      Analytics.clearUserEmail();
+      idDay = '';
+      userId = visitorId();
+    },
     setUserEmail: function(email) {
-      userEmail = email;
-      if (isLocalStorageAvailable()) {
-        setStorageItem('userEmail', email);
-      }
-      if (config.debug) {
-        console.log(`[Analytics] User email set: ${email}`);
-      }
+      if (!email) return Analytics.clearUserEmail();
+      userEmail = String(email).trim();
+      setStorageItem('pz_email', userEmail, window.sessionStorage);
     },
 
     clearUserEmail: function() {
       userEmail = null;
-      if (isLocalStorageAvailable()) {
-        localStorage.removeItem('userEmail');
-      }
-      if (config.debug) {
-        console.log('[Analytics] User email cleared');
-      }
+      try { window.sessionStorage.removeItem('pz_email'); } catch (e) {}
     },
 
     // Send batch immediately
@@ -1679,8 +1407,10 @@
           const [eventName, eventData] = args;
           return originalAnalytics.trackEvent(eventName, eventData || {});
         case 'identify':
-          // PulzivoAnalytics('identify', 'user@example.com')
-          return originalAnalytics.setUserEmail(args[0]);
+          // PulzivoAnalytics('identify', 'user-123', { email }) or ('identify', 'user@example.com')
+          return originalAnalytics.identify(args[0], args[1]);
+        case 'reset':
+          return originalAnalytics.reset();
         case 'page_view':
           // PulzivoAnalytics('page_view', 'Page Title', '/path')
           return originalAnalytics.trackPageView(args[0], args[1]);
@@ -1712,6 +1442,7 @@
     window.PulzivoAnalytics[key] = originalAnalytics[key];
   });
   window.PulzivoAnalytics.__pz = 1;
+  window.PulzivoAnalytics.__x = internals;
   if (!window.pulzivo) window.pulzivo = window.PulzivoAnalytics;
 
   // Get configuration from script tag data attributes
