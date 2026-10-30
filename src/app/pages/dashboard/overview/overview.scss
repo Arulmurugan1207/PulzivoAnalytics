@@ -3811,7 +3811,7 @@
   // Improve your site takes its own full-width row underneath.
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 12px;
-  > .improve-slot { grid-column: 1 / -1; }
+  // Row 2: Improve (under Top pages) + Custom events (under Top sources).
   align-items: stretch;
 
   .bc-lockable { position: relative; }
@@ -3864,4 +3864,20 @@
   .breakdown-grid .improve-slot { min-height: 0; ::ng-deep .ic { position: static; max-height: none; } }
   .geo-section .world-map-chart { height: 230px; }
   .geo-section .map-zoom-hint { display: none; }
+}
+
+.breakdown-grid .custom-events-slot {
+  ::ng-deep .bc { height: 100%; }
+  ::ng-deep .bc-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .state-panel, .locked-overlay { flex-basis: 100%; }
+  .bc-view-all { font-size: 12px; font-weight: 500; color: #6366f1; text-decoration: none; margin-left: auto; }
+  .bc-view-all:hover { text-decoration: underline; }
+  .state-panel code { font-size: 11px; background: #f1f5f9; padding: 1px 5px; border-radius: 4px; }
+}
+.tab-section-heading {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: #334155;
+}
+@media (max-width: 720px) {
+  .breakdown-grid .custom-events-slot { grid-column: auto; }
 }

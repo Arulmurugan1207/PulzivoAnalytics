@@ -229,16 +229,69 @@ export class DashboardOverview implements OnInit, OnDestroy {
   overviewTabs = [
     { id: 'overview',     label: 'Overview',     icon: 'pi pi-chart-bar' },
     { id: 'acquisition',  label: 'Acquisition',  icon: 'pi pi-arrow-down-right' },
-    { id: 'behaviour',    label: 'Behaviour',    icon: 'pi pi-users' },
-    { id: 'technical',    label: 'Technical',    icon: 'pi pi-gauge' },
+    // Behaviour + Technical merged into one tab ("behaviour" id kept; ?tab=technical maps here).
+    { id: 'behaviour',    label: 'Behaviour & Tech', icon: 'pi pi-users' },
   ];
+
+  /** Tab from ?tab= applied once after the first key load (lazy tabs need a key). */
+  private pendingDeepLinkTab: string | null = null;
+
+  /** Old/deep-link tab ids (?tab=technical etc.) -> current tab id. */
+  static normalizeTabId(raw: string | null | undefined): string {
+    const id = String(raw || '').trim().toLowerCase();
+    if (id === 'technical' || id === 'tech' || id === 'behavior' || id === 'behaviour' || id === 'behaviour-tech') return 'behaviour';
+    if (id === 'acquisition') return 'acquisition';
+    return 'overview';
+  }
+
+  /** Compact "Custom events" card on the Overview tab (independent of the Behaviour table's paging). */
+  overviewCustomEvents: { name: string; count: number }[] = [];
+  private static readonly BUILTIN_EVENTS = new Set([
+    'page_view', 'pageview', 'page_views', 'click', 'auto_click', 'clicks', 'scroll', 'scroll_depth',
+    'web_vitals', 'vitals', 'performance', 'page_exit', 'visibility', 'session_start', 'session_end',
+    'navigation', 'route_change', 'error', 'js_error', 'rage_click', 'dead_click', 'form_submit',
+    'form_start', 'form_interaction', 'resource_timing', 'heatmap', 'heatmap_data', 'client_hints',
+  ]);
+
+  get customEventCardRows(): BreakdownRow[] {
+    return this.memoRows('overviewCustomEvents', [this.overviewCustomEvents], () => this.overviewCustomEvents
+      .filter(e => e.name && !DashboardOverview.BUILTIN_EVENTS.has(e.name.toLowerCase()))
+      .sort((a, b) => b.count - a.count)
+      .map(e => ({ key: e.name, label: e.name, value: e.count || 0 })));
+  }
+
+  get eventsPageLink(): string {
+    return this.demoService.isDemoMode() ? '/demo/events' : '/dashboard/events';
+  }
+
+  private loadOverviewCustomEvents(): Promise<void> {
+    this.loadingStates.overviewCustomEvents = true;
+    return new Promise(resolve => {
+      this.analyticsAPIService.getCustomEventsBreakdown(this.currentDateRange ?? undefined, 1, 50).subscribe({
+        next: (res: any) => {
+          this.overviewCustomEvents = (res?.customEvents || []).map((d: any) => ({
+            name: d.name || d.event_name || 'unknown',
+            count: d.count || 0,
+          }));
+          this.loadingStates.overviewCustomEvents = false;
+          this.cdr.markForCheck();
+          resolve();
+        },
+        error: () => {
+          this.overviewCustomEvents = [];
+          this.loadingStates.overviewCustomEvents = false;
+          this.cdr.markForCheck();
+          resolve();
+        },
+      });
+    });
+  }
 
   // Track which tabs have already loaded their data (lazy load per tab)
   private tabLoaded: Record<string, boolean> = {
     overview: false,
     acquisition: false,
     behaviour: false,
-    technical: false,
   };
 
   /** False until the first metrics response for the current API key. */
@@ -265,6 +318,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     webVitals: false,
     clicks: false,
     customEvents: false,
+    overviewCustomEvents: false,
     formInteractions: false,
     tooltipInsights: false,
     sessionStats: false,
@@ -358,6 +412,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab) {
+        this.activeTab = DashboardOverview.normalizeTabId(tab);
+        this.pendingDeepLinkTab = this.activeTab;
+      }
+    }
     if (this.demoService.isDemoMode()) {
       this.loadDemoData();
       return;
@@ -589,6 +650,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.topClicksTotal = d.topClicks.length;
     this.customEvents = d.customEvents as any;
     this.customEventsTotal = d.customEvents.length;
+    this.overviewCustomEvents = (d.customEvents as any[]).map((e: any) => ({ name: e.name, count: e.count || 0 }));
     this.formInteractions = d.formInteractions as any;
     this.formInteractionsTotal = d.formInteractions.length;
     this.tooltipInsights = d.tooltipInsights as any;
@@ -611,7 +673,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.availableFeatures = [...this.enabledFeatures];
 
     // ── Mark all tabs as already loaded (no lazy API calls in demo) ───────────
-    this.tabLoaded = { overview: true, acquisition: true, behaviour: true, technical: true };
+    this.tabLoaded = { overview: true, acquisition: true, behaviour: true };
 
     // ── Clear all loading spinners ────────────────────────────────────────────
     Object.keys(this.loadingStates).forEach(k => (this.loadingStates as any)[k] = false);
@@ -750,8 +812,13 @@ export class DashboardOverview implements OnInit, OnDestroy {
     }
 
     // Reset tab-loaded state so each tab reloads fresh data for the new key
-    this.tabLoaded = { overview: false, acquisition: false, behaviour: false, technical: false };
+    this.tabLoaded = { overview: false, acquisition: false, behaviour: false };
     this.activeTab = 'overview';
+    const deepLinkTab = this.pendingDeepLinkTab;
+    this.pendingDeepLinkTab = null;
+    if (deepLinkTab && deepLinkTab !== 'overview' && this.selectedApiKey) {
+      setTimeout(() => this.setActiveTab(deepLinkTab));
+    }
     this.metricsSettled = false;
     this.loadErrors = {};
 
@@ -895,7 +962,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       if (this.hasFeature('page_exit')) this.loadEntryExitPagesWithDelay();
       this.loadInsights();
     }
-    if (this.tabLoaded['technical']) {
+    if (this.tabLoaded['behaviour']) {
       if (this.hasFeature('web_vitals')) {
         this.loadWebVitalsWithDelay();
         this.loadPageVitalsWithDelay();
@@ -938,7 +1005,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     this.loadAnalyticsDataWithLoading();
     if (this.tabLoaded['acquisition']) this.loadAcquisitionTab();
     if (this.tabLoaded['behaviour']) this.loadBehaviourTab();
-    if (this.tabLoaded['technical']) this.loadTechnicalTab();
+    if (this.tabLoaded['behaviour']) this.loadTechnicalTab();
 
     // Reset the auto-refresh timer (restart the 30s countdown)
     this.startRealtimeUpdates();
@@ -1046,6 +1113,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   // Tab management methods
   setActiveTab(tabId: string): void {
+    tabId = DashboardOverview.normalizeTabId(tabId);
     this.activeTab = tabId;
     this.cdr.markForCheck();
 
@@ -1064,8 +1132,6 @@ export class DashboardOverview implements OnInit, OnDestroy {
           break;
         case 'behaviour':
           this.loadBehaviourTab();
-          break;
-        case 'technical':
           this.loadTechnicalTab();
           break;
       }
@@ -1205,6 +1271,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       this.loadTopPagesWithDelay(),
       this.loadImprovements(),
     ];
+    if (this.hasFeature('custom_events')) promises.push(this.loadOverviewCustomEvents());
 
     if (this.hasFeature('utm_attribution')) {
       this.loadingStates.trafficSources = true;
