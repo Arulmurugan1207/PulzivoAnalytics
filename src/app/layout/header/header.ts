@@ -49,6 +49,7 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
     { label: 'Why Pulzivo', path: '/why-pulzivo' },
     { label: 'Pricing', path: '/pricing' },
     { label: 'Docs', path: '/docs' },
+    { label: 'Blog', path: '/blog' },
     { label: 'Contact', path: '/contact' },
   ];
 
