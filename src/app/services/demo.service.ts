@@ -78,13 +78,14 @@ export class DemoService {
   };
 
   readonly topPages = [
-    { path: '/', views: 2841, percentage: 33.7, avgTimeOnPage: 142, avgScrollDepth: 68.4 },
-    { path: '/pricing', views: 1124, percentage: 13.3, avgTimeOnPage: 98, avgScrollDepth: 72.1 },
-    { path: '/docs', views: 987, percentage: 11.7, avgTimeOnPage: 234, avgScrollDepth: 81.6 },
-    { path: '/features', views: 762, percentage: 9.0, avgTimeOnPage: 117, avgScrollDepth: 61.3 },
-    { path: '/why-pulzivo', views: 541, percentage: 6.4, avgTimeOnPage: 89, avgScrollDepth: 54.7 },
-    { path: '/use-cases', views: 413, percentage: 4.9, avgTimeOnPage: 176, avgScrollDepth: 77.2 },
-    { path: '/blog', views: 389, percentage: 4.6, avgTimeOnPage: 201, avgScrollDepth: 83.5 },
+    { path: '/', title: 'Pulzivo — Privacy-first web analytics', views: 2841, percentage: 33.7, avgTimeOnPage: 142, avgScrollDepth: 68.4 },
+    { path: '/pricing', title: 'Pricing · Pulzivo', views: 1124, percentage: 13.3, avgTimeOnPage: 98, avgScrollDepth: 72.1 },
+    { path: '/docs', title: 'Docs: Install the tracker · Pulzivo', views: 987, percentage: 11.7, avgTimeOnPage: 234, avgScrollDepth: 81.6 },
+    { path: '/features', title: 'Features · Pulzivo', views: 762, percentage: 9.0, avgTimeOnPage: 117, avgScrollDepth: 61.3 },
+    { path: '/why-pulzivo', title: 'Why Pulzivo', views: 541, percentage: 6.4, avgTimeOnPage: 89, avgScrollDepth: 54.7 },
+    { path: '/use-cases', title: 'Use cases · Pulzivo', views: 413, percentage: 4.9, avgTimeOnPage: 176, avgScrollDepth: 77.2 },
+    { path: '/blog', title: 'Blog · Pulzivo', views: 389, percentage: 4.6, avgTimeOnPage: 201, avgScrollDepth: 83.5 },
+    { path: '/tournaments/6AC09023E978FCE14BDA14A6/brackets', title: 'Toronto Open 2026 — Men’s Singles Bracket | Table Tennis Tube', views: 298, percentage: 3.5, avgTimeOnPage: 151, avgScrollDepth: 66.2 },
     { path: '/contact', views: 211, percentage: 2.5, avgTimeOnPage: 63, avgScrollDepth: 42.8 },
   ];
 
@@ -214,8 +215,59 @@ export class DemoService {
     deadClicks: 87,
     formSubmits: 143,
     formAbandons: 58,
-    formFocuses: 312
+    formFocuses: 312,
+    jsErrors: 41,
+    rageTopPage: '/bracket-playground',
+    rageTopPageCount: 14,
   };
+
+  /** Mock rows for the Events page friction drill-down (/analytics/friction-details shape). */
+  frictionDetails(kind: 'rage' | 'dead' | 'abandon' | 'errors'): { kind: string; rows: any[]; totalGroups: number; totalEvents: number } {
+    const now = Date.now();
+    const iso = (hoursAgo: number) => new Date(now - hoursAgo * 3600000).toISOString();
+    const mk = (i: number, base: any) => {
+      const count = Math.max(1, Math.round((kind === 'errors' ? 14 : 18) / (i + 1)));
+      const desk = Math.ceil(count * 0.7);
+      return {
+        count, visitors: Math.max(1, Math.ceil(count / 2)),
+        firstSeen: iso(150 - i * 7), lastSeen: iso(1 + i * 3),
+        devices: { Desktop: desk, Mobile: count - desk },
+        browsers: { Chrome: Math.ceil(count * 0.6), Safari: count - Math.ceil(count * 0.6) },
+        recent: [0, 1, 2].slice(0, Math.min(3, count)).map(k => ({
+          time: iso(1 + i * 3 + k * 5), device: k % 2 ? 'Mobile' : 'Desktop', browser: k % 2 ? 'Safari' : 'Chrome', visitor: `v_${(i * 7 + k).toString(36)}9f3a2c1`,
+        })),
+        ...base,
+      };
+    };
+    const pages = ['/bracket-playground', '/tournaments/6AC09023E978FCE14BDA14A6/brackets', '/pricing', '/docs', '/signup', '/'];
+    let rows: any[];
+    if (kind === 'rage' || kind === 'dead') {
+      const els = [
+        ['BUTTON', 'Generate bracket', 'gen-btn', 'btn btn-primary'], ['DIV', 'Seed 1 vs Seed 16', '', 'match-card'],
+        ['IMG', '', 'logo', 'hero-img'], ['A', 'View draw', '', 'link-muted'], ['SPAN', 'Round of 32', '', 'round-label'],
+        ['BUTTON', 'Save', 'save', 'btn'], ['svg', '', '', 'icon-share'], ['LI', 'Pro plan', '', 'plan-item'],
+        ['BUTTON', 'Copy link', 'copy', 'btn-ghost'], ['DIV', 'Player: Wang C.', '', 'player-row'], ['A', 'Docs', '', 'nav-link'],
+        ['BUTTON', 'Next', '', 'pager-next'], ['TD', '11-7', '', 'score-cell'],
+      ];
+      rows = els.map(([element, text, elementId, elementClass], i) => mk(i, {
+        page: pages[i % pages.length], element, text: text || null, label: text || element, elementId: elementId || null, elementClass,
+      }));
+    } else if (kind === 'abandon') {
+      rows = [['signup', 'password'], ['contact-form', 'message'], ['checkout', 'card_number'], ['newsletter', null], ['unknown-form', null]]
+        .map(([form, lastField], i) => mk(i, { page: ['/signup', '/contact', '/pricing', '/blog', '/'][i], form, lastField, avgFieldsCompleted: 2 + (i % 3) }));
+    } else {
+      const errs: any[] = [
+        ["Cannot read properties of undefined (reading 'seed')", 'javascript_error', '/assets/bracket.js', 214, 18],
+        ['bracketRenderer.draw is not a function', 'javascript_error', '/main-3FA2.js', 1, 50213],
+        ['Script error.', 'javascript_error', null, null, null],
+        ['Failed to fetch', 'promise_rejection', null, null, null],
+        ["Loading chunk 7 failed.", 'javascript_error', '/runtime.js', 1, 3301],
+        ['ResizeObserver loop completed with undelivered notifications.', 'javascript_error', null, null, null],
+      ];
+      rows = errs.map(([message, type, source, line, column], i) => mk(i, { page: pages[i % pages.length], message, type, source: source ? 'https://demo-site.com' + source : null, line, column }));
+    }
+    return { kind, rows, totalGroups: rows.length, totalEvents: rows.reduce((t, r) => t + r.count, 0) };
+  }
 
   // Total events = 21,859 — percentages are share of total event volume
   readonly eventsBreakdown = [

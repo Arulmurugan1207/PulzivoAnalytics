@@ -1623,7 +1623,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
       ].filter(Boolean).join(' · ');
       return {
         key: page.path,
-        label: page.path,
+        label: (typeof page.title === 'string' && page.title.trim()) || page.path,
+        secondary: typeof page.title === 'string' && page.title.trim() ? page.path : undefined,
         href: domain && page.path?.startsWith('/') ? `https://${domain}${page.path}` : undefined,
         value: page.views || 0,
         tooltip: `${page.title ? page.title + '\n' : ''}${page.path}\n${extra}`,

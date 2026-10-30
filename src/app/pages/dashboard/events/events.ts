@@ -24,12 +24,15 @@ import { DemoService } from '../../../services/demo.service';
 import { MenuItem } from 'primeng/api';
 import { describeVisitSource } from './visit-source';
 import { groupUserHistory, UserHistoryView } from './user-history';
+import { buildFrictionView, FrictionKind, FrictionView, FRICTION_TITLES, FRICTION_ABOUT } from './friction-detail';
 import { buildEventDetail, EventDetailView, streamTime, streamTimeTitle } from './event-detail';
 
 interface UserColor { bg: string; text: string; border: string; }
 
 interface EventSummary {
   rageClicks: number;
+  /** JS errors + unhandled rejections (API since friction drill-down). */
+  jsErrors?: number;
   deadClicks: number;
   formSubmits: number;
   formAbandons: number;
@@ -249,6 +252,56 @@ export class DashboardEvents implements OnInit, OnDestroy {
   clickLimit = 10;
   private _typeRowsSrc: unknown; private _typeRows: EventTypeRow[] = [];
   private _clickRowsSrc: unknown[] = []; private _clickRows: ClickRow[] = [];
+
+  // ── Friction drill-down (Form Signals card) ──
+  frictionOpen = false;
+  frictionKind: FrictionKind = 'rage';
+  frictionLoading = false;
+  /** null = endpoint not live yet ("details coming soon"). */
+  frictionRows: FrictionView[] | null = [];
+  frictionTotalGroups = 0;
+  frictionShown = 10;
+  frictionExpanded: Record<number, boolean> = {};
+  readonly frictionAbout = FRICTION_ABOUT;
+  private frictionSub?: Subscription;
+
+  get frictionTitle(): string { return FRICTION_TITLES[this.frictionKind]; }
+
+  /** Insight line opens whichever signal it talks about. */
+  openFrictionFromInsight(): void {
+    const s = this.summary;
+    if (s.rageClicks) this.openFriction('rage');
+    else if (s.deadClicks) this.openFriction('dead');
+    else if (s.formAbandons) this.openFriction('abandon');
+    else if (s.jsErrors) this.openFriction('errors');
+  }
+
+  openFriction(kind: FrictionKind): void {
+    this.frictionKind = kind;
+    this.frictionOpen = true;
+    this.frictionShown = 10;
+    this.frictionExpanded = {};
+    this.frictionRows = [];
+    this.frictionSub?.unsubscribe();
+    const domain = this.selectedSiteDomain || undefined;
+    const apply = (data: any) => {
+      this.frictionLoading = false;
+      if (!data || !Array.isArray(data.rows)) { this.frictionRows = null; this.frictionTotalGroups = 0; }
+      else {
+        this.frictionRows = data.rows.map((r: any) => buildFrictionView(kind, r, domain));
+        this.frictionTotalGroups = data.totalGroups ?? data.rows.length;
+      }
+      this.cdr.markForCheck();
+    };
+    if (this.demoService.isDemoMode()) { apply(this.demoService.frictionDetails(kind)); return; }
+    this.frictionLoading = true;
+    this.cdr.markForCheck();
+    const dateRange = this.dateRange.start && this.dateRange.end
+      ? { startDate: this.dateRange.start, endDate: this.dateRange.end } : undefined;
+    this.frictionSub = this.analyticsAPI.getFrictionDetails(kind, dateRange).subscribe({ next: apply, error: () => apply(null) });
+  }
+
+  toggleFrictionRow(i: number): void { this.frictionExpanded = { ...this.frictionExpanded, [i]: !this.frictionExpanded[i] }; }
 
   get selectedSiteDomain(): string | null {
     const key: any = this.availableApiKeys.find(k => k.apiKey === this.selectedApiKey);
@@ -507,6 +560,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    this.frictionSub?.unsubscribe();
     this.historyCancel$.complete();
     this.destroy$.next();
     this.destroy$.complete();

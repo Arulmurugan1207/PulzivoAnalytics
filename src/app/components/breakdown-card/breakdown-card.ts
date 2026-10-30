@@ -17,6 +17,8 @@ export interface BreakdownRow {
   sub?: string;
   /** Native tooltip with extra detail. */
   tooltip?: string;
+  /** Small grey second line under the label (e.g. the path under a page title). */
+  secondary?: string;
   /** External URL; label becomes a link opening in a new tab. */
   href?: string;
 }
