@@ -12,7 +12,11 @@
         } @else if (r.flag) {
           <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
         }
-        <span class="bar-text">{{ r.label }}</span>
+        @if (r.href) {
+          <a class="bar-text bar-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></a>
+        } @else {
+          <span class="bar-text">{{ r.label }}</span>
+        }
         @if (r.sub) {
           <em class="bar-sub">{{ r.sub }}</em>
         }
@@ -22,10 +26,12 @@
       </span>
     </div>
   }
+  <div class="bc-foot">
   @if (hiddenCount() > 0) {
     <button type="button" class="bc-more" (click)="expanded.set(!expanded())">
       {{ expanded() ? 'Show less' : 'Show ' + hiddenCount() + ' more' }}
     </button>
   }
   <ng-content></ng-content>
+  </div>
 </div>

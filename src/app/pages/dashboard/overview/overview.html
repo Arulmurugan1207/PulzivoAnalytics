@@ -412,7 +412,7 @@
           </app-breakdown-card>
 
           <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('utm_attribution')"
-            title="Top sources" metric="Visits" tone="sources" [rows]="hasFeature('utm_attribution') && !loadingStates.trafficSources ? sourceBreakdownRows : []" [limit]="8">
+            title="Top sources" metric="Visits" tone="sources" [rows]="hasFeature('utm_attribution') && !loadingStates.trafficSources ? sourceBreakdownRows : []" [limit]="10">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
               pTooltip="Where this date range’s page views started: search, a link from another site, social, email, paid, or a direct visit. Hover a row for its channel."
               tooltipPosition="top"></button>
