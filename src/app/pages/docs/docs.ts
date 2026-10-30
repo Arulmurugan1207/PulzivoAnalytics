@@ -149,7 +149,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'What data is collected automatically?',
-      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and user identity. Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
+      answer: 'On Free: page views, clicks, and custom events. Starter adds scroll depth, sessions, and UTM/referrer attribution. Pro adds performance and opt-in identification of signed-in users (IDs you supply). Enterprise adds Web Vitals, errors, and form signals. No cookies, no PII, no fingerprinting. GDPR and CCPA compliant.'
     },
     {
       question: 'Can I track custom events on the free plan?',
@@ -177,7 +177,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'Does it use cookies?',
-      answer: 'Pulzivo sets no cookies and collects no personal data. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
+      answer: 'Pulzivo sets no cookies and collects no personal data by default. It does store anonymous visitor and session IDs in the browser\'s localStorage, and depending on your region (for example the EU under the ePrivacy rules) that may still require consent. Respect visitor choices with PulzivoAnalytics.optOut() / optIn(); Do Not Track and Global Privacy Control are honored by default. Check with your legal advisor.'
     },
     {
       question: 'Can I self-host the SDK?',

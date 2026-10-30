@@ -123,8 +123,8 @@ export class Features {
         {
           icon: 'pi-shield',
           tag: 'Free', tagSeverity: 'success' as const,
-          title: 'No Cookies · No PII',
-          desc: 'GDPR & CCPA compliant by design. No personal data ever stored.',
+          title: 'No Cookies · No PII by Default',
+          desc: 'No cookies and no personal data collected by default. Signed-in users are identified only if you opt in with IDs you supply.',
           docsSection: 'configuration', campaign: 'feat-privacy',
         },
         {
