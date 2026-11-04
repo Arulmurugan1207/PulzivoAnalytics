@@ -60,6 +60,9 @@ interface StripeStatus {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   billingCycle: string | null;
+  currentPrice?: { unitAmount: number | null; discountedAmount?: number; currency: string; interval: string | null } | null;
+  discount?: { percentOff: number | null; amountOff: number | null; promotionCode: string | null; name: string | null; end: string | null } | null;
+  upcomingInvoice?: { amountDue: number; total: number; currency: string; date: string | null } | null;
 }
 
 @Component({
@@ -175,6 +178,9 @@ export class DashboardBilling implements OnInit {
               currentPeriodEnd: status.subscription.currentPeriodEnd,
               cancelAtPeriodEnd: status.subscription.cancelAtPeriodEnd,
               billingCycle: status.billingCycle,
+              currentPrice: status.currentPrice ?? null,
+              discount: status.discount ?? null,
+              upcomingInvoice: status.upcomingInvoice ?? null,
             });
           }
         },
@@ -238,6 +244,9 @@ export class DashboardBilling implements OnInit {
                 currentPeriodEnd: status.subscription.currentPeriodEnd,
                 cancelAtPeriodEnd: status.subscription.cancelAtPeriodEnd,
                 billingCycle: status.billingCycle,
+                currentPrice: status.currentPrice ?? null,
+                discount: status.discount ?? null,
+                upcomingInvoice: status.upcomingInvoice ?? null,
               });
             }
             this.loadingPlan.set(false);
@@ -502,7 +511,22 @@ export class DashboardBilling implements OnInit {
 
   getCurrentPlanPrice(): string {
     const plan = this.getCurrentPlan();
-    const yearly = this.stripeStatus()?.billingCycle === 'year';
+    const status = this.stripeStatus();
+    const yearly = status?.billingCycle === 'year';
+    // Prefer the real Stripe amount (incl. discount) from /billing/status.
+    const cp = status?.currentPrice;
+    if (plan !== 'free' && cp?.unitAmount != null) {
+      const per = (cp.interval || (yearly ? 'year' : 'month')) === 'year' ? 'yr' : 'mo';
+      const fmt = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+      const cur = cp.currency || 'USD';
+      if (cp.discountedAmount != null && cp.discountedAmount !== cp.unitAmount) {
+        const d = status?.discount;
+        const tag = d?.percentOff != null ? ` (${d.percentOff}% off${d.promotionCode ? ' · ' + d.promotionCode : ''})` : '';
+        return `${fmt(cp.discountedAmount)} ${cur}/${per}${tag}`;
+      }
+      return `${fmt(cp.unitAmount)} ${cur}/${per}`;
+    }
+    // Fallback: list prices (admin-granted plans or Stripe unavailable).
     switch (plan) {
       case 'starter':    return yearly ? '$86 USD/yr' : '$9 USD/mo';
       case 'pro':        return yearly ? '$278 USD/yr' : '$29 USD/mo';
