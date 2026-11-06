@@ -71,12 +71,25 @@
       }
     </div>
 
-    <!-- Donut chart -->
+    <!-- Category share, drawn in SVG so it stays lightweight -->
     <div class="overview-donut">
       @if (loading.breakdown) {
         <p-skeleton shape="circle" size="120px"></p-skeleton>
       } @else {
-        <p-chart type="doughnut" [data]="donutChartData" [options]="donutChartOptions" width="130px" height="130px"></p-chart>
+        <div class="sum-donut-wrap">
+          <svg class="sum-donut" viewBox="0 0 120 120" role="img" [attr.aria-label]="'Events by category. ' + categoryDonutLabel">
+            <g transform="rotate(-90 60 60)">
+              <circle class="sum-track" cx="60" cy="60" r="46"></circle>
+              @for (seg of categoryDonut; track seg.name) {
+                <circle class="sum-seg" cx="60" cy="60" r="46" [attr.stroke]="seg.color" [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"></circle>
+              }
+            </g>
+          </svg>
+          <div class="sum-center">
+            <strong>{{ totalEvents | number }}</strong>
+            <span>events</span>
+          </div>
+        </div>
       }
     </div>
 
@@ -105,17 +118,22 @@
         </div>
       } @else {
         <div class="viz-list">
-          @for (evt of eventTypeRows.slice(0, typeLimit); track evt.name) {
-            <button type="button" class="viz-row" [title]="evt.label + ' (' + evt.name + ')\n' + (evt.count | number) + ' events · ' + formatShare(evt.share) + ' of total\nClick to filter the event stream'"
+          @for (evt of eventTypeRows.slice(0, typeLimit); track evt.name; let i = $index) {
+            <button type="button" class="viz-row pulse-ev" [title]="evt.label + ' (' + evt.name + ')\n' + (evt.count | number) + ' events · ' + formatShare(evt.share) + ' of total\nClick to filter the event stream'"
                     (click)="filterEventType = evt.name; onFilterChange(); scrollToHistory()">
-              <span class="viz-bar" [style.width.%]="evt.pct" [style.background]="tint(evt.color, 0.14)"></span>
-              <span class="viz-label">
-                <span class="viz-icon" [style.background]="tint(evt.color, 0.16)" [style.color]="evt.color"><i [class]="evt.icon"></i></span>
-                <span class="viz-text">{{ evt.label }}</span>
-              </span>
-              <span class="viz-val">
-                <span class="viz-share">{{ formatShare(evt.share) }}</span>
-                {{ evt.count | number }}
+              <span class="ev-rank" [class.r1]="i === 0" [class.r2]="i === 1" [class.r3]="i === 2">{{ i + 1 }}</span>
+              <span class="ev-body">
+                <span class="ev-top">
+                  <span class="viz-label">
+                    <span class="viz-icon" [style.background]="tint(evt.color, 0.14)" [style.color]="evt.color"><i [class]="evt.icon"></i></span>
+                    <span class="viz-text">{{ evt.label }}</span>
+                  </span>
+                  <span class="viz-val">
+                    <strong>{{ evt.count | number }}</strong>
+                    <em class="viz-share">{{ formatShare(evt.share) }}</em>
+                  </span>
+                </span>
+                <span class="ev-track" aria-hidden="true"><span class="ev-fill" [style.width.%]="evt.pct" [style.background]="evt.color"></span></span>
               </span>
             </button>
           }
@@ -152,21 +170,26 @@
           </div>
         } @else {
           <div class="viz-list">
-            @for (click of clickRows.slice(0, clickLimit); track click.key) {
-              <div class="viz-row two-line" [title]="click.tooltip">
-                <span class="viz-bar" [style.width.%]="click.pct"></span>
-                <span class="viz-label stacked">
-                  <span class="viz-line">
-                    <span class="el-chip">{{ click.chip }}</span>
-                    <span class="viz-text">{{ click.label }}</span>
+            @for (click of clickRows.slice(0, clickLimit); track click.key; let i = $index) {
+              <div class="viz-row pulse-ev two-line" [title]="click.tooltip">
+                <span class="ev-rank" [class.r1]="i === 0" [class.r2]="i === 1" [class.r3]="i === 2">{{ i + 1 }}</span>
+                <span class="ev-body">
+                  <span class="ev-top">
+                    <span class="viz-label stacked">
+                      <span class="viz-line">
+                        <span class="el-chip">{{ click.chip }}</span>
+                        <span class="viz-text">{{ click.label }}</span>
+                      </span>
+                    </span>
+                    <span class="viz-val"><strong>{{ click.count | number }}</strong></span>
                   </span>
                   @if (click.href) {
                     <a class="viz-path viz-link" [href]="click.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="click.path + ' (opens in a new tab)'">{{ click.path }}<i class="pi pi-external-link viz-ext" aria-hidden="true"></i></a>
                   } @else {
                     <span class="viz-path">{{ click.path || '—' }}@if (click.grouped > 1) { <em class="viz-grouped">· {{ click.grouped }} pages</em> }</span>
                   }
+                  <span class="ev-track" aria-hidden="true"><span class="ev-fill click-fill" [style.width.%]="click.pct"></span></span>
                 </span>
-                <span class="viz-val">{{ click.count | number }}</span>
               </div>
             }
             @if (clickRows.length === 0) {
@@ -216,21 +239,27 @@
             </div>
             <div class="fs-funnel">
               <div class="fs-step" [class.zero]="!summary.formFocuses" title="Form fields focused">
-                <span class="fs-bar blue" [style.width.%]="formBar(summary.formFocuses)"></span>
-                <span class="fs-name"><i class="pi pi-pencil"></i> Focuses</span>
-                <span class="fs-num">{{ summary.formFocuses | number }}</span>
+                <span class="fs-step-top">
+                  <span class="fs-name"><i class="pi pi-pencil"></i> Focuses</span>
+                  <span class="fs-num">{{ summary.formFocuses | number }}</span>
+                </span>
+                <span class="fs-track" aria-hidden="true"><span class="fs-fill focus" [style.width.%]="formBar(summary.formFocuses)"></span></span>
               </div>
               <div class="fs-step" [class.zero]="!summary.formSubmits" title="Forms submitted">
-                <span class="fs-bar green" [style.width.%]="formBar(summary.formSubmits)"></span>
-                <span class="fs-name"><i class="pi pi-send"></i> Submits</span>
-                <span class="fs-num">{{ summary.formSubmits | number }}</span>
+                <span class="fs-step-top">
+                  <span class="fs-name"><i class="pi pi-send"></i> Submits</span>
+                  <span class="fs-num">{{ summary.formSubmits | number }}</span>
+                </span>
+                <span class="fs-track" aria-hidden="true"><span class="fs-fill submit" [style.width.%]="formBar(summary.formSubmits)"></span></span>
               </div>
               <div class="fs-step" [class.zero]="!summary.formAbandons" [class.warn]="summary.formAbandons > 0" [class.fs-clickable]="summary.formAbandons > 0"
                 title="Forms started but not submitted — click for details" role="button" [attr.tabindex]="summary.formAbandons > 0 ? 0 : null"
                 (click)="summary.formAbandons > 0 && openFriction('abandon')" (keydown.enter)="summary.formAbandons > 0 && openFriction('abandon')">
-                <span class="fs-bar red" [style.width.%]="formBar(summary.formAbandons)"></span>
-                <span class="fs-name"><i class="pi pi-sign-out"></i> Abandons</span>
-                <span class="fs-num">{{ summary.formAbandons | number }}</span>
+                <span class="fs-step-top">
+                  <span class="fs-name"><i class="pi pi-sign-out"></i> Abandons</span>
+                  <span class="fs-num">{{ summary.formAbandons | number }}</span>
+                </span>
+                <span class="fs-track" aria-hidden="true"><span class="fs-fill abandon" [style.width.%]="formBar(summary.formAbandons)"></span></span>
               </div>
             </div>
 
