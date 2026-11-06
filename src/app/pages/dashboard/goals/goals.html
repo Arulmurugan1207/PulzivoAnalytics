@@ -1,0 +1,82 @@
+<section class="goals">
+  <header class="goals-head">
+    <div>
+      <h2>Goals</h2>
+      <p>A conversion is a page-view visitor who also reached the goal. The rate is blank when that visitor count is zero.</p>
+    </div>
+    <div class="goals-range">
+      <button type="button" [class.on]="range === '7'" (click)="setRange('7')">7 days</button>
+      <button type="button" [class.on]="range === '30'" (click)="setRange('30')">30 days</button>
+    </div>
+  </header>
+
+  <form class="goals-add" (ngSubmit)="add()">
+    <select [(ngModel)]="draftType" name="type">
+      <option value="event">Event</option>
+      <option value="page">Page</option>
+    </select>
+    <input [(ngModel)]="draftValue" name="value" [placeholder]="draftType === 'page' ? '/pricing' : 'signup'" maxlength="120" />
+    <button type="submit">Add goal</button>
+  </form>
+
+  @if (!goals.length) {
+    <p class="goals-empty">No goals yet. Add an event name or a page path. Nothing here is counted until you do.</p>
+  } @else {
+    <div class="goals-list">
+      @for (goal of goals; track goal.id) {
+        <button type="button" class="goal-chip" [class.on]="goal.id === selectedId" (click)="choose(goal.id)">
+          {{ goal.type === 'page' ? 'Page' : 'Event' }} · {{ goal.value }}
+        </button>
+        <button type="button" class="goal-x" (click)="remove(goal.id)" [attr.aria-label]="'Remove ' + goal.value">×</button>
+      }
+    </div>
+
+    @if (loading) {
+      <p class="goals-empty">Loading this goal…</p>
+    } @else if (error) {
+      <p class="goals-empty">{{ error }}</p>
+    } @else if (report) {
+      <div class="goal-card">
+        <div class="goal-rate">
+          <strong>{{ rateText(report.rate) }}</strong>
+          <span>@if (report.visitors == null) { Visitors unavailable } @else { {{ report.conversions }} of {{ report.visitors }} visitors }</span>
+        </div>
+        <p class="goal-note">{{ report.denominatorNote || report.reason || 'Compared with the previous period of the same length.' }}</p>
+        @if (report.status === 'insufficient_data') {
+          <p class="goal-note">No page-view visitors in this range, so there is no conversion rate.</p>
+        }
+        @if (report.status === 'incomplete') {
+          <p class="goal-note">{{ report.reason }}</p>
+        }
+        <p class="goal-note">
+          @if (report.changePct == null) {
+            No comparable previous-period rate.
+          } @else {
+            {{ report.changePct > 0 ? 'Higher' : report.changePct < 0 ? 'Lower' : 'Same' }} by {{ report.changePct }}% than the previous period ({{ rateText(report.previous?.rate) }}).
+          }
+        </p>
+      </div>
+
+      <div class="goal-grid">
+        <section>
+          <h3>Source</h3>
+          @for (row of report.bySource; track row.label) {
+            <div class="goal-row"><span>{{ row.label }}</span><b>{{ row.conversions }}/{{ row.visitors }}</b><em>{{ rateText(row.rate) }}</em></div>
+          }
+        </section>
+        <section>
+          <h3>Campaign</h3>
+          @for (row of report.byCampaign; track row.label) {
+            <div class="goal-row"><span>{{ row.label }}</span><b>{{ row.conversions }}/{{ row.visitors }}</b><em>{{ rateText(row.rate) }}</em></div>
+          }
+        </section>
+        <section>
+          <h3>Landing page</h3>
+          @for (row of report.byLanding; track row.label) {
+            <div class="goal-row"><span>{{ row.label }}</span><b>{{ row.conversions }}/{{ row.visitors }}</b><em>{{ rateText(row.rate) }}</em></div>
+          }
+        </section>
+      </div>
+    }
+  }
+</section>
