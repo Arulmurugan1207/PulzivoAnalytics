@@ -39,7 +39,12 @@
             <div class="ic-fix">{{ f.fix }}</div>
             <div class="ic-meta">
               <span class="ic-chip">{{ f.evidenceText }}</span>
-              <span class="ic-chip ic-chip-soft">{{ f.visitorsAffected | number }} affected</span>
+              <span class="ic-chip ic-chip-soft">{{ f.visitorsAffected | number }} visitors</span>
+              @if (f.vsPrevious?.changePct != null) {
+                <span class="ic-chip">{{ deltaLabel(f.vsPrevious?.changePct) }}</span>
+              } @else {
+                <span class="ic-chip ic-chip-soft">No earlier period to compare</span>
+              }
               @if (href(f.page); as link) {
                 <a class="ic-page" [href]="link" target="_blank" rel="noopener noreferrer" [attr.aria-label]="f.page + ' (opens in a new tab)'">{{ f.page }}<i class="pi pi-external-link" aria-hidden="true"></i></a>
               } @else {
@@ -55,7 +60,7 @@
           <div class="ic-body">
             <div class="ic-title">{{ i.title }}</div>
             <div class="ic-meta">
-              <span class="ic-chip ic-chip-good">Improved</span>
+              <span class="ic-chip ic-chip-good">Lower than the previous period</span>
               @if (href(i.page); as link) {
                 <a class="ic-page" [href]="link" target="_blank" rel="noopener noreferrer" [attr.aria-label]="i.page + ' (opens in a new tab)'">{{ i.page }}<i class="pi pi-external-link" aria-hidden="true"></i></a>
               }

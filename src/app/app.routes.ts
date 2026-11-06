@@ -123,6 +123,11 @@ export const routes: Routes = [
         path: 'events',
         title: 'Live Demo — Events',
         loadComponent: () => import('./pages/dashboard/events/events').then(m => m.DashboardEvents)
+      },
+      {
+        path: 'goals',
+        title: 'Live Demo — Goals',
+        loadComponent: () => import('./pages/dashboard/goals/goals').then(m => m.DashboardGoals)
       }
     ]
   },
@@ -177,6 +182,11 @@ export const routes: Routes = [
         path: 'funnels',
         title: 'Funnels',
         loadComponent: () => import('./pages/dashboard/funnels/funnels').then(m => m.DashboardFunnels)
+      },
+      {
+        path: 'goals',
+        title: 'Goals',
+        loadComponent: () => import('./pages/dashboard/goals/goals').then(m => m.DashboardGoals)
       },
       {
         path: 'settings',
