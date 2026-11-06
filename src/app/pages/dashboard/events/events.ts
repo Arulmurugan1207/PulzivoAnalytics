@@ -350,6 +350,39 @@ export class DashboardEvents implements OnInit, OnDestroy {
     return p >= 10 ? `${Math.round(p)}%` : p >= 0.1 ? `${p.toFixed(1)}%` : '<0.1%';
   }
 
+  /** Category rings for the summary. Slice size follows the counts; the centre is total events. */
+  get categoryDonut(): { name: string; color: string; dash: string; offset: string }[] {
+    const parts = this.eventCategories
+      .map(cat => ({ name: cat.name, color: cat.color, value: this.categoryCounts[cat.name] || 0 }))
+      .filter(part => part.value > 0);
+    const listed = parts.reduce((sum, part) => sum + part.value, 0);
+    const total = Math.max(this.totalEvents || 0, listed);
+    if (total > listed) parts.push({ name: 'rest', color: '#ddd6fe', value: total - listed });
+    const denom = parts.reduce((sum, part) => sum + part.value, 0) || 1;
+    const circumference = 2 * Math.PI * 46;
+    const gap = parts.length > 1 ? Math.min(3, (circumference / parts.length) * 0.12) : 0;
+    let cursor = 0;
+    return parts.map(part => {
+      const span = (part.value / denom) * circumference;
+      const len = Math.max(0, span - gap);
+      const segment = {
+        name: part.name,
+        color: part.color,
+        dash: `${len.toFixed(2)} ${(circumference - len).toFixed(2)}`,
+        offset: (-cursor).toFixed(2),
+      };
+      cursor += span;
+      return segment;
+    });
+  }
+
+  get categoryDonutLabel(): string {
+    const bits = this.eventCategories
+      .filter(cat => (this.categoryCounts[cat.name] || 0) > 0)
+      .map(cat => `${cat.label} ${(this.categoryCounts[cat.name] || 0).toLocaleString()}`);
+    return bits.join(', ') || 'No category counts';
+  }
+
   /** Submit rate = submits / (submits + abandons) — only when there is form data. */
   get formCompletionRate(): number | null {
     const s = this.summary.formSubmits || 0, a = this.summary.formAbandons || 0;
@@ -395,21 +428,21 @@ export class DashboardEvents implements OnInit, OnDestroy {
       name: 'user_actions',
       label: 'User Actions',
       events: ['click', 'scroll', 'hover', 'input'],
-      color: '#2a6df6',
+      color: '#6d28d9',
       icon: 'pi-hand-point-right'
     },
     {
       name: 'navigation',
       label: 'Navigation',
       events: ['page_view', 'route_change', 'navigation'],
-      color: '#6f41ff',
+      color: '#0891b2',
       icon: 'pi-compass'
     },
     {
       name: 'forms',
       label: 'Forms',
       events: ['form_submit', 'form_abandon', 'form_focus', 'form_blur', 'form_error'],
-      color: '#f59e0b',
+      color: '#0d9488',
       icon: 'pi-file-edit'
     },
     {
@@ -423,7 +456,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
       name: 'performance',
       label: 'Performance',
       events: ['web_vital_lcp', 'web_vital_fid', 'web_vital_cls', 'resource_timing', 'performance'],
-      color: '#22c55e',
+      color: '#14b8a6',
       icon: 'pi-gauge'
     },
     {
@@ -783,11 +816,11 @@ export class DashboardEvents implements OnInit, OnDestroy {
 
   private updateDonutChart(): void {
     const CATEGORY_COLORS: Record<string, string> = {
-      user_actions: '#2a6df6',
-      navigation:   '#6f41ff',
-      forms:        '#f59e0b',
+      user_actions: '#6d28d9',
+      navigation:   '#0891b2',
+      forms:        '#0d9488',
       errors:       '#ef4444',
-      performance:  '#22c55e',
+      performance:  '#14b8a6',
       custom:       '#8b5cf6',
     };
     const cats = this.eventCategories;
