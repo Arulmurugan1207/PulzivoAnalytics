@@ -58,6 +58,13 @@ export class ImproveCard {
 
   meta(type: FindingType) { return TYPE_META[type] || TYPE_META.dead_end; }
 
+  /** Comparison only. A lower count is not described as something the site caused. */
+  deltaLabel(pct: number | null | undefined): string {
+    if (pct == null) return '';
+    const abs = pct < 0 ? -pct : pct;
+    return `${pct > 0 ? 'Higher' : 'Lower'} by ${abs}% than the previous period`;
+  }
+
   href(page: string): string | null {
     if (!this.domain || !page || !page.startsWith('/')) return null;
     return `https://${this.domain}${page}`;

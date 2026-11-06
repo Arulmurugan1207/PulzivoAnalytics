@@ -313,6 +313,15 @@ export class AnalyticsAPIService {
    * Get Exit Pages - where users leave
    */
   /** Outbound clicks, downloads, 404s, site search, goals, revenue, languages, screen sizes. */
+  getGoalConversion(goalType: 'event' | 'page', goalValue: string, dateRange?: DateRange): Observable<any> {
+    const selectedApiKey = this.apiKeysService.getSelectedApiKey();
+    if (!selectedApiKey) return of(null);
+    const value = encodeURIComponent(goalValue);
+    return this.http.get(`${this.apiUrl}/analytics/goal-conversion?apiKey=${selectedApiKey}&goalType=${goalType}&goalValue=${value}${this.buildDateParams(dateRange)}`).pipe(
+      catchError((error: HttpErrorResponse) => this.failMetricRead(error)),
+    );
+  }
+
   getInsights(dateRange?: DateRange): Observable<any> {
     const selectedApiKey = this.apiKeysService.getSelectedApiKey();
     if (!selectedApiKey) return of(null);

@@ -56,6 +56,10 @@
           <i class="pi pi-bolt"></i>
           @if (!sidebarCollapsed) { <span>Events</span> }
         </a>
+        <a class="nav-item" routerLink="/demo/goals" routerLinkActive="active">
+          <i class="pi pi-flag"></i>
+          @if (!sidebarCollapsed) { <span>Goals</span> }
+        </a>
 
         <div class="nav-divider"></div>
 
@@ -94,6 +98,10 @@
             <span>Reports</span>
             @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
           }
+        </a>
+        <a class="nav-item" routerLink="/dashboard/goals" routerLinkActive="active">
+          <i class="pi pi-flag"></i>
+          @if (!sidebarCollapsed) { <span>Goals</span> }
         </a>
         <a class="nav-item" routerLink="/dashboard/funnels" routerLinkActive="active"
            [class.nav-item--locked]="!canAccessFunnels()">
