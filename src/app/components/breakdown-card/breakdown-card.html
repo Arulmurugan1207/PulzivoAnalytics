@@ -1,51 +1,205 @@
-<div class="bc" [class]="'bc bc-' + tone()">
+<div class="bc" [class]="'bc bc-' + tone() + (look() === 'pulse' ? ' bc-pulse' : '')">
   <div class="bc-head">
-    <span class="bc-title">{{ title() }}<ng-content select="[bc-title-extra]"></ng-content></span>
+    <span class="bc-title">
+      @if (look() === 'pulse') {
+        <span class="bc-accent" aria-hidden="true"></span>
+      }
+      {{ title() }}<ng-content select="[bc-title-extra]"></ng-content>
+    </span>
     <span class="bc-metric">{{ metric() }}<ng-content select="[bc-head-extra]"></ng-content></span>
   </div>
-  @for (r of visibleRows(); track r.key ?? r.label) {
-    <div class="bar-row" [attr.title]="r.tooltip || null">
-      <div class="bar" [style.width.%]="r.pct"></div>
-      <span class="bar-label">
-        @if (r.flagClass) {
-          <span class="flag" [class]="'flag ' + r.flagClass" aria-hidden="true"></span>
-        } @else if (r.flag) {
-          <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
-        }
-        @if (r.secondaryHref && r.secondary) {
-          <span class="bar-text bar-stack">
-            <span class="bar-primary bar-primary-plain">{{ r.label }}</span>
-            <a class="bar-secondary bar-link" [href]="r.secondaryHref" target="_blank" rel="noopener" [attr.aria-label]="r.secondary + ' (opens in a new tab)'">{{ r.secondary }}</a>
-          </span>
-        } @else if (r.href) {
-          @if (r.secondary) {
-            <a class="bar-text bar-link bar-stack" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">
-              <span class="bar-primary">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></span>
-              <span class="bar-secondary">{{ r.secondary }}</span>
-            </a>
-          } @else {
-            <a class="bar-text bar-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></a>
+
+  @if (look() === 'pulse') {
+    @if (tone() === 'sources' && visibleRows().length) {
+      <div class="src-layout">
+        <div class="donut-wrap">
+          <svg class="donut" [class.is-dim]="hover() >= 0" viewBox="0 0 120 120" role="img" [attr.aria-label]="sourceSummary()">
+            <g transform="rotate(-90 60 60)">
+              <circle class="donut-track" cx="60" cy="60" r="46"></circle>
+              @for (seg of sourceChart().segments; track seg.key; let i = $index) {
+                <circle
+                  class="donut-seg"
+                  [class.is-active]="hover() === i"
+                  cx="60" cy="60" r="46"
+                  [attr.stroke]="seg.color"
+                  [attr.stroke-dasharray]="seg.dash"
+                  [attr.stroke-dashoffset]="seg.offset"
+                  (mouseenter)="hover.set(i)"
+                  (mouseleave)="hover.set(-1)"></circle>
+              }
+            </g>
+          </svg>
+          <div class="donut-center">
+            <strong>{{ donutCenter().value }}</strong>
+            <span>{{ donutCenter().caption }}</span>
+          </div>
+        </div>
+        <ol class="src-legend">
+          @for (r of visibleRows(); track r.key ?? r.label; let i = $index) {
+            <li
+              class="src-item"
+              [class.is-hot]="hover() === i"
+              [style.--av]="r.color"
+              [attr.title]="r.tooltip || null"
+              (mouseenter)="hover.set(i)"
+              (mouseleave)="hover.set(-1)">
+              <span class="swatch" [style.background]="r.color" aria-hidden="true"></span>
+              <span class="avatar" [style.--av]="r.color">
+                @if (showFavicon(r)) {
+                  <img
+                    [src]="faviconUrl(r.iconDomain)!"
+                    alt=""
+                    width="16"
+                    height="16"
+                    referrerpolicy="no-referrer"
+                    (error)="onIconError(r.iconDomain!)">
+                } @else {
+                  <span class="avatar-letter">{{ initial(r.label) }}</span>
+                }
+              </span>
+              <span class="src-copy">
+                <span class="src-name">{{ r.label }}</span>
+                @if (r.secondaryHref && r.secondary) {
+                  <a class="src-host" [href]="r.secondaryHref" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.secondary + ' (opens in a new tab)'">{{ r.secondary }}</a>
+                } @else if (r.secondary) {
+                  <span class="src-host">{{ r.secondary }}</span>
+                }
+              </span>
+              <span class="src-nums">
+                <strong>@if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }</strong>
+                @if (r.share != null) {
+                  <em>{{ shareText(r.share) }}%</em>
+                }
+              </span>
+            </li>
           }
-        } @else if (r.secondary) {
-          <span class="bar-text bar-stack"><span class="bar-primary">{{ r.label }}</span><span class="bar-secondary">{{ r.secondary }}</span></span>
-        } @else {
-          <span class="bar-text">{{ r.label }}</span>
+          @if (sourceChart().other; as other) {
+            <li
+              class="src-item is-other"
+              [class.is-hot]="hover() === sourceChart().segments.length - 1"
+              (mouseenter)="hover.set(sourceChart().segments.length - 1)"
+              (mouseleave)="hover.set(-1)">
+              <span class="swatch" style="background:#c4b5d4" aria-hidden="true"></span>
+              <span class="avatar" style="--av:#c4b5d4"><span class="avatar-letter">+</span></span>
+              <span class="src-copy"><span class="src-name">Other</span></span>
+              <span class="src-nums"><em>{{ shareText(other.pct) }}%</em></span>
+            </li>
+          }
+        </ol>
+      </div>
+    } @else if (tone() === 'events' && visibleRows().length) {
+      <ul class="lolli">
+        @for (r of visibleRows(); track r.key ?? r.label) {
+          <li class="lolli-row" [style.--c]="r.color" [attr.title]="r.tooltip || null">
+            <span class="lolli-name">{{ r.label }}</span>
+            <span class="lolli-val">
+              @if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }
+            </span>
+            <span class="lolli-track" aria-hidden="true">
+              <span class="lolli-fill" [style.width.%]="r.pct">
+                <span class="lolli-stem"></span>
+                <span class="lolli-dot"></span>
+              </span>
+            </span>
+          </li>
         }
-        @if (r.sub) {
-          <em class="bar-sub">{{ r.sub }}</em>
+      </ul>
+    } @else if (visibleRows().length) {
+      <div class="pulse-list">
+        @for (r of visibleRows(); track r.key ?? r.label; let i = $index) {
+          <div class="pulse-row" [attr.title]="r.tooltip || null">
+            @if (tone() === 'geo') {
+              <span class="flag-chip">
+                @if (r.flagClass) {
+                  <span class="flag" [class]="'flag ' + r.flagClass" aria-hidden="true"></span>
+                } @else {
+                  <span class="flag-emoji" aria-hidden="true">{{ r.flag || '🌐' }}</span>
+                }
+              </span>
+            } @else {
+              <span
+                class="rank"
+                [class.rank-1]="rankOf(r, i) === 1"
+                [class.rank-2]="rankOf(r, i) === 2"
+                [class.rank-3]="rankOf(r, i) === 3">{{ rankOf(r, i) }}</span>
+            }
+            <div class="pulse-main">
+              <div class="pulse-top">
+                @if (r.href) {
+                  <a class="pulse-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">
+                    <span class="pulse-title">{{ r.label }}<i class="pi pi-external-link pulse-ext" aria-hidden="true"></i></span>
+                  </a>
+                } @else {
+                  <span class="pulse-title">{{ r.label }}</span>
+                }
+                <span class="pulse-stats">
+                  <strong>@if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }</strong>
+                  @if (r.share != null) {
+                    <em>{{ shareText(r.share) }}%</em>
+                  }
+                </span>
+              </div>
+              @if (r.secondary) {
+                @if (r.href) {
+                  <a class="pulse-sub" [href]="r.href" target="_blank" rel="noopener noreferrer" tabindex="-1" aria-hidden="true">{{ r.secondary }}</a>
+                } @else {
+                  <span class="pulse-sub">{{ r.secondary }}</span>
+                }
+              }
+              <div class="slim-track" aria-hidden="true">
+                <span class="slim-bar" [style.width.%]="r.pct"></span>
+              </div>
+            </div>
+          </div>
         }
-      </span>
-      <span class="bar-val">
-        @if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }
-      </span>
-    </div>
+      </div>
+    }
+  } @else {
+    @for (r of visibleRows(); track r.key ?? r.label) {
+      <div class="bar-row" [attr.title]="r.tooltip || null">
+        <div class="bar" [style.width.%]="r.pct"></div>
+        <span class="bar-label">
+          @if (r.flagClass) {
+            <span class="flag" [class]="'flag ' + r.flagClass" aria-hidden="true"></span>
+          } @else if (r.flag) {
+            <span class="flag-emoji" aria-hidden="true">{{ r.flag }}</span>
+          }
+          @if (r.secondaryHref && r.secondary) {
+            <span class="bar-text bar-stack">
+              <span class="bar-primary bar-primary-plain">{{ r.label }}</span>
+              <a class="bar-secondary bar-link" [href]="r.secondaryHref" target="_blank" rel="noopener" [attr.aria-label]="r.secondary + ' (opens in a new tab)'">{{ r.secondary }}</a>
+            </span>
+          } @else if (r.href) {
+            @if (r.secondary) {
+              <a class="bar-text bar-link bar-stack" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">
+                <span class="bar-primary">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></span>
+                <span class="bar-secondary">{{ r.secondary }}</span>
+              </a>
+            } @else {
+              <a class="bar-text bar-link" [href]="r.href" target="_blank" rel="noopener noreferrer" [attr.aria-label]="r.label + ' (opens in a new tab)'">{{ r.label }}<i class="pi pi-external-link bar-ext" aria-hidden="true"></i></a>
+            }
+          } @else if (r.secondary) {
+            <span class="bar-text bar-stack"><span class="bar-primary">{{ r.label }}</span><span class="bar-secondary">{{ r.secondary }}</span></span>
+          } @else {
+            <span class="bar-text">{{ r.label }}</span>
+          }
+          @if (r.sub) {
+            <em class="bar-sub">{{ r.sub }}</em>
+          }
+        </span>
+        <span class="bar-val">
+          @if (isNumber(r.value)) { {{ r.value | number }} } @else { {{ r.value }} }
+        </span>
+      </div>
+    }
   }
+
   <div class="bc-foot">
-  @if (hiddenCount() > 0) {
-    <button type="button" class="bc-more" (click)="expanded.set(!expanded())">
-      {{ expanded() ? 'Show less' : 'Show ' + hiddenCount() + ' more' }}
-    </button>
-  }
-  <ng-content></ng-content>
+    @if (hiddenCount() > 0) {
+      <button type="button" class="bc-more" (click)="expanded.set(!expanded())">
+        {{ expanded() ? 'Show less' : 'Show ' + hiddenCount() + ' more' }}
+      </button>
+    }
+    <ng-content></ng-content>
   </div>
 </div>

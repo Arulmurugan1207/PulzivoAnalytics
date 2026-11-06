@@ -371,7 +371,7 @@
 
         <!-- Breakdown cards: Top pages · Top sources · Improve your site (same style as the home sample dashboard) -->
         <div class="breakdown-grid">
-          <app-breakdown-card title="Top pages" metric="Views" tone="pages" [rows]="topPageRows">
+          <app-breakdown-card title="Top pages" metric="Views" tone="pages" look="pulse" [rows]="topPageRows">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
                pTooltip="Pages ranked by views in this date range. Hover a row for share, average time and scroll depth."
                tooltipPosition="top"></button>
@@ -412,7 +412,7 @@
           </app-breakdown-card>
 
           <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('utm_attribution')"
-            title="Top sources" metric="Visits" tone="sources" [rows]="hasFeature('utm_attribution') && !loadingStates.trafficSources ? sourceBreakdownRows : []" [limit]="10">
+            title="Top sources" metric="Visits" tone="sources" look="pulse" [rows]="hasFeature('utm_attribution') && !loadingStates.trafficSources ? sourceBreakdownRows : []" [limit]="10">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
               pTooltip="Where this date range’s page views started: search, a link from another site, social, email, paid, or a direct visit. Hover a row for its channel."
               tooltipPosition="top"></button>
@@ -447,7 +447,7 @@
 
           <!-- Custom events: top tracked actions, beside Improve your site -->
           <app-breakdown-card class="bc-lockable custom-events-slot" [class.locked-section]="!hasFeature('custom_events')"
-            title="Custom events" metric="Count" tone="pages" [rows]="hasFeature('custom_events') && !loadingStates.overviewCustomEvents ? customEventCardRows : []" [limit]="10">
+            title="Custom events" metric="Count" tone="events" look="pulse" [rows]="hasFeature('custom_events') && !loadingStates.overviewCustomEvents ? customEventCardRows : []" [limit]="10">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
               pTooltip="Your own tracked actions (signups, purchases, downloads) in this date range. Built-in page views, clicks, scroll and vitals are left out."
               tooltipPosition="top"></button>
@@ -545,7 +545,7 @@
         </div>
 
           <app-breakdown-card class="bc-lockable" [class.locked-section]="!hasFeature('sessions')"
-            title="Countries" metric="Views" tone="geo" [rows]="hasFeature('sessions') && !loadingStates.geography ? geoRows : []">
+            title="Countries" metric="Views" tone="geo" look="pulse" [rows]="hasFeature('sessions') && !loadingStates.geography ? geoRows : []">
             <button bc-title-extra type="button" class="pi pi-info-circle section-info-icon"
                pTooltip="Page views by country for this date range."
                tooltipPosition="top"></button>
