@@ -11,7 +11,7 @@ export type { DateRange };
 export interface AnalyticsMetrics {
   liveVisitors: number;
   totalPageViews: number;
-  conversionRate: number;
+  conversionRate: number | null;
   bounceRate: number;
   avgSessionDuration: number;
   newVsReturning: {
@@ -239,7 +239,7 @@ export class AnalyticsDataService {
       map((data: any) => ({
         liveVisitors: data.liveVisitors || 0,
         totalPageViews: data.totalPageViews || 0,
-        conversionRate: data.conversionRate || 0,
+        conversionRate: data.conversionRate ?? null,
         bounceRate: data.bounceRate || 0,
         avgSessionDuration: data.avgSessionDuration || 0,
         newVsReturning: data.newVsReturning || { new: 0, returning: 0 },

@@ -104,9 +104,13 @@ function matches(doc, filter) {
   if (!filter || !Object.keys(filter).length) return true;
   if (filter.$and) return filter.$and.every((part) => matches(doc, part));
   if (filter.$or) return filter.$or.some((part) => matches(doc, part));
+  if (filter.$notCrawler === true) {
+    const { isCrawlerUserAgent } = require('./bots');
+    const ua = doc?.data?.userAgent || doc?.data?.ua || '';
+    if (isCrawlerUserAgent(ua)) return false;
+  }
   return Object.entries(filter).every(([key, value]) => {
-    if (key === '$and') return value.every((part) => matches(doc, part));
-    if (key === '$or') return value.some((part) => matches(doc, part));
+    if (key === '$notCrawler' || key === '$and' || key === '$or') return true;
     if (value && typeof value === 'object' && value.$elemMatch) {
       const arr = getPath(doc, key);
       return Array.isArray(arr) && arr.some((item) => matches({ [key]: item, ...item }, value.$elemMatch));

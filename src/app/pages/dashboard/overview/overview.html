@@ -205,7 +205,7 @@
               } @else if (loadingStates.metrics) {
                 <p-skeleton width="45%" height="1.25rem"></p-skeleton>
               } @else {
-                <div class="pulse-value">{{ metrics.bounceRate | number:'1.1-1' }}%</div>
+                <div class="pulse-value">@if (metrics.bounceRate == null) { — } @else { {{ metrics.bounceRate | number:'1.1-1' }}% }</div>
                 <span class="pulse-delta {{ formatTrendChip(trends.bounceRate, true).cssClass }}"
                   [attr.title]="formatTrendChip(trends.bounceRate, true).title">
                   {{ formatTrendChip(trends.bounceRate, true).label }}

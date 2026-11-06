@@ -25,6 +25,7 @@ const {
   reqWithRange,
 } = require('./query');
 const { loadExclusionRules, exclusionMatch } = require('./owner-exclusion');
+const { CRAWLER_UA_PATTERN } = require('./bots');
 const { loadImprovements } = require('./improve');
 
 /** Report-time filter: hide owner-excluded rows without deleting them. */
@@ -37,6 +38,38 @@ function withExclusion(col, exclusion) {
     // Aggregations: hide excluded rows before any other stage runs.
     aggregate: (pipeline = [], ...rest) => col.aggregate([{ $match: exclusion }, ...pipeline], ...rest),
   };
+}
+
+/** Mongo $expr equivalent of isCrawlerUserAgent, including the Cubot exception. */
+function mongoNotCrawler() {
+  return {
+    $expr: {
+      $not: {
+        $regexMatch: {
+          input: {
+            $replaceAll: {
+              input: { $toLower: { $ifNull: ['$data.userAgent', { $ifNull: ['$data.ua', ''] }] } },
+              find: 'cubot',
+              replacement: '',
+            },
+          },
+          regex: CRAWLER_UA_PATTERN,
+          options: 'i',
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Reports skip crawlers and owner-excluded people. Rows stay in the database.
+ * The memory test double uses `$notCrawler`, which matches() understands.
+ */
+function reportScope(col, exclusion) {
+  const crawler = Array.isArray(col.docs) ? { $notCrawler: true } : mongoNotCrawler();
+  const parts = [crawler];
+  if (exclusion && Object.keys(exclusion).length) parts.push(exclusion);
+  return withExclusion(col, parts.length === 1 ? parts[0] : { $and: parts });
 }
 
 /**
@@ -171,8 +204,9 @@ function computeCoreMetrics(docs, { liveCount = 0 } = {}) {
   }
   const scrolls = [...views.values()].map((r) => r.scroll).filter((n) => n != null);
   const times = [...views.values()].map((r) => r.time).filter((n) => n != null);
+  const viewers = new Set(pageViews.map((d) => userIdOf(d)).filter(Boolean));
   const conversions = new Set(
-    docs.filter((d) => CONVERSION_EVENTS.includes(d.event_name)).map((d) => userIdOf(d) || sessionIdOf(d)).filter(Boolean),
+    docs.filter((d) => CONVERSION_EVENTS.includes(d.event_name)).map((d) => userIdOf(d)).filter((id) => id && viewers.has(id)),
   );
   let newUsers = 0;
   let returningUsers = 0;
@@ -185,16 +219,16 @@ function computeCoreMetrics(docs, { liveCount = 0 } = {}) {
     liveVisitors: liveCount,
     totalPageViews: pageViews.length,
     uniqueVisitors: unique.size,
-    conversionRate: percent(conversions.size, unique.size || sessionList.length || 1, 1),
-    bounceRate: percent(bounced, sessionList.length || 1, 1),
+    conversionRate: unique.size ? percent(conversions.size, unique.size, 1) : null,
+    bounceRate: sessionList.length ? percent(bounced, sessionList.length, 1) : null,
     avgSessionDuration: Math.round(avg(durations) || 0),
     avgPagesPerSession: Math.round(((avg(pagesPer) || 0) * 10)) / 10,
     avgScrollDepth: Math.round((avg(scrolls) || 0) * 10) / 10,
     avgTimeOnPage: Math.round(avg(times) || 0),
-    newVsReturning: {
-      new: percent(newUsers, visitorTotal || 1, 0),
-      returning: percent(returningUsers, visitorTotal || 1, 0),
-    },
+    newVsReturning: visitorTotal ? {
+      new: percent(newUsers, visitorTotal, 0),
+      returning: percent(returningUsers, visitorTotal, 0),
+    } : { new: null, returning: null },
     totalSessions: sessionList.length,
   };
 }
@@ -444,7 +478,7 @@ function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
       }
       const rawCol = db.collection(process.env.EVENTS_COLLECTION || 'events');
       const rules = await loadExclusionRules(db, apiKey, { keysCollection: process.env.API_KEYS_COLLECTION || 'api_keys' });
-      const col = withExclusion(rawCol, exclusionMatch(rules));
+      const col = reportScope(rawCol, exclusionMatch(rules));
       await handler(req, res, apiKey, col);
     } catch (err) {
       console.error('[analytics-api] metrics failed', req.method, req.path, err);
