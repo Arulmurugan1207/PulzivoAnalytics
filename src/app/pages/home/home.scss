@@ -101,7 +101,37 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 .dash-chart-head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; .muted { color: $muted; font-weight: 500; } }
 .dash-axis { display: flex; justify-content: space-between; font-size: 11px; color: $muted; padding-top: 4px; }
 
-.dash-lists { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.dash-lists {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+
+  // Pulse cards are built for the full dashboard. Tighten them so the mock stays inside the browser frame.
+  ::ng-deep .bc-pulse {
+    padding: 10px 12px 8px;
+    border-radius: 12px;
+    box-shadow: 0 8px 18px -14px rgba(76, 29, 149, 0.45);
+    &:hover { box-shadow: 0 10px 22px -14px rgba(76, 29, 149, 0.5); }
+    .bc-head { margin-bottom: 6px; }
+    .bc-title { font-size: 13px; }
+  }
+  ::ng-deep .donut-wrap { width: 118px; height: 118px; margin: 0 auto 2px; }
+  ::ng-deep .donut-center {
+    inset: 28px;
+    strong { font-size: 13px; }
+    span { font-size: 9px; max-width: 62px; }
+  }
+  ::ng-deep .src-item { min-height: 26px; gap: 6px; padding: 1px 2px; }
+  ::ng-deep .src-name { font-size: 12px; }
+  ::ng-deep .pulse-row { padding: 4px 2px 5px; gap: 6px; }
+  ::ng-deep .pulse-title { font-size: 12.5px; -webkit-line-clamp: 1; }
+  ::ng-deep .pulse-sub { font-size: 10.5px; }
+  ::ng-deep .slim-track { height: 4px; margin-top: 4px; }
+  ::ng-deep .pulse-stats strong { font-size: 12px; }
+  ::ng-deep .rank, ::ng-deep .flag-chip { width: 22px; height: 22px; min-width: 22px; }
+}
 .h-demo-cap { text-align: center; color: $muted; font-size: 0.875rem; margin: 1rem 0 0;
   a { color: $accent; font-weight: 600; text-decoration: none; margin-left: 0.25rem; i { font-size: 0.75rem; } } }
 

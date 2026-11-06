@@ -96,23 +96,25 @@ export class Home implements OnInit, OnDestroy {
     { label: 'Bounce rate',       value: '41%',   delta: '3%',   up: false, good: true },
     { label: 'Avg. time on page', value: '1m 52s', delta: '9%',  up: true,  good: true },
   ];
+  // Same sample counts as before. Share is each row's part of this list, so the
+  // donut and the % labels agree. Titles sit above the path, matching Overview.
   topPages = [
-    { label: '/', value: '5,210', pct: 100 },
-    { label: '/pricing', value: '2,480', pct: 48 },
-    { label: '/blog/cold-brew-guide', value: '1,930', pct: 37 },
-    { label: '/shop', value: '1,120', pct: 22 },
+    { label: 'Home', secondary: '/', value: 5210, share: 48.5, rank: 1 },
+    { label: 'Pricing', secondary: '/pricing', value: 2480, share: 23.1, rank: 2 },
+    { label: 'Cold brew guide', secondary: '/blog/cold-brew-guide', value: 1930, share: 18.0, rank: 3 },
+    { label: 'Shop', secondary: '/shop', value: 1120, share: 10.4, rank: 4 },
   ];
   topSources = [
-    { label: 'Google', value: '6,140', pct: 100 },
-    { label: 'Direct', value: '3,020', pct: 49 },
-    { label: 'Newsletter', value: '1,480', pct: 24 },
-    { label: 'x.com', value: '910', pct: 15 },
+    { label: 'Google', secondary: 'google.com', iconDomain: 'google.com', value: 6140, share: 53.2 },
+    { label: 'Direct', value: 3020, share: 26.1 },
+    { label: 'Newsletter', value: 1480, share: 12.8 },
+    { label: 'X', secondary: 'x.com', iconDomain: 'x.com', value: 910, share: 7.9 },
   ];
   countries = [
-    { label: 'United States', flagClass: 'flag-us', value: '4,820', pct: 100 },
-    { label: 'Germany', flagClass: 'flag-de', value: '1,960', pct: 41 },
-    { label: 'India', flagClass: 'flag-in', value: '1,540', pct: 32 },
-    { label: 'France', flagClass: 'flag-fr', value: '1,010', pct: 21 },
+    { label: 'United States', flagClass: 'flag-us', value: 4820, share: 51.7 },
+    { label: 'Germany', flagClass: 'flag-de', value: 1960, share: 21.0 },
+    { label: 'India', flagClass: 'flag-in', value: 1540, share: 16.5 },
+    { label: 'France', flagClass: 'flag-fr', value: 1010, share: 10.8 },
   ];
   private readonly chartData = [210, 230, 220, 260, 250, 240, 290, 300, 280, 320, 310, 300, 340, 360, 330, 350, 380, 370, 360, 400, 420, 390, 430, 450, 440, 470, 500, 480, 520, 540];
   readonly chartLine: string;

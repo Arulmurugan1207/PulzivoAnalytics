@@ -38,7 +38,7 @@
             <span class="dash-live"><span></span>12 online</span>
           </div>
           <div class="dash-head-right">
-            <span class="dash-demo">Demo data</span>
+            <span class="dash-demo">DEMO DATA</span>
             <span class="dash-range"><i class="pi pi-calendar"></i> Last 30 days <i class="pi pi-chevron-down"></i></span>
           </div>
         </div>
@@ -80,9 +80,9 @@
         </div>
 
         <div class="dash-lists">
-          <app-breakdown-card title="Top pages" tone="pages" [rows]="topPages"></app-breakdown-card>
-          <app-breakdown-card title="Top sources" tone="sources" [rows]="topSources"></app-breakdown-card>
-          <app-breakdown-card title="Countries" tone="geo" [rows]="countries"></app-breakdown-card>
+          <app-breakdown-card title="Top pages" metric="Views" tone="pages" look="pulse" [rows]="topPages"></app-breakdown-card>
+          <app-breakdown-card title="Top sources" metric="Visits" tone="sources" look="pulse" [rows]="topSources"></app-breakdown-card>
+          <app-breakdown-card title="Countries" metric="Views" tone="geo" look="pulse" [rows]="countries"></app-breakdown-card>
         </div>
       </div>
     </div>
