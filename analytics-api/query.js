@@ -265,9 +265,7 @@ function percent(part, total, digits = 2) {
 }
 
 function trendPct(current, previous) {
-  if (previous == null || previous === 0) {
-    return current ? 100 : 0;
-  }
+  if (current == null || previous == null || previous === 0) return null;
   return Math.round(((current - previous) / Math.abs(previous)) * 1000) / 10;
 }
 
