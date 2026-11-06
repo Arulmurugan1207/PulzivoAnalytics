@@ -3833,6 +3833,9 @@
     position: static; max-height: 420px; overflow-y: auto;
     display: flex; flex-direction: column;
     padding: 12px 14px;
+    border-radius: 16px;
+    border-color: rgba(109, 40, 217, 0.1);
+    box-shadow: 0 10px 28px -16px rgba(76, 29, 149, 0.45), 0 1px 2px rgba(15, 23, 42, 0.05);
   }
   ::ng-deep .ic-head { margin-bottom: 8px; h3 { font-size: 13px; } }
   ::ng-deep .ic-row { padding: 8px 9px; gap: 9px; }
@@ -3847,7 +3850,11 @@
   margin-top: 12px;
   margin-bottom: 1.25rem;
 
-  .geo-map-card { margin-bottom: 0; min-width: 0; padding: 12px 14px; border-radius: 12px; }
+  .geo-map-card {
+    margin-bottom: 0; min-width: 0; padding: 12px 14px; border-radius: 16px;
+    border-color: rgba(109, 40, 217, 0.1);
+    box-shadow: 0 10px 28px -16px rgba(76, 29, 149, 0.45), 0 1px 2px rgba(15, 23, 42, 0.05);
+  }
   .geo-map-body { display: block; }
   .map-container { min-height: 0; }
   .world-map-chart { height: 380px; }

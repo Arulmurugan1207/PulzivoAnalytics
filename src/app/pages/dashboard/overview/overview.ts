@@ -151,7 +151,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
     },
     cutout: '62%'
   };
-  private readonly sourceColors = ['#1d9bf0', '#7856ff', '#00ba7c', '#f59e0b', '#f4212e', '#0ea5e9', '#8b5cf6', '#64748b', '#14b8a6', '#e11d48'];
+  private readonly sourceColors = ['#6d28d9', '#0f766e', '#7c3aed', '#0891b2', '#a855f7', '#0d9488', '#4f46e5', '#14b8a6', '#9333ea', '#0e7490'];
   utmSources: UtmSource[] = [];
   browsers: BrowserData[] = [];
   operatingSystems: BrowserData[] = [];
@@ -1677,13 +1677,20 @@ export class DashboardOverview implements OnInit, OnDestroy {
   }
 
   private externalHostUrl(host?: string): string | undefined {
-    const h = (host || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? `https://${h}` : undefined;
+    const h = this.faviconDomain(host);
+    return h ? `https://${h}` : undefined;
+  }
+
+  /** Hostname safe to use as a favicon domain. Empty for Direct / Email. */
+  private faviconDomain(host?: string): string | undefined {
+    const h = (host || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:\d+$/, '');
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(h) ? h : undefined;
   }
 
   get topPageRows(): BreakdownRow[] {
     const domain = this.selectedSiteDomain;
-    return this.memoRows('pages', [this.topPages, domain], () => this.topPages.map(page => {
+    const start = (this.topPagesPage - 1) * this.topPagesRows;
+    return this.memoRows('pages', [this.topPages, domain, this.topPagesPage, this.topPagesRows], () => this.topPages.map((page, index) => {
       const extra = [
         `${(page.percentage ?? 0).toFixed(1)}% of views`,
         page.avgTimeOnPage != null ? `avg time ${this.formatDuration(page.avgTimeOnPage)}` : '',
@@ -1695,6 +1702,8 @@ export class DashboardOverview implements OnInit, OnDestroy {
         secondary: typeof page.title === 'string' && page.title.trim() ? page.path : undefined,
         href: domain && page.path?.startsWith('/') ? `https://${domain}${page.path}` : undefined,
         value: page.views || 0,
+        share: page.percentage,
+        rank: start + index + 1,
         tooltip: `${page.title ? page.title + '\n' : ''}${page.path}\n${extra}`,
       };
     }));
@@ -1708,7 +1717,10 @@ export class DashboardOverview implements OnInit, OnDestroy {
         label: src.name,
         secondary: src.host || undefined,
         secondaryHref: src.host ? this.externalHostUrl(src.host) : undefined,
+        iconDomain: this.faviconDomain(src.host),
         value: src.visits || 0,
+        share: src.percentage,
+        color: src.color,
         tooltip: [channel && channel !== src.name ? `${channel}: ${this.channelHint(src.channel)}` : '', `${(src.percentage ?? 0).toFixed(0)}% of visits`]
           .filter(Boolean).join('\n'),
       };
@@ -1722,6 +1734,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
       label: geo.country,
       flag: (geo as any).flag || this.getFlagEmoji(geo.country),
       value: geo.visitors || 0,
+      share: geo.percentage,
       tooltip: `${(geo.percentage ?? 0).toFixed(1)}% of views`,
     })));
   }
