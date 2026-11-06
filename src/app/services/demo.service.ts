@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, NavigationStart } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
@@ -8,13 +8,33 @@ export class DemoService {
 
   constructor(private router: Router) {
     // On hard refresh router.url may not yet reflect the real URL — use window.location as fallback
-    const currentPath = this.router.url || (typeof window !== 'undefined' ? window.location.pathname : '');
-    if (currentPath.startsWith('/demo')) this.isDemoMode.set(true);
+    this.isDemoMode.set(this.isDemoUrl(this.router.url));
 
-    // Keep in sync on subsequent navigations (SPA transitions)
-    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
-      this.isDemoMode.set(e.urlAfterRedirects?.startsWith('/demo'));
+    // Flip before the next page is created. NavigationEnd alone is too late:
+    // the destination component's ngOnInit would still see the previous /demo flag.
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationStart || e instanceof NavigationEnd)
+    ).subscribe((e: NavigationStart | NavigationEnd) => {
+      const url = e instanceof NavigationEnd ? e.urlAfterRedirects : e.url;
+      this.isDemoMode.set(this.isDemoUrl(url));
     });
+  }
+
+  /** True only for the public /demo shell, not /dashboard. */
+  isDemoUrl(url?: string | null): boolean {
+    const raw = (url || (typeof window !== 'undefined' ? window.location.pathname : '')).split('?')[0].split('#')[0];
+    return raw === '/demo' || raw.startsWith('/demo/');
+  }
+
+  /**
+   * Whether this navigation should show demo data.
+   * Prefers the router URL so a stale signal cannot treat /dashboard as /demo.
+   */
+  viewingDemo(): boolean {
+    const routed = this.router.url;
+    if (routed && routed !== '/') return this.isDemoUrl(routed);
+    if (typeof window !== 'undefined') return this.isDemoUrl(window.location.pathname);
+    return this.isDemoMode();
   }
 
   // ─── Overview mock ───────────────────────────────────────────────────────────

@@ -77,7 +77,7 @@ export class Dashboard implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    if (this.demoService.isDemoMode()) {
+    if (this.demoService.viewingDemo()) {
       this.user = { firstname: 'Demo', lastname: 'User' };
       this.userRole = 'admin';
       this.userPlan = 'pro';
@@ -161,6 +161,8 @@ export class Dashboard implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.unsubscribe();
+    // Leaving /demo must put the signed-in site back before the next page reads it.
+    this.apiKeysService.endDemoSession();
   }
 
   onApiKeyChange(apiKey: string | null): void {

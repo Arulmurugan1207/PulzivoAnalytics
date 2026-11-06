@@ -419,7 +419,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
         this.pendingDeepLinkTab = this.activeTab;
       }
     }
-    if (this.demoService.isDemoMode()) {
+    if (this.demoService.viewingDemo()) {
       this.loadDemoData();
       return;
     }

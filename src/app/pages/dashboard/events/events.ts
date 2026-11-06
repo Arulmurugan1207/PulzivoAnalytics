@@ -537,7 +537,7 @@ export class DashboardEvents implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    if (this.demoService.isDemoMode()) {
+    if (this.demoService.viewingDemo()) {
       this.userPlan = 'pro'; // demo shows pro-level
       this.loadDemoData();
       return;
