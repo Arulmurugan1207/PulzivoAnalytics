@@ -94,8 +94,7 @@
       { "@type": "SiteNavigationElement", "position": 3, "name": "Documentation", "url": "https://pulzivo.com/docs" },
       { "@type": "SiteNavigationElement", "position": 4, "name": "Why Pulzivo", "url": "https://pulzivo.com/why-pulzivo" },
       { "@type": "SiteNavigationElement", "position": 5, "name": "Use Cases", "url": "https://pulzivo.com/use-cases" },
-      { "@type": "SiteNavigationElement", "position": 6, "name": "Live Demo", "url": "https://pulzivo.com/demo/overview" },
-      { "@type": "SiteNavigationElement", "position": 7, "name": "Contact", "url": "https://pulzivo.com/contact" }
+      { "@type": "SiteNavigationElement", "position": 6, "name": "Contact", "url": "https://pulzivo.com/contact" }
     ]
   }
   </script>
@@ -113,12 +112,36 @@
     "programmingLanguage": "JavaScript",
     "fileSize": "9KB",
     "softwareVersion": "1.0",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Free forever tier — 10,000 events/month at no cost"
-    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free — $0 USD/month"
+      },
+      {
+        "@type": "Offer",
+        "name": "Starter",
+        "price": "9",
+        "priceCurrency": "USD",
+        "description": "Starter — $9 USD/month"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro",
+        "price": "29",
+        "priceCurrency": "USD",
+        "description": "Pro — $29 USD/month"
+      },
+      {
+        "@type": "Offer",
+        "name": "Enterprise",
+        "price": "99",
+        "priceCurrency": "USD",
+        "description": "Enterprise — $99 USD/month"
+      }
+    ],
     "author": { "@id": "https://pulzivo.com/#organization" },
     "publisher": { "@id": "https://pulzivo.com/#organization" },
     "featureList": [
@@ -207,6 +230,13 @@
     ]
   }
   </script>
+  <!-- Prerendered marketing HTML lives in app-root until Angular boots and replaces it. -->
+  <style>
+    app-root > .prerendered { box-sizing: border-box; max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem 3rem; line-height: 1.55; }
+    app-root > .prerendered h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 0.75rem; }
+    app-root > .prerendered h2 { font-size: 1.35rem; margin: 1.5rem 0 0.5rem; }
+    app-root > .prerendered a { color: #4338ca; }
+  </style>
 </head>
 <body>
   <app-root></app-root>

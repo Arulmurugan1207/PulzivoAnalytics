@@ -4,9 +4,14 @@
 User-agent: *
 Allow: /
 
-# App / authenticated routes (no SEO value)
+# App / authenticated routes (no SEO value). Matches the noindex list in public/.htaccess.
 Disallow: /dashboard
 Disallow: /reset-password
+Disallow: /login
+Disallow: /signin
+Disallow: /signup
+Disallow: /register
+Disallow: /demo
 Disallow: /api/
 
 Sitemap: https://pulzivo.com/sitemap.xml

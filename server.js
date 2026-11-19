@@ -55,8 +55,13 @@ const FALLBACK_SITEMAP = `<?xml version="1.0" encoding="UTF-8"?>
 
 const FALLBACK_ROBOTS = `User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /reset-password/
+Disallow: /dashboard
+Disallow: /reset-password
+Disallow: /login
+Disallow: /signin
+Disallow: /signup
+Disallow: /register
+Disallow: /demo
 Disallow: /api/
 
 Sitemap: https://pulzivo.com/sitemap.xml

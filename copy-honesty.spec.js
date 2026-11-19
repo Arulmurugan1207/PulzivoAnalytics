@@ -87,9 +87,15 @@ test('public sitemap is valid XML with marketing URLs', () => {
   }
 });
 
-test('robots.txt still points at /sitemap.xml', () => {
+test('robots.txt still points at /sitemap.xml and hides noindex app routes', () => {
   const robots = fs.readFileSync(path.join(ROOT, 'public', 'robots.txt'), 'utf8');
   assert.match(robots, /Sitemap: https:\/\/pulzivo\.com\/sitemap\.xml/);
+  for (const route of ['/dashboard', '/reset-password', '/login', '/signin', '/signup', '/register', '/demo', '/api/']) {
+    assert.match(robots, new RegExp(`Disallow:\\s*${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s`));
+  }
+  assert.doesNotMatch(robots, /Strict-Transport-Security/i);
+  const htaccess = fs.readFileSync(path.join(ROOT, 'public', '.htaccess'), 'utf8');
+  assert.doesNotMatch(htaccess, /Strict-Transport-Security/i);
 });
 
 test('Features Free badges match script + pricing (page views, clicks, custom events)', () => {
@@ -163,4 +169,110 @@ test('every prerendered page links to the blog and all articles with plain <a hr
     assert.doesNotMatch(html, /<nav[^>]*(display:\s*none|visibility:\s*hidden|\shidden[\s>])/);
     for (const p of posts) assert.ok(html.includes(`<a href="/blog/${p.slug}"`), `${page.path} missing ${p.slug}`);
   }
+});
+
+function h1Text(html) {
+  const match = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+  assert.ok(match, 'expected an h1');
+  return match[1]
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+test('prerendered marketing routes include each page h1 in visible HTML', () => {
+  const { pages, render } = require('./scripts/prerender-seo.js');
+  const { PAGES } = require('./scripts/angular-static.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  for (const page of pages()) {
+    if (page.post) continue;
+    const html = render(template, page);
+    const source = fs.readFileSync(path.join(ROOT, PAGES[page.path].template), 'utf8');
+    const expected = h1Text(source);
+    assert.equal(h1Text(html), expected, `/${page.path}`);
+    const visibleStart = html.indexOf('<div class="prerendered">');
+    const navStart = html.indexOf('<nav class="prerendered-nav');
+    assert.ok(visibleStart !== -1 && navStart > visibleStart, `${page.path} visible body missing`);
+    const visible = html.slice(visibleStart, navStart);
+    assert.match(visible, /<h1\b/i, `${page.path} h1 is not in the visible prerender`);
+    assert.doesNotMatch(visible, /sr-only|display:\s*none|visibility:\s*hidden/);
+  }
+});
+
+test('prerendered home and pricing keep the live offer, size, and plan copy', () => {
+  const { pages, render } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const home = render(template, pages().find((p) => p.path === ''));
+  const pricing = render(template, pages().find((p) => p.path === 'pricing'));
+  assert.match(home, /No cookies, no personal data collected by default/);
+  assert.match(home, /~9KB gzip/);
+  assert.match(home, /Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers\./);
+  assert.match(pricing, /Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers\. Enter the code at checkout\./);
+  assert.match(pricing, /\$0/);
+  assert.match(pricing, /\$9\/mo/);
+  assert.match(pricing, /\$29\/mo/);
+  assert.match(pricing, /\$99\/mo/);
+  assert.match(pricing, /Page view tracking/);
+  assert.match(pricing, /href="\/signup\?plan=starter"/);
+});
+
+test('generated sitemap lastmod is the build date for pages and the post date for posts', () => {
+  const { buildSitemap, pages, canonicalFor } = require('./scripts/prerender-seo.js');
+  const today = new Date().toISOString().slice(0, 10);
+  const xml = buildSitemap(today);
+  const committed = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  assert.match(committed, /<lastmod>2026-10-29<\/lastmod>/);
+  assert.notEqual(xml, committed);
+  const rows = [...xml.matchAll(/<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)];
+  assert.equal(rows.length, pages().length);
+  for (const [, loc, lastmod] of rows) {
+    const page = pages().find((p) => canonicalFor(p.path) === loc);
+    assert.ok(page, loc);
+    assert.match(lastmod, /^\d{4}-\d{2}-\d{2}$/);
+    if (page.post) assert.equal(lastmod, page.post.date, loc);
+    else {
+      assert.equal(lastmod, today, loc);
+      assert.notEqual(lastmod, '2026-10-29', loc);
+    }
+  }
+  const src = fs.readFileSync(path.join(ROOT, 'scripts', 'prerender-seo.js'), 'utf8');
+  assert.match(src, /writeFileSync\(path\.join\(OUT, 'sitemap\.xml'\), buildSitemap\(/);
+  assert.doesNotMatch(src, /readFileSync\(path\.join\(ROOT, 'public', 'sitemap\.xml'\)\)/);
+});
+
+test('homepage JSON-LD names Pulzivo Analytics, prices real plans, and drops the demo sitelink', () => {
+  const { pages, render } = require('./scripts/prerender-seo.js');
+  const { pageScope } = require('./scripts/angular-static.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const html = render(template, pages().find((p) => p.path === ''));
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+  const org = blocks.find((b) => b['@type'] === 'Organization');
+  const app = blocks.find((b) => b['@type'] === 'SoftwareApplication');
+  const nav = blocks.find((b) => b['@type'] === 'ItemList');
+  assert.equal(org.name, 'Pulzivo Analytics');
+  assert.equal(org.url, 'https://pulzivo.com/');
+  assert.ok(org.logo);
+  assert.equal(app.name, 'Pulzivo Analytics');
+  assert.equal(app.url, 'https://pulzivo.com/');
+  const plans = pageScope('pricing').plans;
+  assert.deepEqual(plans.map((p) => [p.name, p.price]), [
+    ['Free', 0],
+    ['Starter', 9],
+    ['Pro', 29],
+    ['Enterprise', 99],
+  ]);
+  assert.deepEqual(
+    app.offers.map((o) => [o.name, o.price, o.priceCurrency]),
+    plans.map((p) => [p.name, String(p.price), 'USD']),
+  );
+  for (const offer of app.offers) assert.match(offer.description, /USD\/month/);
+  assert.ok(nav.itemListElement.length >= 5);
+  assert.ok(nav.itemListElement.every((item) => !String(item.url).includes('/demo')));
+  assert.doesNotMatch(html, /pulzivo\.com\/demo\/overview/);
 });
