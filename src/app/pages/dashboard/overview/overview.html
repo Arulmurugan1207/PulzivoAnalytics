@@ -126,6 +126,7 @@
       } @else if (showSetupEmpty) {
         <app-first-event-onboarding [apiKey]="selectedApiKey" [siteName]="selectedSiteName" (done)="manualRefresh()" (createSite)="createFirstSite($event)"></app-first-event-onboarding>
       } @else {
+      <app-insights-card [apiKey]="selectedApiKey" [preset]="activePreset" [start]="insightsStart" [end]="insightsEnd"></app-insights-card>
       <div class="metrics-grid">
 
         <div class="pulse-board">
