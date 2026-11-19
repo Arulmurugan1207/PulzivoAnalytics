@@ -12,7 +12,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const ts = require('typescript');
+const { stripTypeScriptTypes } = require('node:module');
 
 const ROOT = path.join(__dirname, '..');
 const POSTS = require('../src/app/pages/blog/posts.json');
@@ -27,11 +27,24 @@ const DROP_ATTRS = new Set([
 const exprJs = new Map();
 const exprFn = new Map();
 
+function stripTypes(code) {
+  const emit = process.emitWarning;
+  process.emitWarning = (warning, type, codeName) => {
+    const text = typeof warning === 'string' ? warning : warning && warning.message;
+    if (codeName === 'ExperimentalWarning' || (text && String(text).includes('stripTypeScriptTypes'))) return;
+    return emit.call(process, warning, type, codeName);
+  };
+  try {
+    return stripTypeScriptTypes(code, { mode: 'strip' });
+  } finally {
+    process.emitWarning = emit;
+  }
+}
+
 function transpileExpr(expr) {
   const key = expr.trim();
   if (exprJs.has(key)) return exprJs.get(key);
-  let js = ts.transpile(`(${key})`, { target: ts.ScriptTarget.ES2022 });
-  js = js.replace(/^\s*["']use strict["'];\s*/g, '').trim();
+  let js = stripTypes(`(${key})`).trim();
   if (js.endsWith(';')) js = js.slice(0, -1).trim();
   exprJs.set(key, js);
   return js;
@@ -75,17 +88,197 @@ function signal(initial) {
 }
 
 function loadHelperModule(file) {
-  const src = fs.readFileSync(file, 'utf8');
-  const js = ts.transpileModule(src, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
-  const module = { exports: {} };
-  new Function('exports', 'require', 'module', js)(module.exports, require, module);
+  let src = stripTypes(fs.readFileSync(file, 'utf8'));
+  src = src.replace(/export\s+interface\s+[A-Za-z_$][\w$]*\s*\{[\s\S]*?\n\}/g, '');
+  src = src.replace(/export\s+function\s+([A-Za-z_$][\w$]*)/g, 'exports.$1 = function $1');
+  const exported = {};
+  new Function('exports', src)(exported);
   const out = {};
-  for (const [key, value] of Object.entries(module.exports)) {
+  for (const [key, value] of Object.entries(exported)) {
     if (typeof value === 'function') out[key] = value;
   }
   return out;
+}
+
+const FIELD_MODIFIERS = new Set(['public', 'private', 'protected', 'readonly', 'static', 'declare', 'override', 'abstract', 'async']);
+
+function skipTrivia(src, i) {
+  while (i < src.length) {
+    if (/\s/.test(src[i])) { i++; continue; }
+    if (src.startsWith('//', i)) {
+      const nl = src.indexOf('\n', i + 2);
+      i = nl === -1 ? src.length : nl + 1;
+      continue;
+    }
+    if (src.startsWith('/*', i)) {
+      const end = src.indexOf('*/', i + 2);
+      i = end === -1 ? src.length : end + 2;
+      continue;
+    }
+    break;
+  }
+  return i;
+}
+
+function readIdent(src, i) {
+  const m = src.slice(i).match(/^[A-Za-z_$][\w$]*/);
+  return m ? m[0] : '';
+}
+
+function skipDecorator(src, i) {
+  i++;
+  while (/[\w$.]/.test(src[i] || '')) i++;
+  i = skipTrivia(src, i);
+  if (src[i] === '(') return matchDelim(src, i, 'js') + 1;
+  return i;
+}
+
+function skipReturnType(src, i) {
+  let depth = 0;
+  let quote = null;
+  while (i < src.length) {
+    const c = src[i];
+    if (quote) {
+      if (c === '\\') { i += 2; continue; }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { quote = c; i++; continue; }
+    if (depth === 0 && c === '{') return i;
+    if (c === '<' || c === '(' || c === '[') { depth++; i++; continue; }
+    if (c === '>' || c === ')' || c === ']') { if (depth) depth--; i++; continue; }
+    i++;
+  }
+  return i;
+}
+
+function skipTypeToAssign(src, i) {
+  let depth = 0;
+  let quote = null;
+  while (i < src.length) {
+    const c = src[i];
+    if (quote) {
+      if (c === '\\') { i += 2; continue; }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { quote = c; i++; continue; }
+    if (c === '<' || c === '(' || c === '[' || c === '{') { depth++; i++; continue; }
+    if (c === '>' || c === ')' || c === ']' || c === '}') { if (depth) depth--; i++; continue; }
+    if (depth === 0 && c === '=' && src[i + 1] !== '=' && src[i - 1] !== '=' && src[i - 1] !== '>') return i;
+    if (depth === 0 && (c === ';' || c === '\n')) return i;
+    i++;
+  }
+  return i;
+}
+
+function startsMember(src, i) {
+  let j = i;
+  for (let n = 0; n < 6; n++) {
+    j = skipTrivia(src, j);
+    if (!/[A-Za-z_$]/.test(src[j] || '')) return false;
+    const id = readIdent(src, j);
+    j += id.length;
+    const next = skipTrivia(src, j);
+    if (src[next] === '(' || src[next] === '=' || src[next] === ':') return true;
+    if (!FIELD_MODIFIERS.has(id) && id !== 'get' && id !== 'set') return false;
+  }
+  return false;
+}
+
+function readTopExpr(src, i) {
+  let depth = 0;
+  let quote = null;
+  while (i < src.length) {
+    const c = src[i];
+    if (quote) {
+      if (c === '\\') { i += 2; continue; }
+      if (quote === '`' && c === '$' && src[i + 1] === '{') { depth++; i += 2; continue; }
+      if (c === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (src.startsWith('//', i)) { i = src.indexOf('\n', i + 2); i = i === -1 ? src.length : i; continue; }
+    if (src.startsWith('/*', i)) { const end = src.indexOf('*/', i + 2); i = end === -1 ? src.length : end + 2; continue; }
+    if (c === '"' || c === "'" || c === '`') { quote = c; i++; continue; }
+    if (c === '(' || c === '[' || c === '{') { depth++; i++; continue; }
+    if (c === ')' || c === ']' || c === '}') {
+      if (depth === 0) return i;
+      depth--;
+      i++;
+      continue;
+    }
+    if (depth === 0 && c === ';') return i;
+    if (depth === 0 && (c === '\n' || c === '\r')) {
+      const look = skipTrivia(src, i);
+      if (look >= src.length || src[look] === '}' || src[look] === '@' || startsMember(src, look)) return i;
+    }
+    i++;
+  }
+  return i;
+}
+
+function readMember(src, i) {
+  const words = [];
+  while (i < src.length) {
+    i = skipTrivia(src, i);
+    if (!/[A-Za-z_$]/.test(src[i] || '')) break;
+    const id = readIdent(src, i);
+    words.push(id);
+    i += id.length;
+    let next = skipTrivia(src, i);
+    if (src[next] === '?') next = skipTrivia(src, next + 1);
+    if (src[next] === '(' || src[next] === '=' || src[next] === ':') { i = next; break; }
+    if (!FIELD_MODIFIERS.has(id) && id !== 'get' && id !== 'set') { i = next; break; }
+  }
+  const name = words[words.length - 1];
+  const accessor = words[words.length - 2] === 'get' ? 'get' : words[words.length - 2] === 'set' ? 'set' : null;
+  i = skipTrivia(src, i);
+  if (src[i] === '(') {
+    const paramsEnd = matchDelim(src, i, 'js');
+    const params = src.slice(i + 1, paramsEnd);
+    i = skipTrivia(src, paramsEnd + 1);
+    if (src[i] === ':') i = skipReturnType(src, i + 1);
+    i = skipTrivia(src, i);
+    if (src[i] !== '{') throw new Error(`expected body for ${name}`);
+    const bodyEnd = matchDelim(src, i, 'js');
+    return { kind: accessor || 'method', name, params, body: src.slice(i, bodyEnd + 1), end: bodyEnd + 1 };
+  }
+  if (src[i] === ':') {
+    const at = skipTypeToAssign(src, i + 1);
+    if (src[at] === ';' || src[at] === '\n') return { kind: 'skip', end: src[at] === ';' ? at + 1 : at };
+    i = at;
+  }
+  if (src[i] === '=') {
+    const exprEnd = readTopExpr(src, i + 1);
+    const init = src.slice(i + 1, exprEnd);
+    let end = skipTrivia(src, exprEnd);
+    if (src[end] === ';') end++;
+    return { kind: 'field', name, init, end };
+  }
+  throw new Error(`unrecognized member ${name} near ${src.slice(i, i + 40)}`);
+}
+
+function classMembers(src) {
+  const classAt = src.search(/\bclass\s+[A-Za-z_$]/);
+  if (classAt < 0) throw new Error('no class declaration');
+  let i = src.indexOf('{', classAt);
+  if (i < 0) throw new Error('no class body');
+  i++;
+  const members = [];
+  while (i < src.length) {
+    i = skipTrivia(src, i);
+    if (src[i] === '}') break;
+    if (src[i] === '@') i = skipDecorator(src, i);
+    i = skipTrivia(src, i);
+    if (src[i] === '}') break;
+    const member = readMember(src, i);
+    if (member.kind !== 'skip') members.push(member);
+    i = member.end;
+  }
+  return members;
 }
 
 const componentCache = new Map();
@@ -98,7 +291,6 @@ function loadComponent(file, helperFiles = []) {
   for (const helper of helperFiles) Object.assign(helpers, loadHelperModule(helper));
 
   const src = fs.readFileSync(file, 'utf8');
-  const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const scope = {
     authService: {
       isAuthenticated() { return false; },
@@ -106,55 +298,46 @@ function loadComponent(file, helperFiles = []) {
     },
   };
   const bindings = { signal, posts: POSTS, blogPosts: POSTS, ...helpers };
+  let members;
+  try {
+    members = classMembers(src);
+  } catch (err) {
+    throw new Error(`${path.relative(ROOT, file)}: ${err.message}`);
+  }
+  const fields = [];
   const methods = [];
   const getters = [];
-
-  function visit(node) {
-    if (!ts.isClassDeclaration(node)) {
-      ts.forEachChild(node, visit);
-      return;
-    }
-    for (const member of node.members) {
-      if (ts.isConstructorDeclaration(member) || ts.isSetAccessor(member)) continue;
-      if (!member.name || !ts.isIdentifier(member.name)) continue;
-      const name = member.name.text;
-      if (ts.isPropertyDeclaration(member) && member.initializer) {
-        const init = member.initializer.getText(sf);
-        try {
-          scope[name] = evalInitializer(init, scope, bindings);
-        } catch (err) {
-          throw new Error(`${path.relative(ROOT, file)} field ${name}: ${err.message}`);
-        }
-      } else if (ts.isMethodDeclaration(member) && member.body) {
-        methods.push(member);
-      } else if (ts.isGetAccessor(member) && member.body) {
-        getters.push(member);
-      }
+  for (const member of members) {
+    if (member.name === 'constructor' || member.kind === 'set') continue;
+    if (member.kind === 'field') fields.push(member);
+    else if (member.kind === 'get') getters.push(member);
+    else methods.push(member);
+  }
+  for (const member of fields) {
+    try {
+      scope[member.name] = evalInitializer(member.init, scope, bindings);
+    } catch (err) {
+      throw new Error(`${path.relative(ROOT, file)} field ${member.name}: ${err.message}`);
     }
   }
-  visit(sf);
-
   for (const member of methods) {
-    const name = member.name.text;
-    const params = member.parameters.map((p) => p.name.getText(sf)).join(', ');
     try {
-      scope[name] = compileFunction(name, params, member.body.getText(sf), helpers).bind(scope);
+      scope[member.name] = compileFunction(member.name, member.params, member.body, helpers).bind(scope);
     } catch (err) {
-      scope[name] = () => { throw new Error(`${name} could not be compiled: ${err.message}`); };
+      scope[member.name] = () => { throw new Error(`${member.name} could not be compiled: ${err.message}`); };
     }
   }
   for (const member of getters) {
-    const name = member.name.text;
     try {
-      const fn = compileFunction(name, '', member.body.getText(sf), helpers);
-      Object.defineProperty(scope, name, {
+      const fn = compileFunction(member.name, member.params, member.body, helpers);
+      Object.defineProperty(scope, member.name, {
         get() { return fn.call(scope); },
         enumerable: true,
         configurable: true,
       });
     } catch (err) {
-      Object.defineProperty(scope, name, {
-        get() { throw new Error(`${name} could not be compiled: ${err.message}`); },
+      Object.defineProperty(scope, member.name, {
+        get() { throw new Error(`${member.name} could not be compiled: ${err.message}`); },
         enumerable: true,
         configurable: true,
       });
@@ -173,11 +356,9 @@ function evalInitializer(expr, scope, bindings) {
 }
 
 function compileFunction(name, params, body, helpers) {
-  const src = `function ${name}(${params}) ${body}`;
-  let js = ts.transpile(src, { target: ts.ScriptTarget.ES2022 });
-  js = js.replace(/^\s*["']use strict["'];\s*/g, '');
+  const src = stripTypes(`function ${name}(${params}) ${body}`);
   const names = Object.keys(helpers);
-  const factory = new Function(...names, `${js}\nreturn ${name};`);
+  const factory = new Function(...names, `${src}\nreturn ${name};`);
   return factory(...names.map((n) => helpers[n]));
 }
 
@@ -203,6 +384,16 @@ function matchDelim(src, openIdx, mode = 'html') {
   for (let j = openIdx + 1; j < src.length; j++) {
     const c = src[j];
     const quoting = mode === 'js' || inTag || interp > 0;
+    if (!quote && c === '/' && src[j + 1] === '/') {
+      const nl = src.indexOf('\n', j + 2);
+      j = nl === -1 ? src.length : nl;
+      continue;
+    }
+    if (!quote && c === '/' && src[j + 1] === '*') {
+      const end = src.indexOf('*/', j + 2);
+      j = end === -1 ? src.length : end + 1;
+      continue;
+    }
     if (quote) {
       if (c === '\\') { j++; continue; }
       if (c === quote) quote = null;
