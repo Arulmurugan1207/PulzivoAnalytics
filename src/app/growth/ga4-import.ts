@@ -93,8 +93,7 @@ export class Ga4ImportComponent implements OnInit, OnDestroy {
     const body = new FormData();
     body.append('file', file, file.name);
     body.append('apiKey', this.apiKey());
-    const url = accountApi(`/analytics/import/ga4?apiKey=${encodeURIComponent(this.apiKey())}`);
-    this.http.post(url, body, { reportProgress: true, observe: 'events' }).subscribe({
+    this.http.post(accountApi('/analytics/import/ga4'), body, { reportProgress: true, observe: 'events' }).subscribe({
       next: (event) => {
         if (event.type === HttpEventType.UploadProgress) {
           this.progress.set(event.total ? Math.round((event.loaded / event.total) * 100) : this.progress());

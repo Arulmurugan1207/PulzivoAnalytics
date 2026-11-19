@@ -61,18 +61,22 @@ function rows(value: unknown, labels: string[], values: string[]): SummaryRow[] 
   return out;
 }
 
+function text(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : '';
+}
+
 export function parsePublicSummary(body: unknown): PublicSummary | null {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
   const raw = body as Record<string, unknown>;
-  const chartSource = raw['chart'] ?? raw['series'] ?? raw['pageViews'];
+  const site = text(raw['site']) || text(raw['siteName']);
   return {
-    siteName: typeof raw['siteName'] === 'string' && raw['siteName'].trim() ? raw['siteName'].trim() : 'Shared dashboard',
+    siteName: site || 'Shared dashboard',
     visitors: num(raw['visitors'] ?? raw['uniqueVisitors']),
     pageviews: num(raw['pageviews'] ?? raw['pageViews'] ?? raw['totalPageViews']),
-    topPages: rows(raw['topPages'] ?? raw['pages'], ['page', 'path', 'label', 'title'], ['views', 'pageviews', 'value', 'count']),
-    sources: rows(raw['sources'] ?? raw['trafficSources'], ['source', 'name', 'label'], ['views', 'visits', 'value', 'count']),
-    countries: rows(raw['countries'] ?? raw['geo'], ['country', 'name', 'label'], ['views', 'visitors', 'value', 'count']),
-    chart: rows(chartSource, ['label', 'date', 'day'], ['pageviews', 'value', 'views', 'visitors']),
+    topPages: rows(raw['topPages'] ?? raw['pages'], ['title', 'path', 'page', 'label'], ['visitors', 'views', 'pageviews', 'value', 'count']),
+    sources: rows(raw['sources'] ?? raw['trafficSources'], ['name', 'source', 'label'], ['visitors', 'visits', 'views', 'value', 'count']),
+    countries: rows(raw['countries'] ?? raw['geo'], ['name', 'code', 'country', 'label'], ['visitors', 'views', 'value', 'count']),
+    chart: rows(raw['chart'] ?? raw['series'], ['date', 'label', 'day'], ['pageviews', 'visitors', 'value', 'views']),
   };
 }
 

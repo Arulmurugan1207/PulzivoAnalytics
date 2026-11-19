@@ -11,6 +11,30 @@ test('share link prefers the API url and falls back to /share/:token', () => {
   assert.equal(parseShareLink(null), null);
 });
 
+test('public summary prefers the account API fields', () => {
+  const summary = parsePublicSummary({
+    site: 'example.com',
+    range: '7d',
+    visitors: 3,
+    pageviews: 8,
+    topPages: [{ path: '/pricing', title: 'Pricing', visitors: 4, views: 99 }],
+    sources: [{ name: 'Google', visitors: 2, visits: 9 }],
+    countries: [{ code: 'CA', name: 'Canada', visitors: 1, views: 5 }],
+    chart: [{ date: '2026-11-01', visitors: 1, pageviews: 5 }],
+  });
+  assert.equal(summary?.siteName, 'example.com');
+  assert.equal(summary?.visitors, 3);
+  assert.equal(summary?.pageviews, 8);
+  assert.equal(summary?.topPages[0].label, 'Pricing');
+  assert.equal(summary?.topPages[0].value, 4);
+  assert.equal(summary?.sources[0].label, 'Google');
+  assert.equal(summary?.sources[0].value, 2);
+  assert.equal(summary?.countries[0].label, 'Canada');
+  assert.equal(summary?.countries[0].value, 1);
+  assert.equal(summary?.chart[0].label, '2026-11-01');
+  assert.equal(summary?.chart[0].value, 5);
+});
+
 test('public summary accepts the contract and a few friendly aliases', () => {
   const summary = parsePublicSummary({
     siteName: 'example.com',
