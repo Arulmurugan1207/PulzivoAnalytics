@@ -8,7 +8,7 @@ export interface PlanCtaInput {
 
 /** Logged-out visitors get a signup CTA. Logged-in visitors keep plan actions. */
 export function planButtonLabel(input: PlanCtaInput): string {
-  if (!input.loggedIn) return 'Get started free';
+  if (!input.loggedIn) return 'Start free';
   if (input.planType === input.currentPlanType) return 'Current Plan';
   if (input.planPrice === 0) return 'Get Started Free';
   if (input.planPrice > input.currentPlanPrice) return 'Upgrade';

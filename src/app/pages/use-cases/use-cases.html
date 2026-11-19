@@ -44,6 +44,8 @@
     <h2>Ready to start tracking?</h2>
     <p>Set up in 60 seconds — no credit card required.</p>
     <div class="uc-cta-actions">
+      <button pButton type="button" label="Start free" icon="pi pi-arrow-right" iconPos="right"
+              routerLink="/signup" (click)="track('use_cases')" size="large" class="pulse-on-hover"></button>
       <button pButton type="button" label="Read the Docs" icon="pi pi-book" iconPos="left"
               routerLink="/docs"
               [queryParams]="{utm_source: 'use-cases', utm_medium: 'bottom-cta', utm_campaign: 'read-docs'}"

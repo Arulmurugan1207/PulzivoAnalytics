@@ -71,7 +71,7 @@
   } @else {
     <div class="no-keys-toolbar-msg">
       <i class="pi pi-key"></i>
-      <span>No API key yet. <a routerLink="/dashboard/api-keys">Create one</a> to choose a site and start tracking.</span>
+      <span>Name your site below, then paste one script tag.</span>
     </div>
   }
 </div>
@@ -124,7 +124,7 @@
           <button type="button" class="state-action" (click)="manualRefresh()">Try again</button>
         </div>
       } @else if (showSetupEmpty) {
-        <app-first-event-onboarding [apiKey]="selectedApiKey" [siteName]="selectedSiteName" (done)="manualRefresh()"></app-first-event-onboarding>
+        <app-first-event-onboarding [apiKey]="selectedApiKey" [siteName]="selectedSiteName" (done)="manualRefresh()" (createSite)="createFirstSite($event)"></app-first-event-onboarding>
       } @else {
       <div class="metrics-grid">
 
@@ -1761,14 +1761,14 @@
   </div><!-- /tab-content -->
 
   } @else {
-    <!-- No API Keys empty state -->
-    <div class="no-keys-empty-state">
-      <div class="empty-icon"><i class="pi pi-chart-bar"></i></div>
-      <h2>No data to display</h2>
-      <p>You don't have any API keys yet. Create an API key, add the tracking script to your website, and your analytics will appear here.</p>
-      <a routerLink="/dashboard/api-keys" class="create-key-btn">
-        <i class="pi pi-plus"></i> Create API Key
-      </a>
+    <div class="overview-container">
+      <app-first-event-onboarding
+        apiKey=""
+        siteName="your site"
+        [creating]="creatingSite"
+        [createError]="createSiteError"
+        (createSite)="createFirstSite($event)">
+      </app-first-event-onboarding>
     </div>
   }
 </div>

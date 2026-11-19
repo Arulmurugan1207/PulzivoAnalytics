@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
+import { trackConversion } from '../../analytics/conversion';
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes — matches server cache TTL
 
@@ -39,6 +40,10 @@ export class Footer implements OnInit, OnDestroy {
     if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
     if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
     return n.toLocaleString();
+  }
+
+  trackStart() {
+    trackConversion('cta_click', { location: 'footer' });
   }
 
   trackXClick() {

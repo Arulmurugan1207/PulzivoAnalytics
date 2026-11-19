@@ -48,6 +48,57 @@ export function passwordError(password: string): string {
   return '';
 }
 
+/** One @ and a dot in the domain. Enough to reject blank and "not-an-email" before the API. */
+const SIGNUP_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isSignupEmail(email: string): boolean {
+  const value = email.trim();
+  return value.length > 0 && value.length <= 254 && SIGNUP_EMAIL.test(value);
+}
+
+/**
+ * One name field. The API still wants firstname and lastname, so a single
+ * word is sent as both. The header shows that name once.
+ */
+export function splitPersonName(raw: string): { firstname: string; lastname: string } {
+  const parts = raw.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { firstname: '', lastname: '' };
+  const firstname = parts[0].slice(0, 100);
+  const rest = parts.length === 1 ? parts[0] : parts.slice(1).join(' ');
+  return { firstname, lastname: rest.slice(0, 100) };
+}
+
+export function displayPersonName(firstname?: string | null, lastname?: string | null): string {
+  const first = (firstname ?? '').trim();
+  const last = (lastname ?? '').trim();
+  if (!first && !last) return '';
+  if (!last || last.toLowerCase() === first.toLowerCase()) return first || last;
+  if (!first) return last;
+  return `${first} ${last}`;
+}
+
+export interface SignupGateInput {
+  firstname: string;
+  lastname: string;
+  email: string;
+  password: string;
+}
+
+/** Do not POST /users/signup unless name, a real email, and a password are present. */
+export function signupReady(fields: SignupGateInput): boolean {
+  return fields.firstname.trim().length > 0
+    && fields.lastname.trim().length > 0
+    && isSignupEmail(fields.email)
+    && !passwordError(fields.password);
+}
+
+export function signupBlockReason(fields: SignupGateInput): string {
+  if (!fields.firstname.trim() || !fields.lastname.trim()) return 'Name is required.';
+  if (!fields.email.trim()) return 'Email is required.';
+  if (!isSignupEmail(fields.email)) return 'Please enter a valid email address.';
+  return passwordError(fields.password);
+}
+
 /** True only for a real Cloudflare site key, not the placeholder or a blank. */
 export function isTurnstileSiteKeyConfigured(siteKey: string | null | undefined): boolean {
   const key = (siteKey ?? '').trim();

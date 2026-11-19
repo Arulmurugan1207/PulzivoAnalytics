@@ -5,7 +5,7 @@
     <h1 class="fade-in">Analytics you can read<br><span class="highlight">in 30 seconds</span></h1>
     <p class="why-subtitle fade-in" style="animation-delay: 0.15s">Pulzivo shows you who visits, where they come from and what they do, with no cookies, no personal data collected by default and no 40-tab dashboard.</p>
     <div class="hero-actions slide-up" style="animation-delay: 0.3s">
-      <button pButton type="button" label="Get started free" icon="pi pi-arrow-right" iconPos="right" routerLink="/signup" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'start-free'}" class="glow-button"></button>
+      <button pButton type="button" label="Start free" icon="pi pi-arrow-right" iconPos="right" routerLink="/signup" (click)="track('why')" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'start-free'}" class="glow-button"></button>
       <button pButton type="button" label="View docs" icon="pi pi-book" class="p-button-outlined hero-secondary" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'hero', utm_campaign: 'docs'}"></button>
     </div>
     <p class="hero-note">Free plan: 10K events/month. No credit card.</p>
@@ -126,26 +126,26 @@
     <h2>Simple pricing</h2>
     <p class="section-subtitle">Start free. Upgrade when your traffic grows.</p>
     <div class="price-grid">
-      <div class="price-card">
+      <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'free' }" (click)="track('why_pricing', 'free')">
         <h3>Free</h3>
         <div class="price">$0</div>
         <p>10K events/month</p>
-      </div>
-      <div class="price-card featured">
+      </a>
+      <a class="price-card featured" routerLink="/signup" [queryParams]="{ plan: 'starter' }" (click)="track('why_pricing', 'starter')">
         <h3>Starter</h3>
         <div class="price">$9<span>/mo</span></div>
         <p>Sessions, scroll depth, UTM attribution</p>
-      </div>
-      <div class="price-card">
+      </a>
+      <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'pro' }" (click)="track('why_pricing', 'pro')">
         <h3>Pro</h3>
         <div class="price">$29<span>/mo</span></div>
         <p>Opt-in user identification and performance</p>
-      </div>
-      <div class="price-card">
+      </a>
+      <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'enterprise' }" (click)="track('why_pricing', 'enterprise')">
         <h3>Enterprise</h3>
         <div class="price">$99<span>/mo</span></div>
         <p>Errors, rage clicks, Web Vitals</p>
-      </div>
+      </a>
     </div>
     <div class="center"><a routerLink="/pricing" [queryParams]="{utm_source: 'why', utm_medium: 'pricing-strip', utm_campaign: 'pricing'}" class="text-link">Compare all plan features <i class="pi pi-arrow-right"></i></a></div>
   </div>
@@ -157,7 +157,7 @@
     <h2>See your first visitors today</h2>
     <p>Free plan, no credit card. Most sites are live in a few minutes.</p>
     <div class="cta-actions">
-      <button pButton type="button" label="Get started free" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/signup" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'start-free'}" class="glow-button"></button>
+      <button pButton type="button" label="Start free" icon="pi pi-arrow-right" iconPos="right" size="large" routerLink="/signup" (click)="track('why_cta')" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'start-free'}" class="glow-button"></button>
       <button pButton type="button" label="View docs" icon="pi pi-book" class="p-button-outlined p-button-secondary" size="large" routerLink="/docs" [queryParams]="{utm_source: 'why', utm_medium: 'cta', utm_campaign: 'docs'}"></button>
     </div>
   </div>

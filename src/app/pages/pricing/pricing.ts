@@ -8,6 +8,8 @@ import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
 import { planButtonDisabled, planButtonLabel } from './pricing-cta';
+import { trackConversion } from '../../analytics/conversion';
+import { rememberIntentPlan } from '../../analytics/intent-plan';
 
 interface Plan {
   type: string;
@@ -209,7 +211,9 @@ export class Pricing implements OnDestroy {
 
   selectPlan(plan: Plan): void {
     if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/signup']);
+      rememberIntentPlan(plan.type);
+      trackConversion('cta_click', { location: 'pricing', plan: plan.type });
+      this.router.navigate(['/signup'], { queryParams: { plan: plan.type } });
       return;
     }
 
@@ -222,7 +226,7 @@ export class Pricing implements OnDestroy {
       });
     }
 
-    this.router.navigate(['/dashboard/plans']);
+    this.router.navigate(['/dashboard/plans'], { queryParams: { plan: plan.type } });
   }
 
   getSavingsText(plan: Plan): string {

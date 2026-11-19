@@ -14,6 +14,7 @@ import { AuthService } from '../../services/auth.service';
 import { DemoService } from '../../services/demo.service';
 import { ApiKeysService, ApiKey } from '../../services/api-keys.service';
 import { DateRange } from '../../services/analytics-data.service';
+import { trackConversion } from '../../analytics/conversion';
 
 // App owner email
 const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
@@ -328,9 +329,10 @@ export class Dashboard implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
-  signUpFromDemo() {
+  signUpFromDemo(location = 'demo_banner') {
     // The marketing header (and its signup modal) is not mounted on /demo.
     // /signup mounts it and the guest guard opens the form.
+    trackConversion('cta_click', { location });
     this.router.navigate(['/signup']);
   }
 

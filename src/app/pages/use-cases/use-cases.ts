@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
+import { trackConversion } from '../../analytics/conversion';
 
 @Component({
   selector: 'app-use-cases',
@@ -11,6 +12,9 @@ import { TagModule } from 'primeng/tag';
   styleUrl: './use-cases.scss',
 })
 export class UseCases {
+  track(location: string) {
+    trackConversion('cta_click', { location });
+  }
 
   useCases = [
     {

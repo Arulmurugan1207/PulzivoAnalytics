@@ -172,9 +172,9 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter(user => 
-        user.firstname.toLowerCase().includes(query) ||
-        user.lastname.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query)
+        (user.firstname || '').toLowerCase().includes(query) ||
+        (user.lastname || '').toLowerCase().includes(query) ||
+        (user.email || '').toLowerCase().includes(query)
       );
     }
 

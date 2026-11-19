@@ -24,19 +24,25 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 .h-hero {
   background: linear-gradient(135deg, $accent 0%, $violet 55%, $pink 100%);
   color: #fff;
-  text-align: center;
-  padding: 3.75rem 0 9rem;
+  padding: 2.5rem 0 2.75rem;
 }
+.h-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
+  gap: 1.75rem;
+  align-items: start;
+}
+.h-copy { text-align: left; min-width: 0; }
 .h-badge {
   display: inline-block; background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.25);
   padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem;
 }
 .h-hero h1 {
-  font-size: 3.4rem; line-height: 1.08; font-weight: 800; margin: 0 0 1rem; letter-spacing: -0.03em; color: #fff;
+  font-size: 2.85rem; line-height: 1.08; font-weight: 800; margin: 0 0 1rem; letter-spacing: -0.03em; color: #fff; text-align: left;
   span { color: rgba(255,255,255,0.82); }
 }
-.h-sub { max-width: 640px; margin: 0 auto 1.75rem; font-size: 1.15rem; line-height: 1.55; color: rgba(255,255,255,0.88); }
-.h-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+.h-sub { max-width: 36rem; margin: 0 0 1.35rem; font-size: 1.08rem; line-height: 1.55; color: rgba(255,255,255,0.9); }
+.h-actions { display: flex; gap: 0.75rem; justify-content: flex-start; flex-wrap: wrap; }
 .h-btn {
   display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.8rem 1.4rem; border-radius: 10px;
   font-weight: 650; font-size: 1rem; text-decoration: none; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
@@ -45,20 +51,10 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 }
 .h-btn-primary { background: $green; color: #fff; box-shadow: 0 6px 18px rgba(16,185,129,0.35); &:hover { box-shadow: 0 8px 24px rgba(16,185,129,0.45); } }
 .h-btn-ghost { color: #fff; border: 1px solid rgba(255,255,255,0.55); background: rgba(255,255,255,0.08); &:hover { background: rgba(255,255,255,0.16); } }
-.h-snippet {
-  display: flex; align-items: center; gap: 0.75rem; max-width: 640px; margin: 1.75rem auto 0;
-  background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 0.55rem 0.55rem 0.55rem 1rem;
-  code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-family: $mono; font-size: 0.8rem; color: #e2e8f0; text-align: left; scrollbar-width: none; }
-}
-.h-copy {
-  flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.35rem; border: 0; border-radius: 8px; cursor: pointer;
-  background: #fff; color: $ink; font-weight: 600; font-size: 0.8rem; padding: 0.45rem 0.75rem;
-  i { font-size: 0.8rem; }
-}
-.h-note { margin: 0.9rem 0 0; font-size: 0.85rem; color: rgba(255,255,255,0.78); }
+.h-note { margin: 0.9rem 0 0; font-size: 0.85rem; color: rgba(255,255,255,0.78); text-align: left; }
 
-// ── Sample dashboard ──
-.h-demo { margin-top: -6.5rem; padding-bottom: 3rem; background: linear-gradient(#fff, #fff) bottom / 100% calc(100% - 6.5rem) no-repeat; }
+// ── Sample dashboard (sits in the hero so the product is above the fold) ──
+.h-demo { margin: 0; min-width: 0; }
 .dash {
   background: #fff; border-radius: 16px; overflow: hidden; text-align: left;
   box-shadow: 0 24px 60px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.06); border: 1px solid $line;
@@ -132,8 +128,8 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
   ::ng-deep .pulse-stats strong { font-size: 12px; }
   ::ng-deep .rank, ::ng-deep .flag-chip { width: 22px; height: 22px; min-width: 22px; }
 }
-.h-demo-cap { text-align: center; color: $muted; font-size: 0.875rem; margin: 1rem 0 0;
-  a { color: $accent; font-weight: 600; text-decoration: none; margin-left: 0.25rem; i { font-size: 0.75rem; } } }
+.h-demo-cap { text-align: left; color: rgba(255,255,255,0.82); font-size: 0.8rem; margin: 0.7rem 0 0;
+  a { color: #fff; font-weight: 650; text-decoration: none; margin-left: 0.25rem; i { font-size: 0.75rem; } } }
 
 // ── Value strip ──
 .h-values { background: #fff; padding: 0.5rem 0 3rem; border-bottom: 1px solid $line; }
@@ -164,7 +160,8 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 
 // ── Pricing ──
 .h-prices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 1000px; margin: 0 auto; }
-.h-price { background: #fff; border: 1px solid $line; border-radius: 14px; padding: 1.4rem; text-align: center;
+.h-price { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid $line; border-radius: 14px; padding: 1.4rem; text-align: center;
+  &:hover { border-color: rgba(99,102,241,0.45); }
   h3 { margin: 0; font-size: 1rem; color: #334155; }
   .amt { font-size: 2.1rem; font-weight: 800; color: $ink; margin: 0.35rem 0; span { font-size: 0.9rem; font-weight: 500; color: $muted; } }
   p { margin: 0; color: $muted; font-size: 0.875rem; }
@@ -192,6 +189,7 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 
 // ── Responsive ──
 @media (max-width: 960px) {
+  .h-hero-grid { grid-template-columns: 1fr; }
   .dash-lists { grid-template-columns: 1fr 1fr; > :last-child { grid-column: 1 / -1; } }
   .h-features { grid-template-columns: 1fr 1fr; }
   .h-values-grid, .h-prices { grid-template-columns: 1fr 1fr; }
@@ -200,11 +198,11 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 @media (max-width: 640px) {
   h2 { font-size: 1.6rem; }
   .h-section { padding: 3rem 0; }
-  .h-hero { padding: 2.5rem 0 7rem; h1 { font-size: 2.15rem; } }
+  .h-hero { padding: 1.5rem 0 1.75rem; h1 { font-size: 2.05rem; } }
   .h-sub { font-size: 1rem; }
-  .h-btn { flex: 1 1 100%; justify-content: center; }
+  .h-actions { flex-direction: column; align-items: stretch; }
+  .h-btn { justify-content: center; }
   .h-snippet code { font-size: 0.72rem; }
-  .h-demo { margin-top: -5rem; background-size: 100% calc(100% - 5rem); }
   .dash { font-size: 13px; border-radius: 12px; }
   .dash-body { padding: 14px; }
   .dash-url { max-width: none; }
@@ -249,6 +247,7 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 
   .nudge-cta {
     flex-shrink: 0;
+    text-decoration: none;
     padding: 0.45rem 1rem;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: #fff;

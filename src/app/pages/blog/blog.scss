@@ -16,6 +16,25 @@
   p { color: #475569; margin: 0 0 0.75rem; }
   .read-more { font-weight: 600; text-decoration: none; }
 }
+.post-cta {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  h2 { font-size: 1.25rem; margin: 0 0 0.35rem; color: #0f172a; }
+  p { margin: 0 0 0.9rem; color: #475569; }
+  a {
+    display: inline-flex;
+    align-items: center;
+    background: #10b981;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 10px;
+    padding: 0.7rem 1.1rem;
+  }
+}
 .post-body {
   line-height: 1.7; color: #334155;
   ::ng-deep {

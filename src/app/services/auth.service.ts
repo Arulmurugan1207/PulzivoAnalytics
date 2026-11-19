@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, Subject, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { buildSignupRequest, readApiError, type SignupRequestBody } from '../auth/signup-payload';
+import { buildSignupRequest, readApiError, signupBlockReason, signupReady, type SignupRequestBody } from '../auth/signup-payload';
 
 export interface SignupRequest {
   firstname: string;
@@ -96,6 +96,11 @@ export class AuthService {
       { ...userData, turnstileToken: token },
       { turnstileEnabled: token.length > 0 },
     );
+    // The register handler is not in this repo. Refuse empty or invalid
+    // bodies here so a blank form cannot create a nameless user.
+    if (!signupReady(body)) {
+      return throwError(() => ({ message: signupBlockReason(body), status: 400 }));
+    }
     return this.http.post<AuthResponse>(`${this.apiUrl}/users/signup`, body).pipe(
       tap(response => {
         console.log('Signup response:', response);

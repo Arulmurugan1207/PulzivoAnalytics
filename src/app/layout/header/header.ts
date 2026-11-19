@@ -10,6 +10,8 @@ import { Menu, MenuModule } from 'primeng/menu';
 import type { MenuItem } from 'primeng/api';
 
 import { safeReturnUrl } from '../../auth/session.logic';
+import { displayPersonName } from '../../auth/signup-payload';
+import { trackConversion } from '../../analytics/conversion';
 import { SignIn } from '../../components/modals/sign-in/sign-in';
 import { SignUp } from '../../components/modals/sign-up/sign-up';
 import { Success } from '../../components/modals/success/success';
@@ -155,6 +157,7 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
       this.goToDashboard();
       return;
     }
+    trackConversion('cta_click', { location: 'nav' });
     const path = this.router.url.split('?')[0].split('#')[0];
     if (path === '/signup' || path === '/register') {
       this.openSignUp();
@@ -187,10 +190,10 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
     localStorage.setItem('pulz_has_account', '1'); // never show exit-intent modal again
     localStorage.setItem('pulz_new_user', '1');    // show welcome banner on dashboard
     this.signUpModal.hide();
-    const name = user?.firstname ? `${user.firstname} ${user.lastname || ''}`.trim() : 'New User';
+    const name = displayPersonName(user?.firstname, user?.lastname) || 'New User';
     this.setLoggedInUser(name);
-    this.goToDashboard();
-    this.successModal.show('Account Created!', 'Your account has been created successfully. Head to the dashboard to set up tracking.');
+    // Land on the install step instead of a success dialog.
+    this.router.navigate(['/dashboard/overview']);
   }
 
   setLoggedInUser(name: string) {

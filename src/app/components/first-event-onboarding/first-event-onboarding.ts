@@ -4,10 +4,12 @@ import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { DEFAULT_POLL, FirstEventState, firstEventSummary, hasFirstEvent, nextState, trackingSnippet } from './first-event.logic';
+import { trackConversion } from '../../analytics/conversion';
+import { readIntentPlan } from '../../analytics/intent-plan';
 
 /**
- * Get-started flow for a site with no events: snippet with the real key,
- * a "Check for first event" button that polls Cloud Run, and a success state.
+ * Get-started flow: name the site if there is no key yet, then the real
+ * snippet with a copy button and a verify-installation check.
  */
 @Component({
   selector: 'app-first-event-onboarding',
@@ -18,38 +20,53 @@ import { DEFAULT_POLL, FirstEventState, firstEventSummary, hasFirstEvent, nextSt
   <div class="no-data-setup-card get-started">
     @if (state === 'found') {
       <div class="no-data-setup-icon success"><i class="pi pi-check-circle"></i></div>
-      <h2>You’re live! First event received for {{ siteName }}</h2>
+      <h2>You’re live. First event received for {{ siteName }}</h2>
       <p>{{ summary ? 'We just saw ' + summary + '.' : 'Tracking is working.' }} Your dashboard will fill in as visitors arrive.</p>
       <button type="button" class="setup-cta-btn" (click)="done.emit()"><i class="pi pi-chart-line"></i> Open my dashboard</button>
+    } @else if (!apiKey) {
+      <div class="no-data-setup-icon"><i class="pi pi-code"></i></div>
+      <h2>Add your script</h2>
+      <p>Name the site you want to track. We’ll create a key and show the one-line install.</p>
+      @if (paidPlan) {
+        <p class="plan-note">You chose <strong>{{ paidPlan }}</strong>. Install the script first, then upgrade from <a routerLink="/dashboard/plans" [queryParams]="{ plan: paidPlan }">Plans</a>. Yearly billing is 20% off.</p>
+      }
+      <label class="site-label" for="setup-site-name">Site name</label>
+      <input id="setup-site-name" class="site-name" #siteNameInput value="My website" autocomplete="organization" />
+      <button type="button" class="setup-cta-btn" (click)="createSite.emit(siteNameInput.value)" [disabled]="creating">
+        {{ creating ? 'Creating…' : 'Create site and show script' }}
+      </button>
+      @if (createError) { <p class="check-msg error" role="alert">{{ createError }}</p> }
     } @else {
-      <div class="no-data-setup-icon"><i class="pi pi-flag"></i></div>
-      <h2>Get started with {{ siteName }}</h2>
-      <p>No events yet. Three steps and you’ll see your first visit here.</p>
+      <div class="no-data-setup-icon"><i class="pi pi-code"></i></div>
+      <h2>Add your script</h2>
+      <p>Paste this into the <code>&lt;head&gt;</code> of {{ siteName }}. It already contains your key.</p>
+      @if (paidPlan) {
+        <p class="plan-note">You chose <strong>{{ paidPlan }}</strong>. Install the script first, then upgrade from <a routerLink="/dashboard/plans" [queryParams]="{ plan: paidPlan }">Plans</a>. Yearly billing is 20% off.</p>
+      }
       <div class="no-data-setup-steps">
         <div class="setup-step">
           <span class="step-num">1</span>
           <div>
-            <strong>Add the tracking script</strong>
-            <p>Paste this into the <code>&lt;head&gt;</code> of every page. It already contains your key.</p>
+            <strong>Copy the script</strong>
             <pre class="setup-code"><code>{{ snippet }}</code></pre>
-            <button type="button" class="copy-btn" (click)="copySnippet()">{{ copied ? 'Copied' : 'Copy snippet' }}</button>
+            <button type="button" class="copy-btn" (click)="copySnippet()">{{ copied ? 'Copied' : 'Copy' }}</button>
           </div>
         </div>
         <div class="setup-step">
           <span class="step-num">2</span>
           <div>
             <strong>Open your site</strong>
-            <p>Visit any page in a normal browser window (owner mode and ad blockers can hide your own visit).</p>
+            <p>Visit any page in a normal browser window. Owner mode and ad blockers can hide your own visit.</p>
           </div>
         </div>
         <div class="setup-step">
           <span class="step-num">3</span>
           <div>
-            <strong>Check for your first event</strong>
+            <strong>Verify installation</strong>
             <p>We’ll check every few seconds for up to two minutes.</p>
             <button type="button" class="setup-cta-btn" (click)="start()" [disabled]="state === 'checking' || state === 'waiting'">
               <i class="pi" [class.pi-spin]="state === 'checking' || state === 'waiting'" [class.pi-spinner]="state === 'checking' || state === 'waiting'" [class.pi-search]="state !== 'checking' && state !== 'waiting'"></i>
-              {{ state === 'waiting' || state === 'checking' ? 'Checking… (' + attempt + '/' + plan.maxAttempts + ')' : 'Check for first event' }}
+              {{ state === 'waiting' || state === 'checking' ? 'Checking… (' + attempt + '/' + plan.maxAttempts + ')' : 'Verify installation' }}
             </button>
             @if (message) { <p class="check-msg" role="status">{{ message }}</p> }
           </div>
@@ -60,10 +77,26 @@ import { DEFAULT_POLL, FirstEventState, firstEventSummary, hasFirstEvent, nextSt
   </div>
   `,
   styles: [`
-    .copy-btn { margin-top: .4rem; padding: .3rem .8rem; border-radius: 6px; border: 1px solid #c7d2fe; background: #eef2ff; cursor: pointer; }
+    .no-data-setup-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 2rem 1.75rem; max-width: 760px; }
+    .no-data-setup-card h2 { margin: 0 0 .4rem; font-size: 1.35rem; color: #0f172a; }
+    .no-data-setup-card p { color: #475569; line-height: 1.55; }
+    .no-data-setup-icon { width: 48px; height: 48px; border-radius: 12px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; margin-bottom: .75rem; font-size: 1.25rem; }
+    .no-data-setup-icon.success { background: #ecfdf5; color: #16a34a; }
+    .setup-code { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: .75rem 1rem; overflow-x: auto; margin: .5rem 0 0; }
+    .setup-code code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; }
+    .copy-btn, .setup-cta-btn { margin-top: .75rem; padding: .6rem 1rem; border-radius: 8px; border: 0; cursor: pointer; font-weight: 650; }
+    .copy-btn { background: #eef2ff; color: #3730a3; }
+    .setup-cta-btn { display: inline-flex; align-items: center; gap: .4rem; background: #4f46e5; color: #fff; }
+    .setup-cta-btn:disabled { opacity: .6; cursor: progress; }
     .check-msg { margin-top: .5rem; font-size: .9rem; }
-    .success { color: #16a34a; }
+    .check-msg.error { color: #b91c1c; }
     .docs-link { display: inline-block; margin-top: .75rem; font-size: .85rem; }
+    .site-label { display: block; margin: .75rem 0 .35rem; font-weight: 600; color: #0f172a; }
+    .site-name { width: min(100%, 360px); padding: .55rem .7rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+    .plan-note { font-size: .9rem; }
+    .no-data-setup-steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+    .setup-step { display: flex; gap: .75rem; }
+    .step-num { width: 1.6rem; height: 1.6rem; border-radius: 999px; background: #eef2ff; color: #3730a3; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
   `],
 })
 export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
@@ -72,7 +105,10 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
 
   @Input({ required: true }) apiKey = '';
   @Input() siteName = 'your site';
+  @Input() creating = false;
+  @Input() createError = '';
   @Output() done = new EventEmitter<void>();
+  @Output() createSite = new EventEmitter<string>();
 
   plan = DEFAULT_POLL;
   state: FirstEventState = 'idle';
@@ -81,13 +117,16 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
   summary = '';
   copied = false;
   snippet = trackingSnippet('');
+  paidPlan: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private reportedInstall = false;
 
   ngOnChanges(): void {
     this.stop();
     this.snippet = trackingSnippet(this.apiKey);
     this.state = 'idle';
     this.message = '';
+    this.paidPlan = this.readPaidPlan();
   }
 
   ngOnDestroy(): void { this.stop(); }
@@ -102,7 +141,6 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
 
   private poll(): void {
     this.attempt += 1;
-    // Small window (last 24h, limit 1) so each check is cheap.
     const params = new URLSearchParams({
       apiKey: this.apiKey, page: '1', limit: '1',
       startDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
@@ -118,8 +156,12 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
     this.state = nextState(found, this.attempt, this.plan);
     if (this.state === 'found') {
       this.summary = firstEventSummary(resp);
+      if (!this.reportedInstall) {
+        this.reportedInstall = true;
+        trackConversion('script_installed', { location: 'onboarding' });
+      }
     } else if (this.state === 'waiting') {
-      this.message = msg || 'Nothing yet. Open your site in another tab, we’re still checking…';
+      this.message = msg || 'Nothing yet. Open your site in another tab. We’re still checking.';
       this.timer = setTimeout(() => this.poll(), this.plan.intervalMs);
     } else {
       this.message = 'No events after two minutes. Check the script is in <head>, the key matches, and the site domain is allowed on the API key. Then try again.';
@@ -130,6 +172,11 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
   private stop(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+  }
+
+  private readPaidPlan(): string | null {
+    const plan = readIntentPlan();
+    return plan && plan !== 'free' ? plan : null;
   }
 
   copySnippet(): void {

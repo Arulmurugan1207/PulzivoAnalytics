@@ -3,28 +3,18 @@
          data-track-impression="home_hero"
          data-impression-name="Home Hero"
          data-impression-category="hero">
-  <div class="h-container">
-    <div class="h-badge">Privacy-friendly analytics · no cookies, no personal data collected by default</div>
-    <h1>Simple analytics that<br><span>respects your visitors</span></h1>
-    <p class="h-sub">See who visits, where they come from and what they do, on one clean screen, in plain language. One ~9KB gzip script, no cookies, no personal data collected by default.</p>
-    <div class="h-actions">
-      <a routerLink="/signup" (click)="trackCta('hero')" class="h-btn h-btn-primary">Get started free <i class="pi pi-arrow-right"></i></a>
-      <a routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'hero', utm_campaign: 'docs'}" class="h-btn h-btn-ghost"><i class="pi pi-book"></i> View docs</a>
+  <div class="h-container h-hero-grid">
+    <div class="h-copy">
+      <div class="h-badge">Simple alternative to GA4</div>
+      <h1>Simple analytics.<br><span>One script.</span></h1>
+      <p class="h-sub">See who visits, where they come from, and what they do, on one screen. Paste one script tag. No cookies and no personal data collected by default.</p>
+      <div class="h-actions">
+        <a routerLink="/signup" (click)="trackCta('hero')" class="h-btn h-btn-primary">Start free <i class="pi pi-arrow-right"></i></a>
+        <a routerLink="/demo" (click)="trackCta('hero_demo')" class="h-btn h-btn-ghost"><i class="pi pi-eye"></i> View live demo</a>
+      </div>
+      <p class="h-note">Free plan: 10K events/month · No credit card</p>
     </div>
-    <div class="h-snippet">
-      <code>{{ script }}</code>
-      <button type="button" class="h-copy" (click)="copyScript()" [attr.aria-label]="copied() ? 'Copied' : 'Copy install snippet'">
-        <i class="pi" [class.pi-check]="copied()" [class.pi-copy]="!copied()"></i>
-        <span>{{ copied() ? 'Copied' : 'Copy' }}</span>
-      </button>
-    </div>
-    <p class="h-note">Free plan: 10K events/month · No credit card</p>
-  </div>
-</section>
-
-<!-- Sample dashboard -->
-<section class="h-demo" aria-label="Sample Pulzivo dashboard with demo data">
-  <div class="h-container">
+    <div class="h-demo" aria-label="Sample Pulzivo dashboard with demo data">
     <div class="dash">
       <div class="dash-chrome">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
@@ -86,7 +76,8 @@
         </div>
       </div>
     </div>
-    <p class="h-demo-cap">Sample dashboard with demo data. <a routerLink="/demo" (click)="trackDemoClick()">Try the live demo <i class="pi pi-arrow-right"></i></a></p>
+    <p class="h-demo-cap">Sample data, same dashboard you get. <a routerLink="/demo" (click)="trackCta('hero_demo')">View live demo <i class="pi pi-arrow-right"></i></a></p>
+    </div>
   </div>
 </section>
 
@@ -144,11 +135,11 @@
     <p class="h-section-sub">Start free. Upgrade when your traffic grows.</p>
     <div class="h-prices">
       @for (p of plans; track p.name) {
-        <div class="h-price" [class.featured]="p.featured">
+        <a class="h-price" [class.featured]="p.featured" routerLink="/signup" [queryParams]="{ plan: p.plan }" (click)="trackCta('home_pricing', p.plan)">
           <h3>{{ p.name }}</h3>
           <div class="amt">{{ p.price }}@if (p.per) {<span>/mo</span>}</div>
           <p>{{ p.desc }}</p>
-        </div>
+        </a>
       }
     </div>
     <div class="h-center"><a routerLink="/pricing" [queryParams]="{utm_source: 'home', utm_medium: 'pricing-teaser', utm_campaign: 'view-pricing'}" class="h-link">Compare plans <i class="pi pi-arrow-right"></i></a></div>
@@ -204,8 +195,8 @@
     <h2>See your first visitors today</h2>
     <p>Paste one script tag. Free plan, no credit card.</p>
     <div class="h-actions">
-      <a routerLink="/signup" (click)="trackCta('cta')" class="h-btn h-btn-primary">Get started free <i class="pi pi-arrow-right"></i></a>
-      <a routerLink="/docs" [queryParams]="{utm_source: 'home', utm_medium: 'cta', utm_campaign: 'read-docs'}" class="h-btn h-btn-ghost"><i class="pi pi-book"></i> View docs</a>
+      <a routerLink="/signup" (click)="trackCta('home_cta')" class="h-btn h-btn-primary">Start free <i class="pi pi-arrow-right"></i></a>
+      <a routerLink="/demo" (click)="trackCta('home_cta_demo')" class="h-btn h-btn-ghost"><i class="pi pi-eye"></i> View live demo</a>
     </div>
     <p class="pronunciation"><i class="pi pi-volume-up"></i> Pronounced <strong>PULSE-ivo</strong></p>
   </div>
@@ -216,7 +207,7 @@
   <div class="nudge-bar" role="status" aria-live="polite">
     <span class="nudge-icon">🎉</span>
     <span class="nudge-text">Still thinking? <strong>Pulzivo is free forever</strong> — no credit card, ever.</span>
-    <button class="nudge-cta" (click)="openSignUp('nudge_bar')">Sign Up Free →</button>
+    <a class="nudge-cta" routerLink="/signup" (click)="trackCta('nudge')">Start free</a>
     <button class="nudge-dismiss" (click)="dismissNudge()" aria-label="Dismiss">✕</button>
   </div>
 }

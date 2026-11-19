@@ -4,7 +4,7 @@
     <div class="demo-banner">
       <i class="pi pi-eye"></i>
       <span><strong>Demo Mode</strong> — You're viewing sample data. Sign up free to track your own site.</span>
-      <button class="demo-signup-btn" (click)="signUpFromDemo()">Get Started Free <i class="pi pi-arrow-right"></i></button>
+      <button class="demo-signup-btn" (click)="signUpFromDemo('demo_banner')">Start free <i class="pi pi-arrow-right"></i></button>
     </div>
   }
   <!-- Welcome Banner (new users) -->
@@ -14,12 +14,12 @@
         <i class="pi pi-star-fill"></i>
         <div>
           <strong>Welcome to Pulzivo Analytics!</strong>
-          <span>Start by creating an API key and adding the tracking script to your website.</span>
+          <span>Paste one script tag on the overview to see your first visitors.</span>
         </div>
       </div>
       <div class="welcome-banner-actions">
-        <a routerLink="/dashboard/api-keys" class="welcome-banner-cta" (click)="dismissWelcomeBanner()">
-          <i class="pi pi-key"></i> Set Up Tracking
+        <a routerLink="/dashboard/overview" class="welcome-banner-cta" (click)="dismissWelcomeBanner()">
+          <i class="pi pi-code"></i> Add your script
         </a>
         <button class="welcome-banner-dismiss" (click)="dismissWelcomeBanner()">
           <i class="pi pi-times"></i>
@@ -64,7 +64,7 @@
           @if (!sidebarCollapsed) { Unlock with Free Account }
         </div>
         @for (item of lockedNavItems; track item.label) {
-          <div class="nav-item nav-item--locked" (click)="signUpFromDemo()" title="Sign up to unlock">
+          <div class="nav-item nav-item--locked" (click)="signUpFromDemo('demo_nav')" title="Sign up to unlock">
             <i [class]="'pi ' + item.icon"></i>
             @if (!sidebarCollapsed) { <span>{{ item.label }}</span><i class="pi pi-lock lock-icon"></i> }
           </div>

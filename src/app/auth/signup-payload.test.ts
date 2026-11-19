@@ -4,9 +4,14 @@ import {
   PASSWORD_MAX_LENGTH,
   TURNSTILE_SITE_KEY_PLACEHOLDER,
   buildSignupRequest,
+  displayPersonName,
+  isSignupEmail,
   isTurnstileSiteKeyConfigured,
   passwordError,
   readApiError,
+  signupBlockReason,
+  signupReady,
+  splitPersonName,
 } from './signup-payload.ts';
 
 const person = {
@@ -81,6 +86,34 @@ test('referrer is included when the page has one', () => {
     { turnstileEnabled: false },
   );
   assert.equal(body.referrer, 'https://example.com/pricing');
+});
+
+test('signup is blocked until name, a valid email, and a password are present', () => {
+  const empty = { firstname: '  ', lastname: '', email: '', password: '' };
+  assert.equal(signupReady(empty), false);
+  assert.equal(signupBlockReason(empty), 'Name is required.');
+
+  const badEmail = { firstname: 'Ada', lastname: 'Ada', email: 'not-an-email', password: 'correct horse' };
+  assert.equal(isSignupEmail('not-an-email'), false);
+  assert.equal(isSignupEmail(' ada@pulzivo.com '), true);
+  assert.equal(signupReady(badEmail), false);
+  assert.equal(signupBlockReason(badEmail), 'Please enter a valid email address.');
+
+  const short = { firstname: 'Ada', lastname: 'Lovelace', email: 'ada@pulzivo.com', password: 'short' };
+  assert.equal(signupReady(short), false);
+  assert.match(signupBlockReason(short), /at least 8/);
+
+  assert.equal(signupReady({ firstname: 'Ada', lastname: 'Lovelace', email: 'ada@pulzivo.com', password: 'correct horse' }), true);
+  assert.equal(signupBlockReason({ firstname: 'Ada', lastname: 'Lovelace', email: 'ada@pulzivo.com', password: 'correct horse' }), '');
+});
+
+test('a single name field splits into the API first and last name', () => {
+  assert.deepEqual(splitPersonName('  Ada Lovelace  '), { firstname: 'Ada', lastname: 'Lovelace' });
+  assert.deepEqual(splitPersonName('Ada'), { firstname: 'Ada', lastname: 'Ada' });
+  assert.deepEqual(splitPersonName('   '), { firstname: '', lastname: '' });
+  assert.equal(displayPersonName('Ada', 'Ada'), 'Ada');
+  assert.equal(displayPersonName('Ada', 'Lovelace'), 'Ada Lovelace');
+  assert.equal(displayPersonName('', ''), '');
 });
 
 test('password length matches the API: 8 to 200 characters', () => {
