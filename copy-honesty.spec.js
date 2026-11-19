@@ -276,3 +276,61 @@ test('homepage JSON-LD names Pulzivo Analytics, prices real plans, and drops the
   assert.ok(nav.itemListElement.every((item) => !String(item.url).includes('/demo')));
   assert.doesNotMatch(html, /pulzivo\.com\/demo\/overview/);
 });
+
+
+test('prerender resolves imported constants used by docs FAQ answers', () => {
+  const { pages, render } = require('./scripts/prerender-seo.js');
+  const { pageScope } = require('./scripts/angular-static.js');
+  const logic = fs.readFileSync(path.join(ROOT, 'src/app/components/owner-exclusion/owner-exclusion.logic.ts'), 'utf8');
+  const faq = (logic.match(/export const OWNER_EXCLUSION_FAQ\s*=\s*'([^']*)'/) || [])[1];
+  assert.ok(faq, 'OWNER_EXCLUSION_FAQ string should still exist for docs copy');
+  const scope = pageScope('docs');
+  assert.ok(Array.isArray(scope.faqItems) && scope.faqItems.length > 0, 'docs faqItems should be evaluated');
+  assert.ok(scope.faqItems.some((item) => item && String(item.answer).includes('?pulz_owner=1')), 'docs FAQ should include the owner-exclusion answer');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const html = render(template, pages().find((p) => p.path === 'docs'));
+  assert.match(html, /\?pulz_owner=1/);
+  assert.match(html, /<div class="prerendered">/);
+});
+
+test('prerender loads exported constants from relative imports and skips unresolved fields', () => {
+  const os = require('os');
+  const { loadComponent } = require('./scripts/angular-static.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulzivo-prerender-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'values.ts'), [
+      "export const GREETING = 'hello from a relative import';",
+      "export const COUNT = 3;",
+      '',
+    ].join('\n'));
+    fs.writeFileSync(path.join(dir, 'widget.ts'), [
+      "import { Component } from '@angular/core';",
+      "import { GREETING, COUNT } from './values';",
+      '',
+      "@Component({ selector: 'app-widget', template: '' })",
+      'export class Widget {',
+      '  title = GREETING;',
+      '  count = COUNT;',
+      "  ok = 'kept';",
+      '  broken = NOT_A_REAL_IDENTIFIER;',
+      '}',
+      '',
+    ].join('\n'));
+    const warns = [];
+    const orig = console.warn;
+    console.warn = (...args) => { warns.push(args.join(' ')); };
+    let scope;
+    try {
+      scope = loadComponent(path.join(dir, 'widget.ts'));
+    } finally {
+      console.warn = orig;
+    }
+    assert.equal(scope.title, 'hello from a relative import');
+    assert.equal(scope.count, 3);
+    assert.equal(scope.ok, 'kept');
+    assert.equal(scope.broken, undefined);
+    assert.ok(warns.some((line) => /field broken/.test(line) && /skipped/.test(line)), `expected a skipped-field warning, got: ${warns.join(' | ')}`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
