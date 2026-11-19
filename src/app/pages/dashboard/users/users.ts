@@ -5,7 +5,17 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
-import { UserService, User, GrowthStats } from '../../../services/user.service';
+import { UserService, User, GrowthStats, UserListStatus } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service';
+import {
+  ConfirmKind,
+  displayInitials,
+  displayName,
+  hardDeleteHint,
+  hardDeleteMatches,
+  removalBlocked,
+  removalDialog,
+} from './users-removal.logic';
 
 // App owner email
 const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
@@ -26,6 +36,13 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
   selectedPlanFilter = 'all';
   selectedRoleFilter = 'all';
   sortNewestFirst = true;
+  activeTab: UserListStatus = 'active';
+  activeTotal = 0;
+  removedTotal = 0;
+  busy = false;
+  pending: { kind: ConfirmKind; user: User } | null = null;
+  confirmText = '';
+  actionError = '';
 
   // Growth stats
   growthStats: GrowthStats = { todayCount: 0, weekCount: 0, monthCount: 0, totalCount: 0, trend: [] };
@@ -37,6 +54,7 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
 
   constructor(
     private userService: UserService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -54,18 +72,20 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
   loadUsers(): void {
     this.loading = true;
     
-    this.userService.getAllUsers()
+    this.userService.getAllUsers(this.activeTab === 'removed' ? 'removed' : 'active')
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
+          this.activeTotal = Number(response.activeTotal) || 0;
+          this.removedTotal = Number(response.removedTotal) || 0;
           this.users = response.users
             .map(user => ({
               ...user,
               plan: user.email === APP_OWNER_EMAIL ? 'enterprise' : (user.plan || 'free'),
               role: user.email === APP_OWNER_EMAIL ? 'owner' : (user.role || 'viewer')
             }))
-            .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
-          this.filteredUsers = this.users;
+            .sort((a, b) => new Date(b.createdDate || 0).getTime() - new Date(a.createdDate || 0).getTime());
+          this.filterUsers();
           this.loading = false;
           this.cdr.detectChanges();
         },
@@ -146,8 +166,10 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
     };
   }
 
-  isNewUser(createdDate: string): boolean {
+  isNewUser(createdDate: string | null | undefined): boolean {
+    if (!createdDate) return false;
     const created = new Date(createdDate).getTime();
+    if (Number.isNaN(created)) return false;
     const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
     return created >= threeDaysAgo;
   }
@@ -171,10 +193,9 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
     // Filter by search query
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(user => 
-        (user.firstname || '').toLowerCase().includes(query) ||
-        (user.lastname || '').toLowerCase().includes(query) ||
-        (user.email || '').toLowerCase().includes(query)
+      filtered = filtered.filter(user =>
+        displayName(user).toLowerCase().includes(query) ||
+        String(user.email || '').toLowerCase().includes(query)
       );
     }
 
@@ -243,8 +264,8 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
       });
   }
 
-  isOwner(email: string): boolean {
-    return email === APP_OWNER_EMAIL;
+  isOwner(email: string | undefined): boolean {
+    return !!email && email === APP_OWNER_EMAIL;
   }
 
   getPlanBadgeClass(plan: string | undefined): string {
@@ -288,12 +309,132 @@ export class DashboardUsersComponent implements OnInit, OnDestroy {
     return roleMap[role || 'viewer'] || 'Viewer';
   }
 
-  formatDate(dateString: string): string {
+  formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return '—';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
     });
+  }
+
+  setTab(tab: 'active' | 'removed'): void {
+    if (this.activeTab === tab || this.busy) return;
+    this.activeTab = tab;
+    this.searchQuery = '';
+    this.cancelPending();
+    this.loadUsers();
+  }
+
+  nameOf(user: User): string {
+    return displayName(user);
+  }
+
+  initialsOf(user: User): string {
+    return displayInitials(user);
+  }
+
+  currentUserId(): string {
+    const me = this.authService.getUserData();
+    return String(me?._id || me?.id || '');
+  }
+
+  canManage(user: User): boolean {
+    return !removalBlocked(user, this.currentUserId(), APP_OWNER_EMAIL);
+  }
+
+  askRemove(user: User): void {
+    if (this.busy || !this.canManage(user)) return;
+    this.pending = { kind: 'soft', user };
+    this.confirmText = '';
+    this.actionError = '';
+  }
+
+  askRestore(user: User): void {
+    if (this.busy) return;
+    this.pending = { kind: 'restore', user };
+    this.confirmText = '';
+    this.actionError = '';
+  }
+
+  askHardDelete(user: User): void {
+    if (this.busy || !this.canManage(user)) return;
+    this.pending = { kind: 'hard', user };
+    this.confirmText = '';
+    this.actionError = '';
+  }
+
+  cancelPending(): void {
+    if (this.busy) return;
+    this.pending = null;
+    this.confirmText = '';
+    this.actionError = '';
+  }
+
+  pendingTitle(): string {
+    return this.pending ? removalDialog(this.pending.kind, this.pending.user).title : '';
+  }
+
+  pendingBody(): string {
+    return this.pending ? removalDialog(this.pending.kind, this.pending.user).body : '';
+  }
+
+  pendingConfirmLabel(): string {
+    return this.pending ? removalDialog(this.pending.kind, this.pending.user).confirm : '';
+  }
+
+  pendingHint(): string {
+    return this.pending?.kind === 'hard' ? hardDeleteHint(this.pending.user) : '';
+  }
+
+  confirmDisabled(): boolean {
+    if (!this.pending || this.busy) return true;
+    if (this.pending.kind !== 'hard') return false;
+    return !hardDeleteMatches(this.pending.user, this.confirmText);
+  }
+
+  confirmPending(): void {
+    const pending = this.pending;
+    if (!pending || this.confirmDisabled()) return;
+    const id = pending.user._id;
+    if (!id) {
+      this.actionError = 'Missing user id.';
+      return;
+    }
+    const name = displayName(pending.user);
+    this.busy = true;
+    this.actionError = '';
+    const done = (fallback: string) => ({
+      next: () => {
+        this.busy = false;
+        this.pending = null;
+        this.confirmText = '';
+        this.loadUsers();
+        this.loadGrowthStats();
+        this.cdr.detectChanges();
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.busy = false;
+        this.actionError = err?.error?.message || fallback;
+        this.cdr.detectChanges();
+      },
+    });
+    if (pending.kind === 'soft') {
+      this.userService.softDeleteUser(id).pipe(takeUntil(this.destroy$)).subscribe(
+        done(`Could not remove ${name}.`)
+      );
+      return;
+    }
+    if (pending.kind === 'restore') {
+      this.userService.restoreUser(id).pipe(takeUntil(this.destroy$)).subscribe(
+        done(`Could not restore ${name}.`)
+      );
+      return;
+    }
+    this.userService.deleteUser(id).pipe(takeUntil(this.destroy$)).subscribe(
+      done(`Could not delete ${name}.`)
+    );
   }
 }
