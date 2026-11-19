@@ -19,7 +19,7 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
 
 # Defence in depth: app routes never get indexed even if linked externally
 <IfModule mod_headers.c>
-  SetEnvIf Request_URI "^/(dashboard|reset-password|login|signin|signup|register|demo)" PZ_NOINDEX
+  SetEnvIf Request_URI "^/(dashboard|reset-password|login|signin|signup|register|demo|share)" PZ_NOINDEX
   Header set X-Robots-Tag "noindex, nofollow" env=PZ_NOINDEX
 </IfModule>
 
