@@ -36,3 +36,11 @@ export function installPhase(status: InstallStatus | null, elapsedMs: number, un
   if (elapsedMs >= INSTALL_POLL_MAX_MS) return 'paused';
   return 'waiting';
 }
+
+/**
+ * 404 and 501 hide the indicator. A 404 is also what install-status returns
+ * for a key the caller does not own, so it must not be read as "not installed".
+ */
+export function installStatusOnHttpError(status: unknown): 'hide' | 'retry' {
+  return status === 404 || status === 501 ? 'hide' : 'retry';
+}

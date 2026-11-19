@@ -11,7 +11,6 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { InputTextModule } from 'primeng/inputtext';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { OWNER_EXCLUSION_FAQ } from '../../components/owner-exclusion/owner-exclusion.logic';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
@@ -214,7 +213,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'How do I exclude my own visits from analytics?',
-      answer: OWNER_EXCLUSION_FAQ
+      answer: 'Run PulzivoAnalytics.disableTracking() once in your browser console — it persists via localStorage so all your future visits on that device are excluded. You can also use role-based exclusion (setOwner(true)) after login, or open your site with ?pulz_owner=1 (also ?exclude_owner=1 or ?pulz_exclude_owner=1; ?pulz_owner=0 undoes it). See the Owner Exclusion section for all 6 methods.'
     },
     {
       question: 'Can I share a link to a specific section of the docs?',

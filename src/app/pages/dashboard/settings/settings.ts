@@ -22,6 +22,8 @@ import { SkeletonModule } from 'primeng/skeleton';
 
 import { AuthService } from '../../../services/auth.service';
 import { OwnerExclusionSettingsComponent } from '../../../components/owner-exclusion/owner-exclusion-settings';
+import { EmailPrefsComponent } from '../../../growth/email-prefs';
+import { EmailPrefsService } from '../../../growth/email-prefs.service';
 import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
@@ -77,6 +79,7 @@ interface User {
   standalone: true,
   imports: [
     OwnerExclusionSettingsComponent,
+    EmailPrefsComponent,
     CommonModule,
     RouterLink,
     FormsModule,
@@ -133,12 +136,14 @@ export class DashboardSettings implements OnInit {
     private fb: FormBuilder,
     private http: HttpClient,
     private authService: AuthService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    public emailPrefs: EmailPrefsService,
   ) {
     this.initializeForms();
   }
 
   ngOnInit() {
+    this.emailPrefs.load();
     this.loadUserData();
     this.loadAnalyticsPreferences();
     // Track password strength as user types

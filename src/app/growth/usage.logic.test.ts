@@ -34,6 +34,23 @@ test('80% is a soft nudge and 100% is the upgrade card', () => {
   assert.equal(usageLevel({ percent: 80, eventsLimit: 10000 }), 'soft');
   assert.equal(usageLevel({ percent: 100, eventsLimit: 10000 }), 'full');
   assert.equal(usageLevel({ percent: 100, eventsLimit: 0 }), 'ok');
+  assert.equal(usageLevel({ percent: null, eventsLimit: null }), 'ok');
+});
+
+test('Enterprise sends a null cap and the meter stays quiet', () => {
+  const snapshot = parseUsage({
+    plan: 'enterprise',
+    periodStart: '2026-11-01T00:00:00.000Z',
+    periodEnd: '2026-12-01T00:00:00.000Z',
+    eventsUsed: 42000,
+    eventsLimit: null,
+    percent: null,
+    proFeatures: [],
+  });
+  assert.equal(snapshot?.eventsLimit, null);
+  assert.equal(snapshot?.percent, null);
+  assert.equal(snapshot?.eventsUsed, 42000);
+  assert.equal(usageLevel(snapshot!), 'ok');
 });
 
 test('upgrade copy lists benefits and the founder offer without a countdown', () => {

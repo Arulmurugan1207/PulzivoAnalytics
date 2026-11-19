@@ -5,8 +5,10 @@ export interface UsageSnapshot {
   periodStart: string;
   periodEnd: string;
   eventsUsed: number;
-  eventsLimit: number;
-  percent: number;
+  /** Null on Enterprise: there is no cap, so the meter shows Unlimited. */
+  eventsLimit: number | null;
+  /** Null when eventsLimit is null. */
+  percent: number | null;
   proFeatures: string[];
 }
 
@@ -54,13 +56,20 @@ export function usagePercent(used: number, limit: number, raw?: unknown): number
   return Math.max(0, Math.min(100, Math.round(scaled)));
 }
 
+function finiteOrNull(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function parseUsage(body: unknown): UsageSnapshot | null {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return null;
   const raw = body as Record<string, unknown>;
   if (typeof raw['plan'] !== 'string' || !raw['plan']) return null;
   const eventsUsed = Number(raw['eventsUsed']);
-  const eventsLimit = Number(raw['eventsLimit']);
-  if (!Number.isFinite(eventsUsed) || !Number.isFinite(eventsLimit)) return null;
+  if (!Number.isFinite(eventsUsed)) return null;
+  const eventsLimit = finiteOrNull(raw['eventsLimit']);
+  if (raw['eventsLimit'] != null && raw['eventsLimit'] !== '' && eventsLimit == null) return null;
   const proFeatures = Array.isArray(raw['proFeatures'])
     ? raw['proFeatures'].filter((item) => typeof item === 'string' && item.trim()).map((item) => String(item))
     : [];
@@ -70,14 +79,14 @@ export function parseUsage(body: unknown): UsageSnapshot | null {
     periodEnd: typeof raw['periodEnd'] === 'string' ? raw['periodEnd'] : '',
     eventsUsed,
     eventsLimit,
-    percent: usagePercent(eventsUsed, eventsLimit, raw['percent']),
+    percent: eventsLimit == null ? null : usagePercent(eventsUsed, eventsLimit, raw['percent']),
     proFeatures,
   };
 }
 
-/** 80% is a soft nudge. 100% is a clear upgrade card. Unlimited plans stay quiet. */
+/** 80% is a soft nudge. 100% is a clear upgrade card. A null cap (Enterprise) stays quiet. */
 export function usageLevel(snapshot: Pick<UsageSnapshot, 'percent' | 'eventsLimit'>): UsageLevel {
-  if (!(snapshot.eventsLimit > 0)) return 'ok';
+  if (snapshot.eventsLimit == null || !(snapshot.eventsLimit > 0) || snapshot.percent == null) return 'ok';
   if (snapshot.percent >= 100) return 'full';
   if (snapshot.percent >= 80) return 'soft';
   return 'ok';

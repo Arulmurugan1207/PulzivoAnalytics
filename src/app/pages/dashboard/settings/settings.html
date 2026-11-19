@@ -39,6 +39,16 @@
       [class]="'tab-btn ' + (activeTab() === 'sessions' ? 'active' : '')"
       (click)="setActiveTab('sessions')">
     </button>
+
+    @if (emailPrefs.state() === 'ready') {
+      <button pButton
+        type="button"
+        [label]="'Email'"
+        icon="pi pi-envelope"
+        [class]="'tab-btn ' + (activeTab() === 'email' ? 'active' : '')"
+        (click)="setActiveTab('email')">
+      </button>
+    }
   </div>
 
   <!-- Tab Content -->
@@ -396,6 +406,16 @@
     }
 
     <!-- Sessions Tab -->
+    @if (activeTab() === 'email' && emailPrefs.state() === 'ready') {
+      <div class="email-section">
+        <p-card>
+          <ng-template pTemplate="content">
+            <app-email-prefs></app-email-prefs>
+          </ng-template>
+        </p-card>
+      </div>
+    }
+
     @if (activeTab() === 'sessions') {
       <div class="sessions-section">
         <p-card>

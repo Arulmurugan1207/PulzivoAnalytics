@@ -2,13 +2,14 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
   INSTALL_POLL_MAX_MS, INSTALL_POLL_MS, InstallPhase, InstallStatus,
-  installPhase, installPollContinues, parseInstallStatus,
+  installPhase, installPollContinues, installStatusOnHttpError, parseInstallStatus,
 } from './install-status.logic';
-import { accountApi, isMissingEndpoint } from './endpoint';
+import { accountApi } from './endpoint';
 
 /**
- * Polls install-status for the selected site. A 404 hides the indicator
- * so the dashboard can ship before node-server-api does.
+ * Polls install-status for the selected site.
+ * 404 hides the indicator: the route may be undeployed, or the key is not
+ * owned by this caller. Neither case is "waiting for the first visit".
  */
 @Injectable({ providedIn: 'root' })
 export class InstallStatusService {
@@ -66,7 +67,7 @@ export class InstallStatusService {
       error: (err) => {
         if (key !== this.key) return;
         this.elapsedMs.set(Date.now() - this.startedAt);
-        if (isMissingEndpoint(err?.status)) {
+        if (installStatusOnHttpError(err?.status) === 'hide') {
           this.unavailable.set(true);
           this.status.set(null);
           return;
