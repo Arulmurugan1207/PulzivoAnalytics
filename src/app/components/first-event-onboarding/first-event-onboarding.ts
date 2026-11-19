@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, ChangeDetectionStrategy, ChangeDetectorRef, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { DEFAULT_POLL, FirstEventState, firstEventSummary, hasFirstEvent, nextState, trackingSnippet } from './first-event.logic';
 import { trackConversion } from '../../analytics/conversion';
 import { readIntentPlan } from '../../analytics/intent-plan';
+import { InstallStatusService } from '../../growth/install-status.service';
 
 /**
  * Get-started flow: name the site if there is no key yet, then the real
@@ -18,7 +19,12 @@ import { readIntentPlan } from '../../analytics/intent-plan';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
   <div class="no-data-setup-card get-started">
-    @if (state === 'found') {
+    @if (install.phase() === 'received') {
+      <div class="no-data-setup-icon success"><i class="pi pi-check-circle"></i></div>
+      <h2>First visit received ✓</h2>
+      <p>Your site just sent its first visit. The dashboard fills in as more people arrive.</p>
+      <button type="button" class="setup-cta-btn" (click)="done.emit()">Go to dashboard</button>
+    } @else if (state === 'found') {
       <div class="no-data-setup-icon success"><i class="pi pi-check-circle"></i></div>
       <h2>You’re live. First event received for {{ siteName }}</h2>
       <p>{{ summary ? 'We just saw ' + summary + '.' : 'Tracking is working.' }} Your dashboard will fill in as visitors arrive.</p>
@@ -72,6 +78,17 @@ import { readIntentPlan } from '../../analytics/intent-plan';
           </div>
         </div>
       </div>
+      @if (install.phase() === 'waiting' || install.phase() === 'paused') {
+        <div class="install-wait" role="status">
+          @if (install.phase() === 'waiting') {
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            <span>Waiting for your first visit…</span>
+          } @else {
+            <i class="pi pi-clock" aria-hidden="true"></i>
+            <span>Waiting for your first visit… Automatic checks paused after 10 minutes. Refresh after you open the site.</span>
+          }
+        </div>
+      }
       <a routerLink="/docs" class="docs-link">Using React, Next.js or a tag manager? See the docs.</a>
     }
   </div>
@@ -97,11 +114,20 @@ import { readIntentPlan } from '../../analytics/intent-plan';
     .no-data-setup-steps { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
     .setup-step { display: flex; gap: .75rem; }
     .step-num { width: 1.6rem; height: 1.6rem; border-radius: 999px; background: #eef2ff; color: #3730a3; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .install-wait { display: flex; align-items: center; gap: .6rem; margin-top: 1rem; padding: .8rem 1rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; color: #334155; }
   `],
 })
 export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  readonly install = inject(InstallStatusService);
+
+  constructor() {
+    effect(() => {
+      this.install.phase();
+      this.cdr.markForCheck();
+    });
+  }
 
   @Input({ required: true }) apiKey = '';
   @Input() siteName = 'your site';
@@ -127,6 +153,7 @@ export class FirstEventOnboardingComponent implements OnChanges, OnDestroy {
     this.state = 'idle';
     this.message = '';
     this.paidPlan = this.readPaidPlan();
+    this.install.watch(this.apiKey);
   }
 
   ngOnDestroy(): void { this.stop(); }

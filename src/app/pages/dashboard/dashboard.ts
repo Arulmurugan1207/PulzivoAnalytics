@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,10 @@ import { DemoService } from '../../services/demo.service';
 import { ApiKeysService, ApiKey } from '../../services/api-keys.service';
 import { DateRange } from '../../services/analytics-data.service';
 import { trackConversion } from '../../analytics/conversion';
+import { InstallStatusService } from '../../growth/install-status.service';
+import { UsageService } from '../../growth/usage.service';
+import { UpgradePromptComponent } from '../../growth/upgrade-prompt';
+import { FOUNDER_OFFER, formatPeriodEnd, proBenefitLines, usageLevel, PRO_PLAN_BENEFITS } from '../../growth/usage.logic';
 
 // App owner email
 const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
@@ -34,7 +38,8 @@ type UserRole = 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
     SelectModule,
     RouterOutlet,
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
+    UpgradePromptComponent
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
@@ -54,7 +59,14 @@ export class Dashboard implements OnInit, OnDestroy {
   readonly FREE_MONTHLY_EVENT_LIMIT = 10000;
   usageWarning: { used: number; limit: number; pct: number } | null = null;
   usageWarningDismissed = false;
+  usageSoftDismissed = false;
+  showUpgrade = false;
+  upgradeBenefits: string[] = PRO_PLAN_BENEFITS;
+  readonly usageLevel = usageLevel;
+  readonly formatPeriodEnd = formatPeriodEnd;
+  readonly founderOffer = FOUNDER_OFFER;
   private subscriptions = new Subscription();
+  private proListener = false;
 
   readonly lockedNavItems = [
     { label: 'API Keys',  icon: 'pi-key' },
@@ -74,7 +86,10 @@ export class Dashboard implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private authService: AuthService,
     public demoService: DemoService,
-    private apiKeysService: ApiKeysService
+    private apiKeysService: ApiKeysService,
+    private host: ElementRef<HTMLElement>,
+    public installStatus: InstallStatusService,
+    public usageService: UsageService,
   ) {}
 
   ngOnInit() {
@@ -93,6 +108,10 @@ export class Dashboard implements OnInit, OnDestroy {
       this.router.navigate(['/']);
       return;
     }
+
+    this.host.nativeElement.addEventListener('click', this.onProFeatureClick, true);
+    this.proListener = true;
+    this.usageService.load();
 
     this.user = this.authService.getUserData();
     
@@ -144,6 +163,7 @@ export class Dashboard implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.apiKeysService.selectedApiKey$.subscribe(key => {
         this.selectedApiKey = key || '';
+        this.installStatus.watch(this.selectedApiKey);
         this.checkUsageWarning();
       })
     );
@@ -161,6 +181,9 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.proListener) {
+      this.host.nativeElement.removeEventListener('click', this.onProFeatureClick, true);
+    }
     this.subscriptions.unsubscribe();
     // Leaving /demo must put the signed-in site back before the next page reads it.
     this.apiKeysService.endDemoSession();
@@ -358,6 +381,28 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   goToUpgrade(): void {
-    this.router.navigate(['/dashboard/plans']);
+    this.router.navigate(['/dashboard/plans'], { queryParams: { plan: 'pro' } });
   }
+
+  openUpgrade(): void {
+    this.upgradeBenefits = proBenefitLines(this.usageService.snapshot()?.proFeatures || []);
+    this.showUpgrade = true;
+  }
+
+  /**
+   * Free and Starter clicks on a Pro lock open the upgrade modal instead of
+   * jumping straight into checkout. Ignored when /analytics/usage is missing.
+   */
+  private onProFeatureClick = (event: Event): void => {
+    if (this.isPlanAtLeast('pro') || this.usageService.state() !== 'ready') return;
+    const target = event.target as Element | null;
+    if (!target?.closest) return;
+    const direct = target.closest('a.upgrade-btn.btn-pro, [data-pro-feature]');
+    const overlay = target.closest('.locked-overlay');
+    if (!direct && !overlay?.querySelector('.badge-pro, .btn-pro')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.upgradeBenefits = proBenefitLines(this.usageService.snapshot()?.proFeatures || []);
+    this.showUpgrade = true;
+  };
 }

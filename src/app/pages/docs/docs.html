@@ -809,7 +809,7 @@
 
         <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border-left: 4px solid #6366f1; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
           <h4 style="margin: 0 0 0.5rem 0; color: #818cf8;"><i class="pi pi-info-circle"></i> How it works</h4>
-          <p style="margin: 0; color: #94a3b8;">The owner exclusion flag is <strong>per-browser, in-memory</strong>. Each visitor's browser runs an independent copy of the SDK — enabling it for yourself never affects other users' tracking.</p>
+          <p style="margin: 0; color: #94a3b8;">The owner exclusion flag is <strong>per browser</strong>. Each visitor's browser runs an independent copy of the SDK — enabling it for yourself never affects other users' tracking. The URL method below writes <code>pulz_is_owner</code> to localStorage so it sticks after you close the tab.</p>
         </div>
 
         <h3>Method 1 — One-time console command <span style="font-size:0.75rem; background:rgba(34,197,94,0.15); color:#4ade80; padding:0.2rem 0.5rem; border-radius:20px; vertical-align:middle;">Easiest</span></h3>
@@ -847,10 +847,23 @@
           <pre class="code-block"><code>{{ codeBlocks['owner-env'] }}</code></pre>
         </div>
 
+        <h3>Method 6 — URL parameter <span style="font-size:0.75rem; background:rgba(34,197,94,0.15); color:#4ade80; padding:0.2rem 0.5rem; border-radius:20px; vertical-align:middle;">No console</span></h3>
+        <p>Open any page of your site with one of these query parameters. The tracker saves the choice in that browser, which is the same switch as <strong>Dashboard → Settings → Analytics → Exclude my visits on this browser</strong>. This works on a phone, where the console is awkward.</p>
+        <ul>
+          <li><code>?pulz_owner=1</code> excludes this browser</li>
+          <li><code>?exclude_owner=1</code> does the same thing</li>
+          <li><code>?pulz_exclude_owner=1</code> does the same thing</li>
+          <li><code>?pulz_owner=0</code> undoes it (also <code>false</code>, <code>no</code>, or <code>off</code>)</li>
+        </ul>
+        <div class="code-block-wrapper">
+          <button pButton type="button" [label]="isCopied('owner-url') ? 'Copied!' : 'Copy'" [icon]="isCopied('owner-url') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['owner-url'])" [class.p-button-success]="isCopied('owner-url')" class="copy-btn" size="small" aria-label="Copy code"></button>
+          <pre class="code-block"><code>{{ codeBlocks['owner-url'] }}</code></pre>
+        </div>
+
         <div class="warning-box">
           <h4><i class="pi pi-exclamation-triangle"></i> Important Notes</h4>
           <ul>
-            <li>The flag is in-memory — it resets on page refresh unless you use <code>persist: true</code>, <code>disableTracking()</code>, or the localStorage methods.</li>
+            <li>The flag is in-memory — it resets on page refresh unless you use <code>persist: true</code>, <code>disableTracking()</code>, the localStorage methods, or a URL parameter (<code>pulz_owner</code>, <code>exclude_owner</code>, <code>pulz_exclude_owner</code>).</li>
             <li>Suppression is silent — no errors, no console warnings (unless debug mode is on).</li>
             <li>All event types are suppressed: page views, clicks, custom events, everything.</li>
             <li>Call <code>enableTracking()</code> or <code>setOwner(false)</code> to undo at any time.</li>

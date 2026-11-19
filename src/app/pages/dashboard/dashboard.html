@@ -87,7 +87,7 @@
           <i class="pi pi-bolt"></i>
           @if (!sidebarCollapsed) {
             <span>Events</span>
-            @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
+            @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" data-pro-feature="pro" title="Upgrade to Pro"></i> }
           }
         </a>
         <a class="nav-item" routerLink="/dashboard/reports" routerLinkActive="active"
@@ -96,7 +96,7 @@
           <i class="pi pi-chart-bar"></i>
           @if (!sidebarCollapsed) {
             <span>Reports</span>
-            @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" title="Upgrade to Pro"></i> }
+            @if (!isPlanAtLeast('pro')) { <i class="pi pi-lock lock-icon" data-pro-feature="pro" title="Upgrade to Pro"></i> }
           }
         </a>
         <a class="nav-item" routerLink="/dashboard/goals" routerLinkActive="active">
@@ -155,6 +155,21 @@
     </nav>
 
     <div class="sidebar-footer">
+      @if (!sidebarCollapsed && usageService.state() === 'ready' && usageService.snapshot(); as usage) {
+        <div class="usage-meter" [attr.title]="'Events used this period'">
+          <div class="usage-meter-top">
+            <span>Events</span>
+            <span>{{ usage.percent }}%</span>
+          </div>
+          <div class="usage-meter-track" role="meter" [attr.aria-valuenow]="usage.percent" aria-valuemin="0" aria-valuemax="100">
+            <div class="usage-meter-fill"
+              [class.is-soft]="usageLevel(usage) === 'soft'"
+              [class.is-full]="usageLevel(usage) === 'full'"
+              [style.width.%]="usage.percent"></div>
+          </div>
+          <p>{{ usage.eventsUsed | number }} of {{ usage.eventsLimit > 0 ? (usage.eventsLimit | number) : 'unlimited' }}</p>
+        </div>
+      }
       <a class="nav-item nav-item--home" (click)="goHome()" title="Back to pulzivo.com">
         <i class="pi pi-home"></i>
         @if (!sidebarCollapsed) { <span>Back to Home</span> }
@@ -246,7 +261,36 @@
 
     <!-- Content Area -->
     <main class="content-area">
-      @if (usageWarning && !usageWarningDismissed) {
+      @if (!demoService.isDemoMode() && (installStatus.phase() === 'waiting' || installStatus.phase() === 'paused')) {
+        <div class="setup-banner" role="status">
+          <i class="pi pi-clock" aria-hidden="true"></i>
+          <span>Waiting for your first visit… Paste the script, then open any page of your site.</span>
+          <a routerLink="/dashboard/overview">Add your script</a>
+        </div>
+      }
+      @if (usageService.state() === 'ready' && usageService.snapshot(); as usage) {
+        @if (usageLevel(usage) === 'full') {
+          <section class="usage-card" role="status">
+            <h2>This period’s events are used up</h2>
+            <p>
+              {{ usage.eventsUsed | number }} of {{ usage.eventsLimit | number }} events are used@if (formatPeriodEnd(usage.periodEnd)) { before the period resets on {{ formatPeriodEnd(usage.periodEnd) }}}.
+              Upgrade to keep collecting visits.
+            </p>
+            <p class="usage-card-offer">{{ founderOffer }}</p>
+            <a routerLink="/dashboard/plans" [queryParams]="{ plan: 'pro' }">Continue to checkout</a>
+          </section>
+        } @else if (usageLevel(usage) === 'soft' && !usageSoftDismissed) {
+          <div class="usage-soft" role="status">
+            <i class="pi pi-chart-bar" aria-hidden="true"></i>
+            <span>
+              You’ve used <strong>{{ usage.eventsUsed | number }}</strong> of <strong>{{ usage.eventsLimit | number }}</strong> events this period ({{ usage.percent }}%). There’s still room.
+            </span>
+            <button type="button" (click)="openUpgrade()">See plans</button>
+            <button type="button" class="usage-dismiss" aria-label="Dismiss" (click)="usageSoftDismissed = true"><i class="pi pi-times"></i></button>
+          </div>
+        }
+      }
+      @if (usageService.state() === 'hidden' && usageWarning && !usageWarningDismissed) {
         <div class="usage-upgrade-banner" role="alert" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:16px;border-radius:8px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412">
           <i class="pi pi-exclamation-triangle"></i>
           <span style="flex:1">
@@ -260,4 +304,7 @@
       <router-outlet></router-outlet>
     </main>
   </div>
+  @if (showUpgrade) {
+    <app-upgrade-prompt [benefits]="upgradeBenefits" (dismiss)="showUpgrade = false"></app-upgrade-prompt>
+  }
 </div>
