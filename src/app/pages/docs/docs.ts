@@ -11,6 +11,7 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { InputTextModule } from 'primeng/inputtext';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { OWNER_EXCLUSION_FAQ } from '../../components/owner-exclusion/owner-exclusion.logic';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
@@ -213,7 +214,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       question: 'How do I exclude my own visits from analytics?',
-      answer: 'Run PulzivoAnalytics.disableTracking() once in your browser console — it persists via localStorage so all your future visits on that device are excluded. You can also use role-based exclusion (setOwner(true)) after login. See the Owner Exclusion section for all 5 methods.'
+      answer: OWNER_EXCLUSION_FAQ
     },
     {
       question: 'Can I share a link to a specific section of the docs?',
@@ -292,7 +293,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
     },
     {
       id: 'owner-exclusion', label: 'Owner Exclusion', icon: 'pi-eye-slash', plan: 'free',
-      keywords: ['owner', 'exclude', 'self', 'my visits', 'filter', 'localstorage', 'disable tracking', 'setowner', 'disabletracking', 'admin', 'developer', 'localhost', 'staging']
+      keywords: ['owner', 'exclude', 'self', 'my visits', 'filter', 'localstorage', 'disable tracking', 'setowner', 'disabletracking', 'admin', 'developer', 'localhost', 'staging', 'pulz_owner', 'exclude_owner', 'pulz_exclude_owner']
     },
     {
       id: 'debugging', label: 'Debugging', icon: 'pi-code', plan: 'free',
@@ -649,6 +650,18 @@ window.PulzivoAnalytics.trackEvent('add_to_cart', {
   await window.PulzivoAnalytics.sendBatch();
   // Now safe to navigate away
 }`,
+    'owner-url': `Open any page of your site once. The tracker saves the choice in this browser.
+
+https://yoursite.com/?pulz_owner=1
+https://yoursite.com/?exclude_owner=1
+https://yoursite.com/?pulz_exclude_owner=1
+
+Any of those three turns owner mode on. Undo it with:
+
+https://yoursite.com/?pulz_owner=0
+
+Values 0, false, no, and off turn it off. Anything else turns it on.
+You can also do this from Dashboard → Settings → Analytics → Exclude my visits on this browser.`,
     'owner-console': `// Run once in your browser console to permanently
 // disable tracking for yourself on this device:
 PulzivoAnalytics.disableTracking();

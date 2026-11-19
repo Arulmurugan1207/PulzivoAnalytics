@@ -267,6 +267,36 @@ $sidebar-collapsed: 64px;
   }
 }
 
+.usage-meter {
+  padding: 0.35rem 0.35rem 0.6rem;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+
+  .usage-meter-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+  }
+
+  .usage-meter-track {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+
+  .usage-meter-fill {
+    height: 100%;
+    background: #818cf8;
+    border-radius: 999px;
+    &.is-soft { background: #fbbf24; }
+    &.is-full { background: #fb7185; }
+  }
+
+  p { margin: 0.35rem 0 0; color: #94a3b8; }
+}
+
 .collapse-btn {
   width: 100%;
   background: none;
@@ -283,6 +313,74 @@ $sidebar-collapsed: 64px;
   &:hover {
     background: rgba(255, 255, 255, 0.06);
     color: #e2e8f0;
+  }
+}
+
+.setup-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #312e81;
+  font-size: 0.92rem;
+
+  a { color: #4338ca; font-weight: 650; margin-left: auto; white-space: nowrap; }
+}
+
+.usage-soft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #78350f;
+
+  span { flex: 1; }
+  button {
+    border: 0;
+    background: #4f46e5;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.45rem 0.8rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .usage-dismiss { background: transparent; color: #92400e; padding: 0.35rem; }
+}
+
+.usage-card {
+  background: #fff;
+  border: 1px solid #fecdd3;
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+
+  h2 { margin: 0 0 0.35rem; font-size: 1.15rem; color: #9f1239; }
+  p { margin: 0; color: #475569; line-height: 1.5; }
+  .usage-card-offer {
+    margin-top: 0.75rem;
+    background: #eef2ff;
+    color: #312e81;
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+  }
+  a {
+    display: inline-flex;
+    margin-top: 0.9rem;
+    background: #4f46e5;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 650;
+    border-radius: 8px;
+    padding: 0.55rem 0.95rem;
   }
 }
 
