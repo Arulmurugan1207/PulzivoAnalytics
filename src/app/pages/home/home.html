@@ -133,6 +133,7 @@
   <div class="h-container">
     <h2>Simple pricing</h2>
     <p class="h-section-sub">Start free. Upgrade when your traffic grows.</p>
+    <p class="h-founder">Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers.</p>
     <div class="h-prices">
       @for (p of plans; track p.name) {
         <a class="h-price" [class.featured]="p.featured" routerLink="/signup" [queryParams]="{ plan: p.plan }" (click)="trackCta('home_pricing', p.plan)">

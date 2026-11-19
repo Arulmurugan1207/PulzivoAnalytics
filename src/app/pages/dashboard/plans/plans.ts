@@ -286,7 +286,11 @@ export class DashboardPlans implements OnInit {
         plan: this.selectedPlan.type,
         cycle: this.billingCycle(),
         userId: this.user._id,
-        email: this.user.email
+        email: this.user.email,
+        // Stripe Checkout already accepts promotion codes. node-server-api #114
+        // auto-applies this field; until then the API ignores it and the
+        // customer can still type FOUNDER50 in the checkout code box.
+        promo: 'FOUNDER50',
       }).subscribe({
         next: ({ url }) => {
           window.location.href = url;
