@@ -1,7 +1,8 @@
 ﻿import { Component, signal, OnInit, OnDestroy, HostListener, NgZone } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { trackConversion } from '../../analytics/conversion';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
@@ -45,7 +46,7 @@ export class Home implements OnInit, OnDestroy {
     localStorage.setItem('pulz_exit_intent_date', new Date().toISOString().slice(0, 10));
   }
 
-  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone) {
+  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone, private router: Router) {
     this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, no cookies, no personal data collected by default.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'og:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
@@ -76,10 +77,10 @@ export class Home implements OnInit, OnDestroy {
   ];
 
   plans = [
-    { name: 'Free',       price: '$0',  per: false, desc: '10K events/month', featured: false },
-    { name: 'Starter',    price: '$9',  per: true,  desc: 'Sessions, scroll depth, UTM attribution', featured: true },
-    { name: 'Pro',        price: '$29', per: true,  desc: 'Opt-in user identification and performance', featured: false },
-    { name: 'Enterprise', price: '$99', per: true,  desc: 'Errors, rage clicks, Web Vitals', featured: false },
+    { name: 'Free',       plan: 'free',       price: '$0',  per: false, desc: '10K events/month', featured: false },
+    { name: 'Starter',    plan: 'starter',    price: '$9',  per: true,  desc: 'Sessions, scroll depth, UTM attribution', featured: true },
+    { name: 'Pro',        plan: 'pro',        price: '$29', per: true,  desc: 'Opt-in user identification and performance', featured: false },
+    { name: 'Enterprise', plan: 'enterprise', price: '$99', per: true,  desc: 'Errors, rage clicks, Web Vitals', featured: false },
   ];
 
   faqs = [
@@ -91,10 +92,10 @@ export class Home implements OnInit, OnDestroy {
 
   // ── Sample dashboard (clearly labelled demo data) ──
   kpis = [
-    { label: 'Visitors',          value: '12.4K', delta: '18%',  up: true,  good: true },
-    { label: 'Pageviews',         value: '38.9K', delta: '12%',  up: true,  good: true },
-    { label: 'Bounce rate',       value: '41%',   delta: '3%',   up: false, good: true },
-    { label: 'Avg. time on page', value: '1m 52s', delta: '9%',  up: true,  good: true },
+    { label: 'Page views', value: '38.9K', delta: '12%', up: true,  good: true },
+    { label: 'Visitors',   value: '12.4K', delta: '18%', up: true,  good: true },
+    { label: 'Sessions',   value: '18.1K', delta: '9%',  up: true,  good: true },
+    { label: 'Bounce rate', value: '41%',  delta: '3%',  up: false, good: true },
   ];
   // Same sample counts as before. Share is each row's part of this list, so the
   // donut and the % labels agree. Titles sit above the path, matching Overview.
@@ -200,7 +201,7 @@ export class Home implements OnInit, OnDestroy {
     if (typeof PulzivoAnalytics !== 'undefined') {
       PulzivoAnalytics('event', 'exit_intent', { page: 'home' });
     }
-    this.authService.requestOpenSignUp();
+    this.router.navigate(['/signup']);
   }
 
   private fetchLiveStats() {
@@ -215,23 +216,8 @@ export class Home implements OnInit, OnDestroy {
     return n.toLocaleString();
   }
 
-  openSignUp(source: string = 'unknown') {
-    if (typeof PulzivoAnalytics !== 'undefined') {
-      PulzivoAnalytics('event', 'signup_cta_clicked', { page: 'home', source });
-    }
-    this.authService.requestOpenSignUp();
-  }
-
-  trackDemoClick() {
-    if (typeof PulzivoAnalytics !== 'undefined') {
-      PulzivoAnalytics('event', 'demo_clicked', { page: 'home', source: 'hero' });
-    }
-  }
-
-  trackCta(source: string) {
-    if (typeof PulzivoAnalytics !== 'undefined') {
-      PulzivoAnalytics('event', 'signup_cta_clicked', { page: 'home', source });
-    }
+  trackCta(location: string, plan?: string) {
+    trackConversion('cta_click', plan ? { location, plan } : { location });
   }
 
   async copyScript() {

@@ -7,8 +7,8 @@ const pro = { planType: 'pro', planPrice: 29 };
 
 test('logged-out visitors see a signup CTA on every plan, including Free', () => {
   const current = { currentPlanType: 'free', currentPlanPrice: 0, loggedIn: false };
-  assert.equal(planButtonLabel({ ...free, ...current }), 'Get started free');
-  assert.equal(planButtonLabel({ ...pro, ...current }), 'Get started free');
+  assert.equal(planButtonLabel({ ...free, ...current }), 'Start free');
+  assert.equal(planButtonLabel({ ...pro, ...current }), 'Start free');
   assert.equal(planButtonDisabled({ ...free, ...current }), false);
   assert.equal(planButtonDisabled({ ...pro, ...current }), false);
 });

@@ -50,6 +50,7 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
+import { readApiError } from '../../../auth/signup-payload';
 import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/breakdown-card';
 import { ImproveCard, ImproveReport } from '../../../components/improve-card/improve-card';
 import { mergeSourceRows } from '../../../utils/source-name';
@@ -100,6 +101,8 @@ export interface FormInteractionData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardOverview implements OnInit, OnDestroy {
+  creatingSite = false;
+  createSiteError = '';
   private dateRangeSubject = new BehaviorSubject<DateRange | null>(null);
   dateRange$ = this.dateRangeSubject.asObservable();
 
@@ -2610,6 +2613,23 @@ export class DashboardOverview implements OnInit, OnDestroy {
     const total = (split?.new || 0) + (split?.returning || 0);
     if (!total) return null;
     return (split.new / total) * 100;
+  }
+
+  createFirstSite(name: string): void {
+    const site = name.trim() || 'My website';
+    this.creatingSite = true;
+    this.createSiteError = '';
+    this.apiKeysService.createApiKey(site, 'First site').subscribe({
+      next: () => {
+        this.creatingSite = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.creatingSite = false;
+        this.createSiteError = readApiError(err, 'Could not create a site. Try again, or create a key from API Keys.');
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   get showSetupEmpty(): boolean {

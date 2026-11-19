@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -9,6 +10,7 @@ import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
+import { normalizePlan } from '../../../analytics/intent-plan';
 
 interface Plan {
   type: 'free' | 'starter' | 'pro' | 'enterprise';
@@ -151,11 +153,18 @@ export class DashboardPlans implements OnInit {
   constructor(
     private authService: AuthService,
     private http: HttpClient,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private route: ActivatedRoute,
   ) {}
 
   ngOnInit() {
     this.loadCurrentPlan();
+    const requested = normalizePlan(this.route.snapshot.queryParamMap.get('plan'));
+    if (!requested) return;
+    const plan = this.plans.find(p => p.type === requested);
+    if (plan && plan.type !== this.currentPlan() && this.canUpgrade(plan)) {
+      this.selectPlan(plan);
+    }
   }
 
   loadCurrentPlan() {
@@ -277,7 +286,11 @@ export class DashboardPlans implements OnInit {
         plan: this.selectedPlan.type,
         cycle: this.billingCycle(),
         userId: this.user._id,
-        email: this.user.email
+        email: this.user.email,
+        // Stripe Checkout already accepts promotion codes. node-server-api #114
+        // auto-applies this field; until then the API ignores it and the
+        // customer can still type FOUNDER50 in the checkout code box.
+        promo: 'FOUNDER50',
       }).subscribe({
         next: ({ url }) => {
           window.location.href = url;

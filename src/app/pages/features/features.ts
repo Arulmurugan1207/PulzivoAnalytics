@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
+import { trackConversion } from '../../analytics/conversion';
 
 @Component({
   selector: 'app-features',
@@ -12,6 +13,9 @@ import { DividerModule } from 'primeng/divider';
   styleUrl: './features.scss',
 })
 export class Features {
+  track(location: string) {
+    trackConversion('cta_click', { location });
+  }
 
   categories = [
     {
