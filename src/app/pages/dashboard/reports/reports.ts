@@ -21,6 +21,7 @@ import { AnalyticsDataService, DateRange } from '../../../services/analytics-dat
 import { ApiKeysService, ApiKey } from '../../../services/api-keys.service';
 import { AuthService } from '../../../services/auth.service';
 import { environment } from '../../../../environments/environment';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 
 interface ReportTemplate {
   id: string;
@@ -66,7 +67,8 @@ interface MetricData {
 
     CheckboxModule,
     InputTextModule,
-    ToastModule
+    ToastModule,
+    FounderOfferComponent,
   ],
   providers: [MessageService],
   templateUrl: './reports.html',

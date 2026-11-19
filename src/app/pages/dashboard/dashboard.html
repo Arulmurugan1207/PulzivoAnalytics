@@ -284,7 +284,9 @@
               {{ usage.eventsUsed | number }} of {{ usage.eventsLimit | number }} events are used@if (formatPeriodEnd(usage.periodEnd)) { before the period resets on {{ formatPeriodEnd(usage.periodEnd) }}}.
               Upgrade to keep collecting visits.
             </p>
-            <p class="usage-card-offer">{{ founderOffer }}</p>
+            @if (isFreePlan(usage.plan) && isFreePlan(userPlan)) {
+              <p class="usage-card-offer">{{ founderOffer }}</p>
+            }
             <a routerLink="/dashboard/plans" [queryParams]="{ plan: 'pro' }">Continue to checkout</a>
           </section>
         } @else if (usageLevel(usage) === 'soft' && !usageSoftDismissed) {
@@ -292,6 +294,9 @@
             <i class="pi pi-chart-bar" aria-hidden="true"></i>
             <span>
               You’ve used <strong>{{ usage.eventsUsed | number }}</strong> of <strong>{{ usage.eventsLimit | number }}</strong> events this period ({{ usage.percent }}%). There’s still room.
+              @if (isFreePlan(usage.plan) && isFreePlan(userPlan)) {
+                <span class="usage-soft-offer">{{ founderOffer }}</span>
+              }
             </span>
             <button type="button" (click)="openUpgrade()">See plans</button>
             <button type="button" class="usage-dismiss" aria-label="Dismiss" (click)="usageSoftDismissed = true"><i class="pi pi-times"></i></button>
@@ -304,6 +309,7 @@
           <span style="flex:1">
             This site has used <strong>{{ usageWarning.used | number }}</strong> of <strong>{{ usageWarning.limit | number }}</strong> free events this month ({{ usageWarning.pct }}%).
             Upgrade to keep tracking without interruption.
+            <span class="usage-banner-offer">{{ founderOffer }}</span>
           </span>
           <button type="button" class="p-button p-button-sm" (click)="goToUpgrade()">Upgrade</button>
           <button type="button" class="p-button p-button-sm p-button-text" aria-label="Dismiss" (click)="usageWarningDismissed = true"><i class="pi pi-times"></i></button>
@@ -313,6 +319,6 @@
     </main>
   </div>
   @if (showUpgrade) {
-    <app-upgrade-prompt [benefits]="upgradeBenefits" (dismiss)="showUpgrade = false"></app-upgrade-prompt>
+    <app-upgrade-prompt [benefits]="upgradeBenefits" [showOffer]="isFreePlan(userPlan)" (dismiss)="showUpgrade = false"></app-upgrade-prompt>
   }
 </div>

@@ -14,6 +14,8 @@ import { ToastModule } from 'primeng/toast';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { environment } from '../../../../environments/environment';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 
 interface PlanHistoryItem {
   _id: string;
@@ -79,13 +81,15 @@ interface StripeStatus {
     TimelineModule,
     DialogModule,
     TooltipModule,
-    ToastModule
+    ToastModule,
+    FounderOfferComponent,
   ],
   providers: [MessageService],
   templateUrl: './billing.html',
   styleUrl: './billing.scss',
 })
 export class DashboardBilling implements OnInit {
+  readonly isFreePlan = isFreePlan;
   user: any = null;
   planHistory = signal<PlanHistoryItem[]>([]);
   paymentHistory = signal<PaymentItem[]>([]);

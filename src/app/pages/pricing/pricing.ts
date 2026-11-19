@@ -84,6 +84,11 @@ export class Pricing implements OnDestroy {
     return this.authService.isAuthenticated();
   }
 
+  /** Public visitors and Free accounts. Paying customers are not eligible. */
+  get showFounderOffer(): boolean {
+    return !this.isLoggedIn || this.currentPlan.type === 'free';
+  }
+
   plans: Plan[] = [
     {
       type: 'free',

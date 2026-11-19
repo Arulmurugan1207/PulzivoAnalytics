@@ -47,6 +47,9 @@
       </span>
       <span class="cad-note">All prices in USD</span>
     </div>
+    @if (isFreePlan(currentPlan())) {
+      <app-founder-offer />
+    }
   </div>
 
   <!-- Plans Grid -->
@@ -295,6 +298,9 @@
       <div class="price-info">
         @if (canUpgrade(selectedPlan)) {
           <p><i class="pi pi-info-circle"></i> You'll be redirected to Stripe to complete your upgrade to <strong>{{ selectedPlan.name }}</strong> at <strong>{{ getPlanPrice(selectedPlan) }}</strong>.</p>
+          @if (isFreePlan(currentPlan())) {
+            <app-founder-offer />
+          }
         } @else if (selectedPlan.price === 0) {
           <p><i class="pi pi-info-circle"></i> Your subscription will be cancelled at the end of your current billing period. You&rsquo;ll keep full access until then.</p>
         } @else {
