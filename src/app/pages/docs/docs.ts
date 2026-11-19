@@ -11,6 +11,8 @@ import { DividerModule } from 'primeng/divider';
 import { AccordionModule } from 'primeng/accordion';
 import { InputTextModule } from 'primeng/inputtext';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { InstallSnippetsComponent } from '../../growth/install-snippets.component';
+import { ApiKeysService } from '../../services/api-keys.service';
 import hljs from 'highlight.js/lib/core';
 import javascript from 'highlight.js/lib/languages/javascript';
 import xml from 'highlight.js/lib/languages/xml';
@@ -42,7 +44,7 @@ interface SearchResult {
 @Component({
   selector: 'app-docs',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, CardModule, MessageModule, TableModule, TagModule, DividerModule, AccordionModule, InputTextModule, RouterModule],
+  imports: [CommonModule, FormsModule, ButtonModule, CardModule, MessageModule, TableModule, TagModule, DividerModule, AccordionModule, InputTextModule, RouterModule, InstallSnippetsComponent],
   templateUrl: './docs.html',
   styleUrl: './docs.scss',
 })
@@ -54,6 +56,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   activeSection = signal('getting-started');
   anchorCopied = signal<string | null>(null);
   faqSearch = '';
+  installKey = signal('');
 
   // Sidebar search
   sidebarSearch = '';
@@ -65,7 +68,7 @@ export class Docs implements OnInit, OnDestroy, AfterViewChecked {
   private readonly startTime = Date.now();
   private viewedSections = new Set<string>();
 
-  constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute, private router: Router, private el: ElementRef) {
+  constructor(private meta: Meta, private titleService: Title, private route: ActivatedRoute, private router: Router, private el: ElementRef, private apiKeys: ApiKeysService) {
 
     // Developers reading docs = high activation intent
     if (typeof (window as any).PulzivoAnalytics !== 'undefined') {
@@ -1199,6 +1202,7 @@ waitForSDK(timeoutMs = 3000): Promise<void> {
   }
 
   ngOnInit() {
+    this.installKey.set(this.apiKeys.getSelectedApiKey() || '');
     this.setupScrollObserver();
     // Scroll to fragment from URL (e.g. /docs?utm_...#custom-events)
     const fragment = this.route.snapshot.fragment;

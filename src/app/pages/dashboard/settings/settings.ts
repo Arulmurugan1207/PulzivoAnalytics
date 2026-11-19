@@ -24,6 +24,8 @@ import { AuthService } from '../../../services/auth.service';
 import { OwnerExclusionSettingsComponent } from '../../../components/owner-exclusion/owner-exclusion-settings';
 import { EmailPrefsComponent } from '../../../growth/email-prefs';
 import { EmailPrefsService } from '../../../growth/email-prefs.service';
+import { ShareSettingsComponent } from '../../../growth/share-settings';
+import { Ga4ImportComponent } from '../../../growth/ga4-import';
 import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
@@ -80,6 +82,8 @@ interface User {
   imports: [
     OwnerExclusionSettingsComponent,
     EmailPrefsComponent,
+    ShareSettingsComponent,
+    Ga4ImportComponent,
     CommonModule,
     RouterLink,
     FormsModule,

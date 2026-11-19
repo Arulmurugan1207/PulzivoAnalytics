@@ -17,7 +17,7 @@ export class MainLayout {
   private readonly destroyRef = inject(DestroyRef);
 
   private isDashboardLike(url: string): boolean {
-    return url.startsWith('/dashboard') || url.startsWith('/demo');
+    return url.startsWith('/dashboard') || url.startsWith('/demo') || url.startsWith('/share/');
   }
 
   isDashboardRoute = signal(this.isDashboardLike(this.router.url || (typeof window !== 'undefined' ? window.location.pathname : '')));

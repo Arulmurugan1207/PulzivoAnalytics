@@ -107,6 +107,12 @@ export const routes: Routes = [
     data: { description: 'Reset your Pulzivo Analytics account password.', robots: 'noindex, nofollow' },
     loadComponent: () => import('./pages/reset-password/reset-password').then(m => m.ResetPassword)
   },
+  {
+    path: 'share/:token',
+    title: 'Shared dashboard',
+    data: { description: 'A read-only Pulzivo dashboard shared by its owner.', robots: 'noindex, nofollow' },
+    loadComponent: () => import('./pages/share/share-dashboard').then(m => m.ShareDashboard),
+  },
   // Public demo — same shell+components as dashboard, no auth, mock data via DemoService
   {
     path: 'demo',
