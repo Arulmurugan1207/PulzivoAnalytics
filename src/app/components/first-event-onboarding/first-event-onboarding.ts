@@ -7,6 +7,7 @@ import { DEFAULT_POLL, FirstEventState, firstEventSummary, hasFirstEvent, nextSt
 import { trackConversion } from '../../analytics/conversion';
 import { readIntentPlan } from '../../analytics/intent-plan';
 import { InstallStatusService } from '../../growth/install-status.service';
+import { InstallSnippetsComponent } from '../../growth/install-snippets.component';
 
 /**
  * Get-started flow: name the site if there is no key yet, then the real
@@ -15,7 +16,7 @@ import { InstallStatusService } from '../../growth/install-status.service';
 @Component({
   selector: 'app-first-event-onboarding',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, InstallSnippetsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
   <div class="no-data-setup-card get-started">
@@ -53,9 +54,8 @@ import { InstallStatusService } from '../../growth/install-status.service';
         <div class="setup-step">
           <span class="step-num">1</span>
           <div>
-            <strong>Copy the script</strong>
-            <pre class="setup-code"><code>{{ snippet }}</code></pre>
-            <button type="button" class="copy-btn" (click)="copySnippet()">{{ copied ? 'Copied' : 'Copy' }}</button>
+            <strong>Copy the script for your platform</strong>
+            <app-install-snippets [apiKey]="apiKey"></app-install-snippets>
           </div>
         </div>
         <div class="setup-step">

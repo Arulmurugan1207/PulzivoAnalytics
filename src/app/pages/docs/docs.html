@@ -112,7 +112,9 @@
                 <button pButton type="button" [label]="isCopied('script-tag') ? 'Copied!' : 'Copy'" [icon]="isCopied('script-tag') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['script-tag'])" [class.p-button-success]="isCopied('script-tag')" class="copy-btn" size="small" aria-label="Copy code"></button>
                 <pre class="code-block"><code>{{ codeBlocks['script-tag'] }}</code></pre>
               </div>
-              <p class="step-note"><i class="pi pi-info-circle"></i> <strong>Not a developer?</strong> Skip down to the <a (click)="trackNavClick('no-code-platforms')" class="inline-link">No-Code Platforms</a> section — we have step-by-step guides for WordPress, Shopify, and Webflow.</p>
+              <p class="step-note">Pick the platform you use. The snippet already contains your key when you are signed in.</p>
+              <app-install-snippets [apiKey]="installKey()"></app-install-snippets>
+              <p class="step-note"><i class="pi pi-info-circle"></i> <strong>Not a developer?</strong> The WordPress, Shopify, and Webflow tabs above are plugin-free. The <a (click)="trackNavClick('no-code-platforms')" class="inline-link">No-Code Platforms</a> section has the longer write-up.</p>
             </div>
           </div>
 
