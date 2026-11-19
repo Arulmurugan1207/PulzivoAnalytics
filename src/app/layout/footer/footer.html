@@ -20,8 +20,9 @@
         </span>
       }
     </div>
-    <nav class="footer-nav">
+    <nav class="footer-nav" aria-label="Footer">
       <a class="footer-cta" routerLink="/signup" (click)="trackStart()">Start free</a>
+      <a routerLink="/docs">Docs</a>
       <a routerLink="/blog">Blog</a>
       <a routerLink="/privacy">Privacy</a>
       <a routerLink="/terms">Terms</a>
@@ -29,6 +30,15 @@
       <a href="https://x.com/Pulzivo" target="_blank" rel="noopener" (click)="trackXClick()">
         <i class="pi pi-twitter"></i> @Pulzivo
       </a>
+    </nav>
+    <nav class="footer-compare" aria-label="Compare">
+      <span class="footer-group-label">Compare</span>
+      <a routerLink="/ga4-alternative">GA4 alternative</a>
+      <a routerLink="/compare/google-analytics">vs Google Analytics</a>
+      <a routerLink="/compare/plausible">vs Plausible</a>
+      <a routerLink="/compare/fathom">vs Fathom</a>
+      <a routerLink="/compare/simple-analytics">vs Simple Analytics</a>
+      <a routerLink="/cookieless-analytics">Cookieless analytics</a>
     </nav>
     <div class="footer-copy">© 2026 Pulzivo Analytics</div>
   </div>

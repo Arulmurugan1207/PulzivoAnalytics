@@ -32,7 +32,7 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
   CacheLookup on
   RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
   RewriteCond %{QUERY_STRING} ^$
-  RewriteRule ^(pricing|features|docs|blog|blog/[a-z0-9-]+|why-pulzivo|use-cases|contact|privacy|terms)?$ - [E=Cache-Control:max-age=600]
+  RewriteRule ^(pricing|features|docs|blog|blog/[a-z0-9-]+|why-pulzivo|use-cases|contact|privacy|terms|ga4-alternative|cookieless-analytics|compare/[a-z0-9-]+)?$ - [E=Cache-Control:max-age=600]
 </IfModule>
 
 # Never rewrite SEO files to the Angular app

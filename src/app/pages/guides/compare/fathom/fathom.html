@@ -1,0 +1,92 @@
+<article class="guide">
+  <header class="guide-hero">
+    <p class="guide-kicker">{{ kicker }}</p>
+    <h1>Pulzivo vs Fathom</h1>
+    <p class="guide-lede">{{ lede }}</p>
+    <div class="guide-actions">
+      <a class="guide-btn" routerLink="/signup" (click)="track(trackId + '_hero')">Start free</a>
+      <a class="guide-btn guide-btn-ghost" routerLink="/pricing">See pricing</a>
+    </div>
+    <p class="guide-note">Free plan: 10,000 events/month, one website, no credit card. The core script is about 9KB gzip.</p>
+  </header>
+
+  @for (section of sections; track section.heading) {
+    <section class="guide-section">
+      <h2>{{ section.heading }}</h2>
+      @for (para of section.paragraphs; track para) {
+        <p>{{ para }}</p>
+      }
+      @if (section.bullets.length) {
+        <ul>
+          @for (item of section.bullets; track item) {
+            <li>{{ item }}</li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  <section class="guide-section">
+    <h2>{{ tableTitle }}</h2>
+    <p>{{ tableIntro }}</p>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th scope="col">Feature</th>
+            <th scope="col" class="is-us">Pulzivo</th>
+            <th scope="col">{{ otherName }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows; track row.feature) {
+            <tr>
+              <th scope="row">{{ row.feature }}</th>
+              <td class="is-us">{{ row.pulzivo }}</td>
+              <td>{{ row.other }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="compare-note">{{ tableNote }}</p>
+  </section>
+
+  <section class="guide-section">
+    <h2>Pulzivo pricing</h2>
+    <p>Pulzivo meters events. A page view, a click and a custom event each count, so the same traffic can use more events here than pageviews on a tool that only counts pages. Run the free plan for a few weeks before you pick a paid tier. These are the plans on the pricing page.</p>
+    <ul>
+      <li>Free is $0: 1 website, 10,000 events/month, 30-day retention. Page views, clicks, custom events, scroll depth and Core Web Vitals (LCP, INP and CLS).</li>
+      <li>Starter is $9/month: 2 websites, 100,000 events/month, 6-month retention. Adds sessions, unique visitors and UTM attribution.</li>
+      <li>Pro is $29/month: 5 websites, 500,000 events/month, 12-month retention. Adds opt-in user identification, performance metrics and JavaScript error capture.</li>
+      <li>Enterprise is $99/month: unlimited websites and events, 24-month retention. Adds form tracking and abandonment, rage clicks and dead clicks.</li>
+    </ul>
+    <p>Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.</p>
+    <p>Goals and revenue are recorded with <code>trackGoal()</code> and <code>trackRevenue()</code>. A weekly email, on by default, summarizes visitors, pages, sources and what changed. Settings can create a read-only share link, and can import a GA4 CSV without connecting a Google account. Improve your site turns the events your plan collects into a short list of fixes.</p>
+  </section>
+
+  <section class="guide-faq">
+    <h2>Questions</h2>
+    @for (item of faqs; track item.question) {
+      <details class="guide-faq-item">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    }
+  </section>
+
+  <section class="guide-cta">
+    <h2>Start free, then decide</h2>
+    <p>Paste one script tag. No credit card on the free plan. Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.</p>
+    <div class="guide-actions">
+      <a class="guide-btn" routerLink="/signup" (click)="track(trackId + '_cta')">Create a free account</a>
+      <a class="guide-btn guide-btn-ghost" routerLink="/docs">Installation docs</a>
+    </div>
+  </section>
+
+  <nav class="guide-related" aria-label="Related guides">
+    @for (link of related; track link.href) {
+      <a [routerLink]="link.href">{{ link.label }}</a>
+    }
+  </nav>
+</article>

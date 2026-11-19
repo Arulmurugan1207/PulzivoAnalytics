@@ -155,6 +155,7 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     'src/app/seo/seo-routes.json',
     'src/app/pages/blog/posts.json',
     'src/app/pages/blog/posts-content.json',
+    'src/app/pages/guides/guide-copy.ts',
   ];
   for (const f of files) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -296,6 +297,86 @@ test('prerender resolves imported constants used by docs FAQ answers', () => {
   const html = render(template, pages().find((p) => p.path === 'docs'));
   assert.match(html, /\?pulz_owner=1/);
   assert.match(html, /<div class="prerendered">/);
+});
+
+function guideWords(html) {
+  const article = html.match(/<article class="guide">([\s\S]*?)<\/article>/);
+  assert.ok(article, 'guide article missing');
+  const text = article[1]
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.split(' ').filter(Boolean);
+}
+
+test('comparison pages are in the sitemap, canonical, honest, and 800-1200 words', () => {
+  const { pages, render, canonicalFor } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const xml = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const paths = [
+    ['ga4-alternative', 'Google Analytics 4 alternative for small sites'],
+    ['compare/plausible', 'Pulzivo vs Plausible'],
+    ['compare/fathom', 'Pulzivo vs Fathom'],
+    ['compare/google-analytics', 'Pulzivo vs Google Analytics 4'],
+    ['compare/simple-analytics', 'Pulzivo vs Simple Analytics'],
+    ['cookieless-analytics', 'What cookieless analytics is, and how Pulzivo does it'],
+  ];
+  for (const [routePath, h1] of paths) {
+    assert.match(xml, new RegExp(`<loc>${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</loc>`));
+    const page = pages().find((item) => item.path === routePath);
+    assert.ok(page, routePath);
+    const html = render(template, page);
+    assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
+    assert.match(html, new RegExp(`<h1>${h1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</h1>`));
+    assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
+    assert.match(html, /FOUNDER50/);
+    assert.match(html, /"@type": "FAQPage"/);
+    const cells = [...html.matchAll(/<td[^>]*>([^<]+)<\/td>/g)].map((match) => match[1].trim());
+    assert.ok(cells.length > 0, routePath);
+    for (const cell of cells) assert.match(cell, /^(Yes|No|Partial)$/, `${routePath} cell ${cell}`);
+    const count = guideWords(html).length;
+    assert.ok(count >= 800 && count <= 1200, `${routePath} is ${count} words`);
+  }
+});
+
+test('/docs is in the sitemap, prerendered, and linked from the visible nav and footer', () => {
+  const { pages, render, canonicalFor, buildSitemap } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const committed = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const generated = buildSitemap('2026-11-19');
+  for (const xml of [committed, generated]) {
+    assert.match(xml, /<loc>https:\/\/pulzivo\.com\/docs<\/loc>/);
+  }
+  const routes = fs.readFileSync(path.join(ROOT, 'src/app/app.routes.ts'), 'utf8');
+  const docsPaths = [...routes.matchAll(/path:\s*'((?:docs)[^']*)'/g)].map((match) => match[1]);
+  assert.deepEqual(docsPaths, ['docs'], 'docs sections are in-page anchors, not extra routes');
+  const page = pages().find((item) => item.path === 'docs');
+  const html = render(template, page);
+  assert.match(html, /<title>Documentation — Install &amp; Track Events \| Pulzivo Analytics<\/title>/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/pulzivo\.com\/docs">/);
+  assert.match(html, /<h1\b[^>]*>[\s\S]*Getting Started[\s\S]*<\/h1>/);
+  assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
+  const header = fs.readFileSync(path.join(ROOT, 'src/app/layout/header/header.ts'), 'utf8');
+  const footer = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
+  assert.match(header, /label:\s*'Docs',\s*path:\s*'\/docs'/);
+  assert.match(footer, /routerLink="\/docs"/);
+  for (const item of pages()) {
+    const rendered = render(template, item);
+    const visibleStart = rendered.indexOf('<div class="prerendered">');
+    const hiddenStart = rendered.indexOf('<nav class="prerendered-nav');
+    const visible = rendered.slice(visibleStart, hiddenStart);
+    const headerHtml = visible.match(/<header[\s\S]*?<\/header>/);
+    const footerHtml = visible.match(/<footer[\s\S]*?<\/footer>/);
+    assert.ok(headerHtml, `${item.path} missing prerendered header`);
+    assert.ok(footerHtml, `${item.path} missing prerendered footer`);
+    assert.match(headerHtml[0], /<nav aria-label="Primary navigation">[\s\S]*<a href="\/docs">Docs<\/a>/);
+    assert.match(footerHtml[0], /<a href="\/docs">Docs<\/a>/);
+    assert.doesNotMatch(headerHtml[0] + footerHtml[0], /sr-only|display:\s*none|visibility:\s*hidden/);
+  }
 });
 
 test('prerender loads exported constants from relative imports and skips unresolved fields', () => {

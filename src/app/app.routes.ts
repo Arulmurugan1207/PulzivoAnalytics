@@ -48,6 +48,36 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/why-pulzivo/why-pulzivo').then(m => m.WhyPulzivo)
   },
   {
+    path: 'ga4-alternative',
+    ...seo('ga4-alternative'),
+    loadComponent: () => import('./pages/guides/ga4-alternative/ga4-alternative').then(m => m.Ga4Alternative)
+  },
+  {
+    path: 'cookieless-analytics',
+    ...seo('cookieless-analytics'),
+    loadComponent: () => import('./pages/guides/cookieless-analytics/cookieless-analytics').then(m => m.CookielessAnalytics)
+  },
+  {
+    path: 'compare/plausible',
+    ...seo('compare/plausible'),
+    loadComponent: () => import('./pages/guides/compare/plausible/plausible').then(m => m.ComparePlausible)
+  },
+  {
+    path: 'compare/fathom',
+    ...seo('compare/fathom'),
+    loadComponent: () => import('./pages/guides/compare/fathom/fathom').then(m => m.CompareFathom)
+  },
+  {
+    path: 'compare/google-analytics',
+    ...seo('compare/google-analytics'),
+    loadComponent: () => import('./pages/guides/compare/google-analytics/google-analytics').then(m => m.CompareGoogleAnalytics)
+  },
+  {
+    path: 'compare/simple-analytics',
+    ...seo('compare/simple-analytics'),
+    loadComponent: () => import('./pages/guides/compare/simple-analytics/simple-analytics').then(m => m.CompareSimpleAnalytics)
+  },
+  {
     path: 'use-cases',
     ...seo('use-cases'),
     loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
