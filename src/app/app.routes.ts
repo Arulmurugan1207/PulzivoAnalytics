@@ -83,6 +83,21 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
   },
   {
+    path: 'tools',
+    ...seo('tools'),
+    loadComponent: () => import('./pages/tools/tools-index/tools-index').then(m => m.ToolsIndexPage)
+  },
+  {
+    path: 'tools/utm-builder',
+    ...seo('tools/utm-builder'),
+    loadComponent: () => import('./pages/tools/utm-builder/utm-builder').then(m => m.UtmBuilderPage)
+  },
+  {
+    path: 'tools/page-speed-checker',
+    ...seo('tools/page-speed-checker'),
+    loadComponent: () => import('./pages/tools/page-speed-checker/page-speed-checker').then(m => m.PageSpeedCheckerPage)
+  },
+  {
     path: 'blog',
     ...seo('blog'),
     loadComponent: () => import('./pages/blog/blog').then(m => m.Blog)

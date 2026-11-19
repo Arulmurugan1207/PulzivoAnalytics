@@ -1,0 +1,115 @@
+<article class="guide tool">
+  <header class="guide-hero">
+    <p class="guide-kicker">Free tool, no signup</p>
+    <h1>Page speed checker</h1>
+    <p class="guide-lede">Run Google's public PageSpeed Insights test for one URL. You get a Lighthouse performance score, LCP, INP or a labelled TBT lab proxy, CLS, and the top three opportunities.</p>
+  </header>
+
+  <form class="tool-form" (submit)="check($event)">
+    <label class="field">
+      <span>URL</span>
+      <input type="url" name="url" autocomplete="url" spellcheck="false" placeholder="https://example.com" [value]="url()" (input)="onUrl($event)" />
+    </label>
+    <div class="strategy" role="group" aria-label="Lab device">
+      <button type="button" [class.active]="strategy() === 'mobile'" (click)="setStrategy('mobile')">Mobile</button>
+      <button type="button" [class.active]="strategy() === 'desktop'" (click)="setStrategy('desktop')">Desktop</button>
+    </div>
+    <button type="submit" class="tool-btn" [disabled]="status() === 'loading'">
+      {{ status() === 'loading' ? 'Running test…' : 'Run test' }}
+    </button>
+    @if (status() === 'loading') {
+      <p class="tool-hint">Running a Lighthouse lab test through Google. This usually takes 15 to 40 seconds.</p>
+    }
+  </form>
+
+  @if (status() === 'error' && errorMessage()) {
+    <p class="tool-error" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (report()) {
+    <section class="tool-result" aria-live="polite">
+      <h2>This lab visit</h2>
+      <div class="score-row">
+        <div class="score-card"
+          [class.band-good]="report()!.scoreBand === 'good'"
+          [class.band-needs-work]="report()!.scoreBand === 'needs-work'"
+          [class.band-poor]="report()!.scoreBand === 'poor'"
+          [class.band-missing]="report()!.scoreBand === 'missing'">
+          <span class="score-num">{{ report()!.scoreLabel }}</span>
+          <span class="score-caption">Performance</span>
+          <span class="band-label">{{ report()!.scoreBandLabel }}</span>
+        </div>
+        <p class="score-note">{{ report()!.strategy === 'mobile' ? 'Mobile' : 'Desktop' }} lab. {{ report()!.note }}</p>
+      </div>
+      <div class="vital-grid">
+        @for (metric of report()!.metrics; track metric.id) {
+          <article class="vital-card"
+            [class.band-good]="metric.band === 'good'"
+            [class.band-needs-work]="metric.band === 'needs-work'"
+            [class.band-poor]="metric.band === 'poor'"
+            [class.band-missing]="metric.band === 'missing'">
+            <h3>{{ metric.name }}</h3>
+            <p class="vital-value">{{ metric.valueLabel }}</p>
+            <p class="band-label">{{ metric.bandLabel }}</p>
+            <p class="vital-detail">{{ metric.detail }}</p>
+          </article>
+        }
+      </div>
+      @if (report()!.finalUrl) {
+        <p class="tool-hint">Tested URL: {{ report()!.finalUrl }}</p>
+      }
+      <h3>Top opportunities</h3>
+      @if (report()!.opportunities.length) {
+        <ol class="opportunities">
+          @for (item of report()!.opportunities; track item.id) {
+            <li>
+              <strong>{{ item.title }}</strong>
+              <p>{{ item.text }}</p>
+            </li>
+          }
+        </ol>
+      } @else {
+        <p>Lighthouse did not list a time-saving opportunity for this run.</p>
+      }
+    </section>
+  }
+
+  <section class="guide-section">
+    <h2>What this test measures</h2>
+    <p>The browser calls Google's PageSpeed Insights v5 API (<code>runPagespeed</code>). Google loads the page in a lab and returns Lighthouse data. The performance score is that lab visit, from 0 to 100. 90 and above is good. 50 to 89 needs work. Below 50 is poor.</p>
+    <p>LCP is Largest Contentful Paint. CLS is Cumulative Layout Shift. Both numbers on the cards are from the lab visit. Good, needs work, and poor use Google's published cutoffs: LCP good at 2.5 seconds or faster, CLS good at 0.1 or less.</p>
+    <p>INP, Interaction to Next Paint, is a field metric. When Chrome has enough real visits, Google includes that INP and this page shows it, labelled as field data for the URL or for the whole site. When that data is missing, Lighthouse does not invent an INP. The card shows Total Blocking Time instead, and the label says it is a lab proxy. TBT is not INP. Its own cutoff is 200 ms for good and 600 ms for the start of poor.</p>
+  </section>
+
+  <section class="guide-section">
+    <h2>How to read the result</h2>
+    <ul>
+      <li>Green is good, amber is needs work, red is poor. Grey means the test did not report that number.</li>
+      <li>The top three opportunities are the Lighthouse suggestions with the largest estimated time savings, written in plain language. The estimate is for this lab run only.</li>
+      <li>A lab score moves around. Run it twice before you treat a small change as real. It still will not match every visitor's phone or network.</li>
+      <li>localhost and private network addresses are rejected here, because Google's servers cannot open them.</li>
+      <li>If Google's shared quota is used up, the page says so. Try again later. No account is required. A PageSpeed API key in the site config, not stored in git, makes repeated checks more reliable.</li>
+    </ul>
+  </section>
+
+  <section class="guide-faq">
+    <h2>Questions</h2>
+    @for (item of faqs; track item.question) {
+      <details class="guide-faq-item">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    }
+  </section>
+
+  <section class="guide-cta">
+    <h2>Next step</h2>
+    <p><a class="guide-cta-link" routerLink="/signup" (click)="track('page_speed_cta')">Lab tests are one visit. Pulzivo records real Core Web Vitals from every visitor, on the free plan.</a></p>
+  </section>
+
+  <nav class="guide-related" aria-label="Related">
+    <a routerLink="/tools">All free tools</a>
+    <a routerLink="/tools/utm-builder">UTM builder</a>
+    <a routerLink="/docs">Installation docs</a>
+  </nav>
+</article>

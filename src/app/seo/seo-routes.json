@@ -84,6 +84,27 @@
     "changefreq": "monthly"
   },
   {
+    "path": "tools",
+    "title": "Free tools — UTM builder and page speed | Pulzivo Analytics",
+    "description": "Two free browser tools, no signup: a UTM campaign URL builder, and a page speed checker that calls Google's public PageSpeed Insights API.",
+    "priority": "0.6",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "tools/utm-builder",
+    "title": "UTM campaign URL builder | Pulzivo Analytics",
+    "description": "Build a campaign URL with utm_source, utm_medium, utm_campaign, utm_term, and utm_content. Presets for Google, Facebook, email, X, LinkedIn, WhatsApp, and YouTube. Nothing is uploaded.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "tools/page-speed-checker",
+    "title": "Page speed checker — Core Web Vitals | Pulzivo Analytics",
+    "description": "Check one public URL with Google's PageSpeed Insights. See the lab performance score, LCP, INP or TBT as a lab proxy, CLS, and the top three opportunities.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
     "path": "blog",
     "title": "Blog — Guides on Simple, Privacy-Friendly Analytics | Pulzivo Analytics",
     "description": "Practical guides on simple, privacy-friendly web analytics: choosing a Google Analytics alternative, measuring without cookies, and pricing comparisons.",

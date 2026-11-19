@@ -1,0 +1,40 @@
+<article class="guide tool">
+  <header class="guide-hero">
+    <p class="guide-kicker">Free, no signup</p>
+    <h1>Free tools</h1>
+    <p class="guide-lede">Two small tools for campaign links and page speed. They run in your browser. A Pulzivo account is not required.</p>
+  </header>
+
+  <section class="guide-section">
+    <ul class="tool-index">
+      @for (tool of tools; track tool.href) {
+        <li>
+          <h2><a [routerLink]="tool.href">{{ tool.title }}</a></h2>
+          <p>{{ tool.summary }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="guide-section">
+    <h2>What they are for</h2>
+    <p>The UTM builder writes the five campaign parameters onto a URL you already have. Use it when an ad, an email, or a social post should show up as its own row later. It does not track the click. Tracking starts on the page the link opens, if that page runs analytics.</p>
+    <p>The page speed checker is one Lighthouse lab visit from Google. It is a useful first look at LCP, CLS, and the heaviest opportunities. It is not a record of your visitors. Real INP needs field data. When Google does not have that, the checker shows Total Blocking Time and says it is a lab proxy.</p>
+  </section>
+
+  <section class="guide-faq">
+    <h2>Questions</h2>
+    @for (item of faqs; track item.question) {
+      <details class="guide-faq-item">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    }
+  </section>
+
+  <section class="guide-cta">
+    <h2>Next step</h2>
+    <p>Pulzivo is separate from these tools. The free plan is 10,000 events a month and includes Core Web Vitals from real visitors. UTM attribution starts on Starter.</p>
+    <p><a class="guide-cta-link" routerLink="/signup" (click)="track('tools_index_cta')">Start free</a></p>
+  </section>
+</article>

@@ -156,6 +156,12 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     'src/app/pages/blog/posts.json',
     'src/app/pages/blog/posts-content.json',
     'src/app/pages/guides/guide-copy.ts',
+    'src/app/pages/tools/tools-index/tools-index.html',
+    'src/app/pages/tools/utm-builder/utm-builder.html',
+    'src/app/pages/tools/page-speed-checker/page-speed-checker.html',
+    'src/app/pages/tools/tools-index/tools-index.ts',
+    'src/app/pages/tools/utm-builder/utm-builder.ts',
+    'src/app/pages/tools/page-speed-checker/page-speed-checker.ts',
   ];
   for (const f of files) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -377,6 +383,56 @@ test('/docs is in the sitemap, prerendered, and linked from the visible nav and 
     assert.match(footerHtml[0], /<a href="\/docs">Docs<\/a>/);
     assert.doesNotMatch(headerHtml[0] + footerHtml[0], /sr-only|display:\s*none|visibility:\s*hidden/);
   }
+});
+
+test('free tool pages have titles, canonicals, sitemap entries, and honest CTAs', () => {
+  const { pages, render, canonicalFor } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const xml = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const header = fs.readFileSync(path.join(ROOT, 'src/app/layout/header/header.ts'), 'utf8');
+  const footer = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
+  assert.match(header, /label:\s*'Free tools',\s*path:\s*'\/tools'/);
+  assert.match(footer, /aria-label="Free tools"/);
+  assert.match(footer, /footer-group-label">Free tools</);
+  assert.match(footer, /routerLink="\/tools\/utm-builder"/);
+  assert.match(footer, /routerLink="\/tools\/page-speed-checker"/);
+
+  const expected = [
+    ['tools', 'Free tools — UTM builder and page speed | Pulzivo Analytics', 'Free tools'],
+    ['tools/utm-builder', 'UTM campaign URL builder | Pulzivo Analytics', 'UTM campaign URL builder'],
+    ['tools/page-speed-checker', 'Page speed checker — Core Web Vitals | Pulzivo Analytics', 'Page speed checker'],
+  ];
+  for (const [routePath, title, h1] of expected) {
+    assert.match(xml, new RegExp(`<loc>${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</loc>`));
+    const page = pages().find((item) => item.path === routePath);
+    assert.equal(page.title, title);
+    const html = render(template, page);
+    assert.match(html, new RegExp(`<title>${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</title>`));
+    assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
+    assert.match(html, new RegExp(`<h1>${h1}</h1>`));
+    assert.match(html, /"@type": "FAQPage"/);
+    assert.doesNotMatch(html, /GDPR|CCPA/i);
+    assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
+    const visibleStart = html.indexOf('<div class="prerendered">');
+    const hiddenStart = html.indexOf('<nav class="prerendered-nav');
+    const visible = html.slice(visibleStart, hiddenStart);
+    assert.match(visible, /<a href="\/tools">Free tools<\/a>/);
+    assert.match(visible, /Free tools/);
+    assert.match(visible, /<a href="\/tools\/utm-builder">/);
+    assert.match(visible, /<a href="\/tools\/page-speed-checker">/);
+  }
+
+  const utm = render(template, pages().find((item) => item.path === 'tools/utm-builder'));
+  assert.match(utm, /https:\/\/example\.com\/pricing\?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=spring-launch&amp;utm_content=hero/);
+  assert.match(utm, /google \/ cpc/);
+  assert.match(utm, /See which campaigns actually convert: Pulzivo shows UTM attribution on Starter\. Free plan to start\./);
+  assert.match(utm, /href="\/signup"/);
+
+  const speed = render(template, pages().find((item) => item.path === 'tools/page-speed-checker'));
+  assert.match(speed, /lab proxy/);
+  assert.match(speed, /TBT is not INP/);
+  assert.match(speed, /Lab tests are one visit\. Pulzivo records real Core Web Vitals from every visitor, on the free plan\./);
+  assert.match(speed, /href="\/signup"/);
 });
 
 test('prerender loads exported constants from relative imports and skips unresolved fields', () => {

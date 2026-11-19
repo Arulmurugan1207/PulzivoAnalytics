@@ -1,0 +1,108 @@
+<article class="guide tool">
+  <header class="guide-hero">
+    <p class="guide-kicker">Free tool, no signup</p>
+    <h1>UTM campaign URL builder</h1>
+    <p class="guide-lede">Add utm_source, utm_medium, utm_campaign, utm_term, and utm_content to a link. The URL is built in this browser. Nothing is uploaded.</p>
+  </header>
+
+  <form class="tool-form" (submit)="$event.preventDefault()">
+    <label class="field">
+      <span>Website URL</span>
+      <input type="url" name="url" autocomplete="url" spellcheck="false" placeholder="https://example.com/pricing" [value]="url()" (input)="onField('url', $event)" />
+    </label>
+
+    <div class="presets" role="group" aria-label="Common sources">
+      @for (preset of presets; track preset.id) {
+        <button type="button" [class.active]="activePresetId === preset.id" (click)="applyPreset(preset.source, preset.medium)">
+          {{ preset.label }}
+          <span class="preset-meta">{{ preset.source }} / {{ preset.medium }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="field-grid">
+      <label class="field">
+        <span>Source</span>
+        <input name="utm_source" autocomplete="off" spellcheck="false" placeholder="newsletter" [value]="source()" (input)="onField('source', $event)" />
+      </label>
+      <label class="field">
+        <span>Medium</span>
+        <input name="utm_medium" autocomplete="off" spellcheck="false" placeholder="email" [value]="medium()" (input)="onField('medium', $event)" />
+      </label>
+      <label class="field">
+        <span>Campaign</span>
+        <input name="utm_campaign" autocomplete="off" spellcheck="false" placeholder="spring-launch" [value]="campaign()" (input)="onField('campaign', $event)" />
+      </label>
+      <label class="field">
+        <span>Term <em>optional</em></span>
+        <input name="utm_term" autocomplete="off" spellcheck="false" placeholder="analytics tool" [value]="term()" (input)="onField('term', $event)" />
+      </label>
+      <label class="field">
+        <span>Content <em>optional</em></span>
+        <input name="utm_content" autocomplete="off" spellcheck="false" placeholder="hero" [value]="content()" (input)="onField('content', $event)" />
+      </label>
+    </div>
+    <p class="tool-hint">Values are trimmed and lowercased. Spaces become hyphens. The link encodes the result, so "Google Ads" is sent as google-ads.</p>
+  </form>
+
+  <section class="tool-result" aria-live="polite">
+    <h2>Campaign URL</h2>
+    @if (result.url) {
+      <p class="built-url">{{ result.url }}</p>
+      <button type="button" class="tool-btn" (click)="copy()">{{ copyLabel() }}</button>
+    } @else {
+      <p class="built-url is-empty">The campaign URL appears here.</p>
+    }
+    @if (result.error) {
+      <p class="tool-error" role="alert">{{ result.error }}</p>
+    }
+    @for (hint of result.hints; track hint) {
+      <p class="tool-hint">{{ hint }}</p>
+    }
+  </section>
+
+  <section class="guide-section">
+    <h2>What UTM parameters are</h2>
+    <p>A UTM parameter is a name on the query string of a link you control. Analytics tools, including Pulzivo on the Starter plan, read those names and group visits by campaign. Without them, an email, an ad, and a social post that land on the same page collapse into one referrer, or into direct traffic when the app strips the referrer.</p>
+    <ul>
+      <li><code>utm_source</code> is where the click came from: google, newsletter, x.</li>
+      <li><code>utm_medium</code> is the kind of channel: cpc, email, social, video.</li>
+      <li><code>utm_campaign</code> is the campaign name: spring-launch.</li>
+      <li><code>utm_term</code> is the paid keyword, when you have one.</li>
+      <li><code>utm_content</code> is which creative or link position: hero, footer.</li>
+    </ul>
+    <p>Example: <code>{{ example }}</code></p>
+  </section>
+
+  <section class="guide-section">
+    <h2>Best practices</h2>
+    <ul>
+      <li>Use lowercase and hyphens. google and Google become two rows if you mix them. This builder lowercases the five values for you.</li>
+      <li>Keep one spelling per source. Pick newsletter and stay with it.</li>
+      <li>Put tags on links you control: ads, email, social, partner posts. Do not tag links inside your own site. An internal tag overwrites the campaign that landed the visitor.</li>
+      <li>Source, medium, and campaign are the three that matter. Leave term and content empty when you have nothing honest to put there.</li>
+      <li>The tagged URL is only a link. It does not track anyone by itself. Measurement starts when the destination page runs an analytics script.</li>
+    </ul>
+  </section>
+
+  <section class="guide-faq">
+    <h2>Questions</h2>
+    @for (item of faqs; track item.question) {
+      <details class="guide-faq-item">
+        <summary>{{ item.question }}</summary>
+        <p>{{ item.answer }}</p>
+      </details>
+    }
+  </section>
+
+  <section class="guide-cta">
+    <h2>Next step</h2>
+    <p><a class="guide-cta-link" routerLink="/signup" (click)="track('utm_builder_cta')">See which campaigns actually convert: Pulzivo shows UTM attribution on Starter. Free plan to start.</a></p>
+  </section>
+
+  <nav class="guide-related" aria-label="Related">
+    <a routerLink="/tools">All free tools</a>
+    <a routerLink="/tools/page-speed-checker">Page speed checker</a>
+    <a routerLink="/pricing">Pricing</a>
+  </nav>
+</article>
