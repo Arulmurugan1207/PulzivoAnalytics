@@ -11,7 +11,9 @@
           </span>
         }
       </p>
-      <p class="founder-offer">Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.</p>
+      @if (showFounderOffer) {
+        <p class="founder-offer">Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.</p>
+      }
       <a class="header-compare-link" (click)="scrollTo('compare')">
         Compare all features <i class="pi pi-arrow-down"></i>
       </a>

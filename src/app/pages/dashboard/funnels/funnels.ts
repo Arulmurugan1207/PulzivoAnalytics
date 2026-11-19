@@ -14,6 +14,8 @@ import { AuthService } from '../../../services/auth.service';
 import { DemoService } from '../../../services/demo.service';
 import { AnalyticsAPIService } from '../../../services/analytics-api.service';
 import { ApiKeysService } from '../../../services/api-keys.service';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 
 export interface FunnelStep {
   id: string;
@@ -49,12 +51,14 @@ const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
     SkeletonModule,
     TagModule,
     ToastModule,
+    FounderOfferComponent,
   ],
   providers: [MessageService],
   templateUrl: './funnels.html',
   styleUrl: './funnels.scss',
 })
 export class DashboardFunnels implements OnInit {
+  readonly isFreePlan = isFreePlan;
   userPlan: 'free' | 'pro' | 'enterprise' = 'free';
 
   // ─── Builder state ─────────────────────────────────────────────────────────

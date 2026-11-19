@@ -13,6 +13,9 @@
         <a routerLink="/dashboard/plans" class="upgrade-btn">
           Upgrade to Enterprise <i class="pi pi-arrow-right"></i>
         </a>
+        @if (isFreePlan(userPlan)) {
+          <app-founder-offer />
+        }
         <ul class="gate-features">
           <li><i class="pi pi-check"></i> Build unlimited funnels</li>
           <li><i class="pi pi-check"></i> Up to 8 steps per funnel</li>

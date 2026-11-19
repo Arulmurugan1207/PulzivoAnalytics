@@ -284,6 +284,7 @@
                   @case ('free') {
                     Access to {{ availableFeatures.length }} basic tracking features.
                     <a routerLink="/dashboard/plans">Upgrade to Starter</a> to unlock more features.
+                    <app-founder-offer />
                   }
                   @case ('starter') {
                     Access to {{ availableFeatures.length }} tracking features.
@@ -372,6 +373,9 @@
                   <i class="pi pi-lock"></i>
                   <span>{{ lockedFeatures.length }} features require a higher plan.</span>
                   <a routerLink="/dashboard/plans">View plans →</a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               }
 

@@ -343,6 +343,15 @@ $sidebar-collapsed: 64px;
   color: #78350f;
 
   span { flex: 1; }
+  .usage-soft-offer {
+    display: block;
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.7rem;
+    background: #eef2ff;
+    color: #312e81;
+    border-radius: 8px;
+    font-weight: 600;
+  }
   button {
     border: 0;
     background: #4f46e5;
@@ -382,6 +391,16 @@ $sidebar-collapsed: 64px;
     border-radius: 8px;
     padding: 0.55rem 0.95rem;
   }
+}
+
+.usage-banner-offer {
+  display: block;
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  background: #eef2ff;
+  color: #312e81;
+  border-radius: 8px;
+  font-weight: 600;
 }
 
 // ── Main Panel ──

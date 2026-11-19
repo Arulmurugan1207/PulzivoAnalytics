@@ -228,6 +228,66 @@ test('prerendered home and pricing keep the live offer, size, and plan copy', ()
   assert.match(pricing, /href="\/signup\?plan=starter"/);
 });
 
+test('in-app upgrade surfaces use the live FOUNDER50 line for free users only', () => {
+  const offer = 'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.';
+  const logic = fs.readFileSync(path.join(ROOT, 'src/app/growth/usage.logic.ts'), 'utf8');
+  assert.match(logic, new RegExp(offer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(logic, /today only|hurry|last chance|only \d+ left|countdown/i);
+
+  const surfaces = [
+    'src/app/pages/dashboard/dashboard.html',
+    'src/app/growth/upgrade-prompt.ts',
+    'src/app/pages/dashboard/plans/plans.html',
+    'src/app/pages/dashboard/billing/billing.html',
+    'src/app/pages/dashboard/reports/reports.html',
+    'src/app/pages/dashboard/events/events.html',
+    'src/app/pages/dashboard/funnels/funnels.html',
+    'src/app/pages/dashboard/settings/settings.html',
+    'src/app/pages/dashboard/overview/overview.html',
+    'src/app/pages/pricing/pricing.html',
+  ];
+  for (const file of surfaces) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    assert.match(text, /app-founder-offer|founderOffer|founder-offer/, `${file} is missing the founder offer`);
+    assert.doesNotMatch(text, /today only|hurry|last chance|only \d+ left|countdown/i, file);
+  }
+
+  const dashboard = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/dashboard.html'), 'utf8');
+  assert.match(dashboard, /usage-upgrade-banner[\s\S]*founderOffer/);
+  assert.match(dashboard, /usage-soft[\s\S]*isFreePlan\(usage\.plan\)[\s\S]*founderOffer/);
+  assert.match(dashboard, /\[showOffer\]="isFreePlan\(userPlan\)"/);
+
+  const prompt = fs.readFileSync(path.join(ROOT, 'src/app/growth/upgrade-prompt.ts'), 'utf8');
+  assert.match(prompt, /@if \(showOffer\)/);
+
+  const overview = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/overview/overview.html'), 'utf8');
+  const locks = overview.match(/<app-founder-offer \/>/g) || [];
+  assert.ok(locks.length >= 20, `expected the offer on locked overview cards, found ${locks.length}`);
+  assert.match(overview, /@if \(isFreePlan\(userPlan\)\) \{\s*<app-founder-offer \/>/);
+
+  for (const file of [
+    'src/app/pages/dashboard/events/events.html',
+    'src/app/pages/dashboard/funnels/funnels.html',
+    'src/app/pages/dashboard/settings/settings.html',
+    'src/app/pages/dashboard/billing/billing.html',
+    'src/app/pages/dashboard/plans/plans.html',
+  ]) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    assert.match(text, /isFreePlan|userPlan === 'free'|getCurrentPlan\(\) === 'free'|@case \('free'\)/, `${file} must limit the offer to Free`);
+  }
+
+  const reports = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/reports/reports.html'), 'utf8');
+  assert.match(reports, /userPlan === 'free'[\s\S]*<app-founder-offer \/>/);
+
+  const pricing = fs.readFileSync(path.join(ROOT, 'src/app/pages/pricing/pricing.html'), 'utf8');
+  assert.match(pricing, /@if \(showFounderOffer\)[\s\S]*Enter the code at checkout/);
+
+  const checkout = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/plans/plans.ts'), 'utf8');
+  assert.match(checkout, /create-checkout-session/);
+  assert.doesNotMatch(checkout, /promo:\s*['"]FOUNDER50['"]/);
+  assert.match(checkout, /allow_promotion_codes/);
+});
+
 test('generated sitemap lastmod is the build date for pages and the post date for posts', () => {
   const { buildSitemap, pages, canonicalFor } = require('./scripts/prerender-seo.js');
   const today = new Date().toISOString().slice(0, 10);

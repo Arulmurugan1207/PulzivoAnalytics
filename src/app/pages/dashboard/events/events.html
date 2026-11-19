@@ -961,6 +961,9 @@
           <div class="feature-item"><i class="pi pi-check"></i> Full event history &amp; search</div>
         </div>
         <a routerLink="/dashboard/plans" class="gate-upgrade-btn">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+        @if (isFreePlan(userPlan)) {
+          <app-founder-offer />
+        }
         <a routerLink="/demo/events" class="gate-demo-link">explore demo →</a>
       </div>
     </div>

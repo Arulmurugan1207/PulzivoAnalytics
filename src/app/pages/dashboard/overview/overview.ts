@@ -51,6 +51,8 @@ import { DemoService } from '../../../services/demo.service';
 import { COUNTRY_NAME_TO_GEOJSON } from './country-name-map';
 import { FirstEventOnboardingComponent } from '../../../components/first-event-onboarding/first-event-onboarding';
 import { InsightsCard } from '../../../growth/insights-card';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 import { readApiError } from '../../../auth/signup-payload';
 import { BreakdownCard, BreakdownRow } from '../../../components/breakdown-card/breakdown-card';
 import { ImproveCard, ImproveReport } from '../../../components/improve-card/improve-card';
@@ -95,7 +97,7 @@ export interface FormInteractionData {
 @Component({
   selector: 'app-dashboard-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard, ImproveCard, InsightsCard],
+  imports: [CommonModule, FormsModule, RouterLink, ChartModule, TableModule, TagModule, DatePickerModule, PopoverModule, ButtonModule, ProgressSpinnerModule, SkeletonModule, TooltipModule, EchartDirective, FirstEventOnboardingComponent, BreakdownCard, ImproveCard, InsightsCard, FounderOfferComponent],
 
   templateUrl: './overview.html',
   styleUrl: './overview.scss',
@@ -339,6 +341,7 @@ export class DashboardOverview implements OnInit, OnDestroy {
 
   // Plan gating
   userPlan: 'free' | 'pro' | 'enterprise' = 'free';
+  readonly isFreePlan = isFreePlan;
 
   availableApiKeys: ApiKey[] = [];
   selectedApiKey = '';

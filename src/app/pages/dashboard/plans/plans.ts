@@ -11,6 +11,8 @@ import { AuthService } from '../../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import { normalizePlan } from '../../../analytics/intent-plan';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 
 interface Plan {
   type: 'free' | 'starter' | 'pro' | 'enterprise';
@@ -34,13 +36,15 @@ interface Plan {
     CardModule,
     TagModule,
     DialogModule,
-    ToastModule
+    ToastModule,
+    FounderOfferComponent,
   ],
   providers: [MessageService],
   templateUrl: './plans.html',
   styleUrl: './plans.scss',
 })
 export class DashboardPlans implements OnInit {
+  readonly isFreePlan = isFreePlan;
   currentPlan = signal<'free' | 'starter' | 'pro' | 'enterprise'>('free');
   billingCycle = signal<'month' | 'year'>('month');
   showConfirmDialog = signal(false);
@@ -287,10 +291,10 @@ export class DashboardPlans implements OnInit {
         cycle: this.billingCycle(),
         userId: this.user._id,
         email: this.user.email,
-        // Stripe Checkout already accepts promotion codes. node-server-api #114
-        // auto-applies this field; until then the API ignores it and the
-        // customer can still type FOUNDER50 in the checkout code box.
-        promo: 'FOUNDER50',
+        // Leave promo off. The API pre-applies promo FOUNDER50 as a Stripe
+        // discount, and Checkout hides the promotion-code box when a discount
+        // is already attached. Omitting it keeps allow_promotion_codes so the
+        // customer can enter FOUNDER50 on Stripe's page.
       }).subscribe({
         next: ({ url }) => {
           window.location.href = url;
