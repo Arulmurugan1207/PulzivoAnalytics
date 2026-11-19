@@ -148,6 +148,21 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
     if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
     this.withModals(() => this.signInModal.show());
   }
+
+  /** Header CTA. /signup is what opens the modal, so the route is actually visited. */
+  startSignUp() {
+    if (this.isLoggedIn || this.authService.isAuthenticated()) {
+      this.goToDashboard();
+      return;
+    }
+    const path = this.router.url.split('?')[0].split('#')[0];
+    if (path === '/signup' || path === '/register') {
+      this.openSignUp();
+      return;
+    }
+    this.router.navigate(['/signup']);
+  }
+
   openSignUp() {
     if (this.isLoggedIn) return;
     this.signUpCompleted = false;

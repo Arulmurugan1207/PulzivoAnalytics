@@ -58,10 +58,10 @@
             </div>
 
             <button pButton type="button"
-              [label]="isCurrentPlan(plan) ? 'Current Plan' : (plan.price === 0 ? 'Get Started Free' : (plan.price > currentPlan.price ? 'Upgrade' : 'Select'))"
+              [label]="planCtaLabel(plan)"
               [severity]="plan.popular ? undefined : 'secondary'"
               [outlined]="!plan.popular && !isCurrentPlan(plan)"
-              [disabled]="isCurrentPlan(plan)"
+              [disabled]="planCtaDisabled(plan)"
               (click)="selectPlan(plan)"
               class="plan-cta">
             </button>

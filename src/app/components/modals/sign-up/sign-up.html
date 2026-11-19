@@ -35,6 +35,9 @@
           @if (f['firstname'].touched && f['firstname'].hasError('required')) {
             <small class="field-error">First name is required.</small>
           }
+          @if (f['firstname'].touched && f['firstname'].hasError('maxlength')) {
+            <small class="field-error">First name is too long.</small>
+          }
         </div>
         <div class="input-group">
           <label for="lastname">Last Name</label>
@@ -48,6 +51,9 @@
             class="w-full" />
           @if (f['lastname'].touched && f['lastname'].hasError('required')) {
             <small class="field-error">Last name is required.</small>
+          }
+          @if (f['lastname'].touched && f['lastname'].hasError('maxlength')) {
+            <small class="field-error">Last name is too long.</small>
           }
         </div>
       </div>
@@ -76,7 +82,7 @@
           formControlName="password"
           [feedback]="true"
           [toggleMask]="true"
-          placeholder="Create a password (min 8 chars)"
+          placeholder="Create a password (8–200 characters)"
           class="w-full"
           [ngClass]="{'ng-invalid ng-dirty': f['password'].touched && f['password'].invalid}"
           inputStyleClass="w-full" />
@@ -85,6 +91,9 @@
         }
         @if (f['password'].touched && f['password'].hasError('minlength')) {
           <small class="field-error">Password must be at least 8 characters.</small>
+        }
+        @if (f['password'].touched && f['password'].hasError('maxlength')) {
+          <small class="field-error">Password is too long.</small>
         }
       </div>
 
@@ -115,6 +124,19 @@
           I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
         </label>
       </div>
+      @if (f['acceptTerms'].touched && f['acceptTerms'].invalid) {
+        <small class="field-error terms-error">Please accept the terms to create an account.</small>
+      }
+
+      @if (visible && turnstileEnabled) {
+        <app-turnstile
+          [siteKey]="turnstileSiteKey"
+          (tokenChange)="onTurnstileToken($event)"
+          (loadError)="onTurnstileError($event)" />
+      }
+      @if (turnstileError) {
+        <p class="turnstile-note">Verification didn't load. You can still create your account.</p>
+      }
 
       <button 
         pButton 
@@ -131,17 +153,6 @@
         </div>
       }
     </form>
-
-    <p-divider align="center">
-      <span class="divider-text">OR</span>
-    </p-divider>
-
-    <button 
-      pButton 
-      type="button" 
-      label="Continue with Google" 
-      icon="pi pi-google"
-      class="p-button-outlined google-btn"></button>
 
     <div class="signin-link">
       Already have an account? 
