@@ -4,11 +4,11 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
-import { DividerModule } from 'primeng/divider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../../services/auth.service';
+import { readApiError } from '../../../auth/signup-payload';
 
 @Component({
   selector: 'app-sign-in',
@@ -18,7 +18,6 @@ import { AuthService } from '../../../services/auth.service';
     ButtonModule,
     InputTextModule,
     PasswordModule,
-    DividerModule,
     CheckboxModule,
     ToastModule
   ],
@@ -125,7 +124,7 @@ export class SignIn implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Sign In Error',
-            detail: error.error?.message || 'Sign in failed. Please check your credentials and try again.'
+            detail: readApiError(error, 'Sign in failed. Please check your credentials and try again.')
           });
         }
       });

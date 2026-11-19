@@ -26,11 +26,11 @@
     <div class="header-actions">
       @if (!isLoggedIn) {
         <button class="btn-ghost desktop-only" (click)="openSignIn()">Sign In</button>
-        <button class="btn-primary desktop-only" (click)="openSignUp()">Get Started</button>
+        <button class="btn-primary desktop-only" (click)="startSignUp()">Get Started</button>
         <button class="icon-btn mobile-only" (click)="openSignIn()" aria-label="Sign In" title="Sign In">
           <i class="pi pi-sign-in"></i>
         </button>
-        <button class="icon-btn icon-btn--accent mobile-only" (click)="openSignUp()" aria-label="Get Started" title="Get Started">
+        <button class="icon-btn icon-btn--accent mobile-only" (click)="startSignUp()" aria-label="Get Started" title="Get Started">
           <i class="pi pi-user-plus"></i>
         </button>
       } @else {

@@ -103,7 +103,9 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 
 `pulzivo.com` (marketing pages + dashboard SPA) has **one** deploy path: merging to `main` runs the GitHub Actions workflow **Deploy to cPanel** ([`.github/workflows/deploy-cpanel.yml`](.github/workflows/deploy-cpanel.yml)), which builds and FTPs `dist/simpletrack-prime-ng/browser/` to the cPanel web root. Do not deploy this SPA anywhere else (the former root `Dockerfile` / `cloudrun.yaml` Cloud Run path was removed so search engines never see a duplicate copy of the site). `server.js` remains only as a local static preview (`npm run start:cloud`) and is covered by `npm run test:server`.
 
-There are **no runtime secrets** in this frontend. Client API URLs stay in `src/environments/environment.ts` (do not invent new env vars).
+There are **no runtime secrets** in this frontend. Client API URLs and the public Turnstile site key stay in `src/environments/environment.ts`.
+
+`environment.turnstileSiteKey` is an optional Cloudflare Turnstile site key. The placeholder `YOUR_TURNSTILE_SITE_KEY` hides the widget. Signup does not depend on it: the API defaults to soft mode and accepts a body with no `turnstileToken`. Set a real site key only if you later set `TURNSTILE_MODE=enforce` on the API. The secret stays on the API, not in this repo.
 
 - **Auth / billing / users / API-key CRUD** still call App Engine: `https://analytics-dot-node-server-apis.ue.r.appspot.com` (`environment.apiUrl`).
 - **Homepage public-stats + tracker plan validate + ingest + dashboard metrics** go to Cloud Run `https://pulzivo-analytics-api-167308220305.us-east1.run.app` (`environment.analyticsApiUrl`, `environment.analyticsLogUrl`, tracker default, and `src/index.html` `data-api-url`).

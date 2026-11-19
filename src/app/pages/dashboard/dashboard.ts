@@ -329,8 +329,9 @@ export class Dashboard implements OnInit, OnDestroy {
   }
 
   signUpFromDemo() {
-    this.authService.requestOpenSignUp();
-    this.router.navigate(['/']);
+    // The marketing header (and its signup modal) is not mounted on /demo.
+    // /signup mounts it and the guest guard opens the form.
+    this.router.navigate(['/signup']);
   }
 
   dismissWelcomeBanner() {

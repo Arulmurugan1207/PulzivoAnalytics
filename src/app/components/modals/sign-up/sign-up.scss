@@ -64,6 +64,19 @@
     }
   }
 
+  .terms-error {
+    display: block;
+    margin: -0.75rem 0 1rem;
+    color: #ef4444;
+    font-size: 0.8125rem;
+  }
+
+  .turnstile-note {
+    margin: -0.5rem 0 1rem;
+    color: #6b7280;
+    font-size: 0.8125rem;
+  }
+
   .form-error-banner {
     background: #fef2f2;
     border: 1px solid #fecaca;
@@ -128,26 +141,8 @@
     }
   }
 
-  ::ng-deep .p-divider {
-    margin: 1.5rem 0;
-    
-    .p-divider-content {
-      background: white;
-    }
-  }
-
-  .divider-text {
-    color: #9ca3af;
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .google-btn {
-    width: 100%;
-    margin-bottom: 1.5rem;
-  }
-
   .signin-link {
+    margin-top: 1.25rem;
     text-align: center;
     color: #6b7280;
     font-size: 0.9375rem;

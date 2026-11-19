@@ -7,6 +7,7 @@ import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
+import { planButtonDisabled, planButtonLabel } from './pricing-cta';
 
 interface Plan {
   type: string;
@@ -177,7 +178,25 @@ export class Pricing implements OnDestroy {
   ];
 
   isCurrentPlan(plan: Plan): boolean {
-    return plan.type === this.currentPlan.type;
+    return this.isLoggedIn && plan.type === this.currentPlan.type;
+  }
+
+  private ctaInput(plan: Plan) {
+    return {
+      loggedIn: this.isLoggedIn,
+      planType: plan.type,
+      planPrice: plan.price,
+      currentPlanType: this.currentPlan.type,
+      currentPlanPrice: this.currentPlan.price,
+    };
+  }
+
+  planCtaLabel(plan: Plan): string {
+    return planButtonLabel(this.ctaInput(plan));
+  }
+
+  planCtaDisabled(plan: Plan): boolean {
+    return planButtonDisabled(this.ctaInput(plan));
   }
 
   getPlanLimitDisplay(limit: number | string): string {
@@ -190,7 +209,7 @@ export class Pricing implements OnDestroy {
 
   selectPlan(plan: Plan): void {
     if (!this.authService.isAuthenticated()) {
-      this.authService.requestOpenSignIn();
+      this.router.navigate(['/signup']);
       return;
     }
 

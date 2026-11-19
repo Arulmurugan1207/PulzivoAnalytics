@@ -4,13 +4,21 @@ import { Router } from '@angular/router';
 import { Observable, Subject, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { buildSignupRequest, readApiError, type SignupRequestBody } from '../auth/signup-payload';
 
 export interface SignupRequest {
   firstname: string;
   lastname: string;
   email: string;
-  mobileno: string;
   password: string;
+  /** Omitted when blank so a unique index on mobileno cannot reject the signup. */
+  mobileno?: string;
+  /** Honeypot. Must be empty. */
+  website?: string;
+  /** Page the visitor came from. Omitted when blank. */
+  referrer?: string;
+  /** Cloudflare Turnstile token. Omit unless the optional widget produced one. */
+  turnstileToken?: string;
 }
 
 export interface SigninRequest {
@@ -83,7 +91,12 @@ export class AuthService {
    * Sign up a new user
    */
   signup(userData: SignupRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/users/signup`, userData).pipe(
+    const token = userData.turnstileToken?.trim() ?? '';
+    const body: SignupRequestBody = buildSignupRequest(
+      { ...userData, turnstileToken: token },
+      { turnstileEnabled: token.length > 0 },
+    );
+    return this.http.post<AuthResponse>(`${this.apiUrl}/users/signup`, body).pipe(
       tap(response => {
         console.log('Signup response:', response);
         if (response && response.user && response.user.token) {
@@ -342,22 +355,8 @@ export class AuthService {
    * Handle HTTP errors
    */
   private handleError(error: HttpErrorResponse): Observable<never> {
-    let errorMessage = 'An unknown error occurred';
-
-    if (error.error instanceof ErrorEvent) {
-      // Client-side or network error
-      errorMessage = error.error.message;
-    } else {
-      // Backend returned an unsuccessful response code
-      if (error.error && typeof error.error === 'object' && error.error.message) {
-        errorMessage = error.error.message;
-      } else if (error.error && typeof error.error === 'string') {
-        errorMessage = error.error;
-      } else {
-        errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
-      }
-    }
-
+    const body = error.error instanceof ErrorEvent ? { message: error.error.message } : error;
+    const errorMessage = readApiError(body, 'An unknown error occurred');
     console.error('Auth API Error:', errorMessage);
     return throwError(() => ({ message: errorMessage, status: error.status }));
   }
