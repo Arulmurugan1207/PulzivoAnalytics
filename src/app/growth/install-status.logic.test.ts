@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  INSTALL_POLL_MAX_MS, INSTALL_POLL_MS, installPhase, installPollContinues, parseInstallStatus,
+  INSTALL_POLL_MAX_MS, INSTALL_POLL_MS, installPhase, installPollContinues, installStatusOnHttpError, parseInstallStatus,
 } from './install-status.logic.ts';
 
 test('parseInstallStatus accepts the contract and rejects anything else', () => {
@@ -23,6 +23,15 @@ test('polling runs every 5s and stops at 10 minutes or the first visit', () => {
   assert.equal(installPollContinues(INSTALL_POLL_MAX_MS - 1, false), true);
   assert.equal(installPollContinues(INSTALL_POLL_MAX_MS, false), false);
   assert.equal(installPollContinues(0, true), false);
+});
+
+test('a 404 hides the indicator instead of meaning the site is not installed', () => {
+  assert.equal(installStatusOnHttpError(404), 'hide');
+  assert.equal(installStatusOnHttpError(501), 'hide');
+  assert.equal(installStatusOnHttpError(500), 'retry');
+  assert.equal(installStatusOnHttpError(0), 'retry');
+  assert.equal(installPhase(null, 0, true), 'hidden');
+  assert.notEqual(installPhase({ installed: false, firstEventAt: null, lastEventAt: null, eventsLast24h: 0 }, 0, true), 'waiting');
 });
 
 test('phase stays hidden until a real status arrives, then celebrates or waits', () => {

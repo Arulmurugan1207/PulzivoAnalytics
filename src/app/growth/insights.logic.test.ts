@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { insightDestination, insightIcon, insightsRange, parseInsights } from './insights.logic.ts';
+import { INSIGHTS_SUMMARY_PATH, insightDestination, insightIcon, insightsRange, parseInsights } from './insights.logic.ts';
 
 const line = {
   id: 'visits-up', severity: 'up', title: 'More people came back',
   detail: 'Returning visitors are up.', metric: 'visitors', change: '+18%', link: 'acquisition',
 };
+
+test('summary lives on its own path, not the metrics /analytics/insights route', () => {
+  assert.equal(INSIGHTS_SUMMARY_PATH, '/analytics/insights/summary');
+  assert.notEqual(INSIGHTS_SUMMARY_PATH, '/analytics/insights');
+});
 
 test('parseInsights keeps up to five valid lines and rejects the old object payload', () => {
   assert.equal(parseInsights({ outbound: 1 }), null);

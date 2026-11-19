@@ -2,14 +2,14 @@ import { Component, Input, OnChanges, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import {
-  InsightLine, insightDestination, insightIcon, insightsRange, parseInsights,
+  INSIGHTS_SUMMARY_PATH, InsightLine, insightDestination, insightIcon, insightsRange, parseInsights,
 } from './insights.logic';
 import { accountApi, isMissingEndpoint } from './endpoint';
 
 /**
- * Up to five plain-English lines from GET /analytics/insights.
- * Hidden when the endpoint is missing or the body is not the new array contract
- * (the older insights object stays on the metrics host and is left alone).
+ * Up to five plain-English lines from GET /analytics/insights/summary
+ * on the account API. The metrics host keeps the older /analytics/insights object;
+ * this card never calls that path. A 404 hides the card.
  */
 @Component({
   selector: 'app-insights-card',
@@ -88,7 +88,7 @@ export class InsightsCard implements OnChanges {
     const signature = `${key}|${range}`;
     if (signature === this.requestKey) return;
     this.requestKey = signature;
-    this.http.get(accountApi(`/analytics/insights?apiKey=${encodeURIComponent(key)}&range=${range}`)).subscribe({
+    this.http.get(accountApi(`${INSIGHTS_SUMMARY_PATH}?apiKey=${encodeURIComponent(key)}&range=${range}`)).subscribe({
       next: (body) => {
         if (this.requestKey !== signature) return;
         const parsed = parseInsights(body);

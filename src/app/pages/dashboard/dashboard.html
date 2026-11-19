@@ -157,17 +157,25 @@
     <div class="sidebar-footer">
       @if (!sidebarCollapsed && usageService.state() === 'ready' && usageService.snapshot(); as usage) {
         <div class="usage-meter" [attr.title]="'Events used this period'">
-          <div class="usage-meter-top">
-            <span>Events</span>
-            <span>{{ usage.percent }}%</span>
-          </div>
-          <div class="usage-meter-track" role="meter" [attr.aria-valuenow]="usage.percent" aria-valuemin="0" aria-valuemax="100">
-            <div class="usage-meter-fill"
-              [class.is-soft]="usageLevel(usage) === 'soft'"
-              [class.is-full]="usageLevel(usage) === 'full'"
-              [style.width.%]="usage.percent"></div>
-          </div>
-          <p>{{ usage.eventsUsed | number }} of {{ usage.eventsLimit > 0 ? (usage.eventsLimit | number) : 'unlimited' }}</p>
+          @if (usage.eventsLimit == null) {
+            <div class="usage-meter-top">
+              <span>Events</span>
+              <span>Unlimited</span>
+            </div>
+            <p>{{ usage.eventsUsed | number }} this period</p>
+          } @else {
+            <div class="usage-meter-top">
+              <span>Events</span>
+              <span>{{ usage.percent }}%</span>
+            </div>
+            <div class="usage-meter-track" role="meter" [attr.aria-valuenow]="usage.percent" aria-valuemin="0" aria-valuemax="100">
+              <div class="usage-meter-fill"
+                [class.is-soft]="usageLevel(usage) === 'soft'"
+                [class.is-full]="usageLevel(usage) === 'full'"
+                [style.width.%]="usage.percent"></div>
+            </div>
+            <p>{{ usage.eventsUsed | number }} of {{ usage.eventsLimit | number }}</p>
+          }
         </div>
       }
       <a class="nav-item nav-item--home" (click)="goHome()" title="Back to pulzivo.com">

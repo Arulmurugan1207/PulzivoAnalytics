@@ -5,7 +5,7 @@ export interface EmailPrefs {
   productTips: boolean;
 }
 
-export const DEFAULT_EMAIL_PREFS: EmailPrefs = { weeklyReport: true, productTips: false };
+export const DEFAULT_EMAIL_PREFS: EmailPrefs = { weeklyReport: true, productTips: true };
 
 /** What the weekly email actually contains. Shown beside the toggle. */
 export const WEEKLY_EMAIL_INCLUDES = [

@@ -1,5 +1,8 @@
 /** Pure helpers for the plain-English insights card. */
 
+/** Account API. Do not use /analytics/insights here; that path is the metrics host. */
+export const INSIGHTS_SUMMARY_PATH = '/analytics/insights/summary';
+
 export type InsightSeverity = 'up' | 'down' | 'info' | 'warn';
 
 export interface InsightLine {
