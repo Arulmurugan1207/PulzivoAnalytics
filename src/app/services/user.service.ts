@@ -3,17 +3,23 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export type UserListStatus = 'active' | 'removed' | 'all';
+
 export interface User {
   _id: string;
-  firstname: string;
-  lastname: string;
-  email: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
   mobileno?: string;
   plan?: 'free' | 'starter' | 'pro' | 'enterprise';
   role?: 'owner' | 'admin' | 'developer' | 'analyst' | 'viewer';
-  createdDate: string;
+  createdDate?: string;
   lastLoginDate?: string | null;
   apiKeysCount: number;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  removedBy?: string | null;
 }
 
 export interface GrowthStats {
@@ -27,7 +33,15 @@ export interface GrowthStats {
 export interface UsersResponse {
   status: number;
   count: number;
+  total?: number;
+  activeTotal?: number;
+  removedTotal?: number;
   users: User[];
+}
+
+export interface UserActionResponse {
+  message?: string;
+  deletedId?: string;
 }
 
 export interface UpdatePlanResponse {
@@ -51,10 +65,26 @@ export class UserService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Get all users (requires authentication via interceptor)
+   * Get users. status=active (default) hides soft-removed accounts.
+   * status=removed is the Removed tab. Same query names as Table Tennis Tube.
    */
-  getAllUsers(): Observable<UsersResponse> {
-    return this.http.get<UsersResponse>(`${this.apiUrl}/users`);
+  getAllUsers(status: UserListStatus = 'active'): Observable<UsersResponse> {
+    return this.http.get<UsersResponse>(`${this.apiUrl}/users`, { params: { status } });
+  }
+
+  /** POST /users/softDeleteUser { _id } — owner only. */
+  softDeleteUser(id: string): Observable<UserActionResponse> {
+    return this.http.post<UserActionResponse>(`${this.apiUrl}/users/softDeleteUser`, { _id: id });
+  }
+
+  /** POST /users/restoreUser { _id } — owner only. */
+  restoreUser(id: string): Observable<UserActionResponse> {
+    return this.http.post<UserActionResponse>(`${this.apiUrl}/users/restoreUser`, { _id: id });
+  }
+
+  /** POST /users/deleteUser { _id } — owner only, and only after a soft remove. */
+  deleteUser(id: string): Observable<UserActionResponse> {
+    return this.http.post<UserActionResponse>(`${this.apiUrl}/users/deleteUser`, { _id: id });
   }
 
   /**

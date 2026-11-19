@@ -3,11 +3,24 @@
   <div class="users-header">
     <div class="header-left">
       <h2>Users &amp; Growth</h2>
-      <p class="subtitle">Sign-up activity, growth trends and user management</p>
+      <p class="subtitle">Sign-up activity, growth trends and user management. Soft-remove hides an account until you restore it or delete it from the database.</p>
     </div>
     <div class="header-right">
-      <span class="total-count">{{ users.length }} total users</span>
+      <span class="total-count">{{ activeTab === 'removed' ? removedTotal : activeTotal }} {{ activeTab === 'removed' ? 'removed' : 'active' }} users</span>
     </div>
+  </div>
+
+  <div class="user-tabs" role="tablist" aria-label="User lists">
+    <button type="button" role="tab" class="user-tab" [class.active]="activeTab === 'active'"
+            [attr.aria-selected]="activeTab === 'active'" (click)="setTab('active')">
+      Active
+      <span class="tab-count">{{ activeTotal }}</span>
+    </button>
+    <button type="button" role="tab" class="user-tab" [class.active]="activeTab === 'removed'"
+            [attr.aria-selected]="activeTab === 'removed'" (click)="setTab('removed')">
+      Removed
+      <span class="tab-count">{{ removedTotal }}</span>
+    </button>
   </div>
 
   <!-- Growth KPI Cards -->
@@ -128,6 +141,9 @@
             <th>API Keys</th>
             <th>Joined</th>
             <th>Last Login</th>
+            @if (activeTab === 'removed') {
+              <th>Removed</th>
+            }
             <th>Actions</th>
           </tr>
         </thead>
@@ -137,10 +153,10 @@
               <td>
                 <div class="user-name">
                   <div class="user-avatar">
-                    {{ user.firstname.charAt(0).toUpperCase() }}{{ user.lastname.charAt(0).toUpperCase() }}
+                    {{ initialsOf(user) }}
                   </div>
                   <div class="user-name-info">
-                    <span>{{ user.firstname }} {{ user.lastname }}</span>
+                    <span>{{ nameOf(user) }}</span>
                     @if (isOwner(user.email)) {
                       <i class="pi pi-crown owner-icon" title="App Owner"></i>
                     }
@@ -151,7 +167,7 @@
                 </div>
               </td>
               <td>
-                <span class="email-text">{{ user.email }}</span>
+                <span class="email-text">{{ user.email || '—' }}</span>
               </td>
               <td>
                 <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
@@ -174,6 +190,11 @@
                   {{ formatTimeAgo(user.lastLoginDate) }}
                 </span>
               </td>
+              @if (activeTab === 'removed') {
+                <td>
+                  <span class="date-text">{{ formatDate(user.deletedAt) }}</span>
+                </td>
+              }
               <td>
                 <div class="actions-group">
                   <div class="action-item">
@@ -182,7 +203,7 @@
                       [value]="user.role || 'viewer'" 
                       (change)="onRoleChange($event, user._id)"
                       class="role-selector"
-                      [disabled]="isOwner(user.email)">
+                      [disabled]="isOwner(user.email) || activeTab === 'removed'">
                       <option value="owner">Owner</option>
                       <option value="admin">Admin</option>
                       <option value="developer">Developer</option>
@@ -196,12 +217,32 @@
                       [value]="user.plan || 'free'" 
                       (change)="onPlanChange($event, user._id)"
                       class="plan-selector"
-                      [disabled]="isOwner(user.email)">
+                      [disabled]="isOwner(user.email) || activeTab === 'removed'">
                       <option value="free">Free</option>
                       <option value="starter">Starter</option>
                       <option value="pro">Pro</option>
                       <option value="enterprise">Enterprise</option>
                     </select>
+                  </div>
+                  <div class="row-actions">
+                    @if (activeTab === 'active' && canManage(user)) {
+                      <button type="button" class="row-btn remove-btn" (click)="askRemove(user)" [disabled]="busy">
+                        <i class="pi pi-user-minus" aria-hidden="true"></i>
+                        Remove
+                      </button>
+                    }
+                    @if (activeTab === 'removed') {
+                      <button type="button" class="row-btn restore-btn" (click)="askRestore(user)" [disabled]="busy">
+                        <i class="pi pi-undo" aria-hidden="true"></i>
+                        Restore
+                      </button>
+                      @if (canManage(user)) {
+                        <button type="button" class="row-btn delete-btn" (click)="askHardDelete(user)" [disabled]="busy">
+                          <i class="pi pi-trash" aria-hidden="true"></i>
+                          Delete permanently
+                        </button>
+                      }
+                    }
                   </div>
                 </div>
               </td>
@@ -217,7 +258,45 @@
     <div class="empty-state">
       <i class="pi pi-users"></i>
       <h3>No users found</h3>
-      <p>{{ searchQuery ? 'Try adjusting your search criteria' : 'No users registered yet' }}</p>
+      <p>
+        @if (searchQuery) {
+          Try adjusting your search criteria
+        } @else if (activeTab === 'removed') {
+          No removed users.
+        } @else {
+          No active users.
+        }
+      </p>
+    </div>
+  }
+
+  @if (pending) {
+    <div class="modal-overlay" (click)="cancelPending()">
+      <div class="confirm-dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="'remove-title'" (click)="$event.stopPropagation()">
+        <h3 id="remove-title">{{ pendingTitle() }}</h3>
+        <p>{{ pendingBody() }}</p>
+        @if (pending.kind === 'hard') {
+          <label class="confirm-label" for="delete-confirm">{{ pendingHint() }}</label>
+          <input id="delete-confirm" type="text" class="confirm-input" [(ngModel)]="confirmText"
+                 autocomplete="off" [placeholder]="pending.user.email || 'DELETE'" />
+        }
+        @if (actionError) {
+          <p class="confirm-error">{{ actionError }}</p>
+        }
+        <div class="confirm-actions">
+          <button type="button" class="row-btn" (click)="cancelPending()" [disabled]="busy">Cancel</button>
+          <button type="button" class="row-btn"
+                  [class.remove-btn]="pending.kind === 'soft'"
+                  [class.restore-btn]="pending.kind === 'restore'"
+                  [class.delete-btn]="pending.kind === 'hard'"
+                  (click)="confirmPending()" [disabled]="confirmDisabled()">
+            @if (pending.kind === 'hard') {
+              <i class="pi pi-trash" aria-hidden="true"></i>
+            }
+            {{ busy ? 'Working…' : pendingConfirmLabel() }}
+          </button>
+        </div>
+      </div>
     </div>
   }
 </div>
