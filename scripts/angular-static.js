@@ -100,6 +100,147 @@ function loadHelperModule(file) {
   return out;
 }
 
+function parseRelativeImports(src) {
+  const imports = [];
+  // Match one statement at a time. The first `from` after `import` is the
+  // module path; non-relative modules (e.g. @angular/core) are ignored.
+  const re = /^[ \t]*import\s+(type\s+)?([\s\S]*?)\s+from\s*['"]([^'"]+)['"]\s*;?[ \t]*$/gm;
+  let match;
+  while ((match = re.exec(src))) {
+    if (match[1]) continue;
+    const from = match[3];
+    if (!from.startsWith('.')) continue;
+    const clause = match[2].trim();
+    const named = [];
+    let defaultName = null;
+    let namespace = null;
+    const ns = clause.match(/^\*\s*as\s+([A-Za-z_$][\w$]*)$/);
+    if (ns) {
+      imports.push({ from, named, defaultName, namespace: ns[1] });
+      continue;
+    }
+    let rest = clause;
+    const defAndNamed = rest.match(/^([A-Za-z_$][\w$]*)\s*,\s*\{([\s\S]+)\}$/);
+    const onlyNamed = rest.match(/^\{([\s\S]+)\}$/);
+    const onlyDef = rest.match(/^([A-Za-z_$][\w$]*)$/);
+    if (defAndNamed) {
+      defaultName = defAndNamed[1];
+      rest = defAndNamed[2];
+    } else if (onlyNamed) {
+      rest = onlyNamed[1];
+    } else if (onlyDef) {
+      defaultName = onlyDef[1];
+      rest = '';
+    } else {
+      continue;
+    }
+    for (const part of rest.split(',')) {
+      const piece = part.trim();
+      if (!piece || piece.startsWith('type ')) continue;
+      const aliased = piece.match(/^(?:type\s+)?([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (aliased) named.push({ exported: aliased[1], local: aliased[2] });
+      else {
+        const ident = piece.replace(/^type\s+/, '').trim();
+        if (/^[A-Za-z_$][\w$]*$/.test(ident)) named.push({ exported: ident, local: ident });
+      }
+    }
+    imports.push({ from, named, defaultName, namespace });
+  }
+  return imports;
+}
+
+function resolveImportPath(fromFile, spec) {
+  const base = path.resolve(path.dirname(fromFile), spec);
+  const candidates = [base, `${base}.ts`, `${base}.js`, path.join(base, 'index.ts'), path.join(base, 'index.js')];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+  }
+  throw new Error(`Cannot resolve ${spec} from ${path.relative(ROOT, fromFile)}`);
+}
+
+function stripModuleSyntax(src) {
+  let out = stripTypes(src);
+  out = out.replace(/export\s+interface\s+[A-Za-z_$][\w$]*\s*\{[\s\S]*?\n\}/g, '');
+  out = out.replace(/export\s+type\s+[A-Za-z_$][\w$]*\s*=\s*[^;]+;/g, '');
+  out = out.replace(/^\s*import\s+[^;]+;?\s*$/gm, '');
+  out = out.replace(/export\s+default\s+/g, 'exports.default = ');
+  out = out.replace(/export\s+function\s+([A-Za-z_$][\w$]*)/g, 'exports.$1 = function $1');
+  out = out.replace(/export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/g, 'exports.$1 =');
+  out = out.replace(/export\s*\{([^}]+)\}\s*;/g, (_, body) => {
+    return body.split(',').map((part) => {
+      const piece = part.trim();
+      if (!piece) return '';
+      const aliased = piece.match(/^([A-Za-z_$][\w$]*)\s+as\s+([A-Za-z_$][\w$]*)$/);
+      if (aliased) return `exports.${aliased[2]} = ${aliased[1]};`;
+      if (/^[A-Za-z_$][\w$]*$/.test(piece)) return `exports.${piece} = ${piece};`;
+      return '';
+    }).join('\n');
+  });
+  return out;
+}
+
+const moduleCache = new Map();
+
+function loadExportedValues(file, stack = []) {
+  const resolved = path.resolve(file);
+  if (moduleCache.has(resolved)) return moduleCache.get(resolved);
+  if (resolved.endsWith('.json')) {
+    const data = JSON.parse(fs.readFileSync(resolved, 'utf8'));
+    const exported = { default: data, ...((data && typeof data === 'object' && !Array.isArray(data)) ? data : {}) };
+    moduleCache.set(resolved, exported);
+    return exported;
+  }
+  if (stack.includes(resolved)) {
+    const partial = {};
+    moduleCache.set(resolved, partial);
+    return partial;
+  }
+  stack = stack.concat(resolved);
+  const raw = fs.readFileSync(resolved, 'utf8');
+  const bindings = {};
+  for (const item of parseRelativeImports(raw)) {
+    let imported;
+    try {
+      imported = loadExportedValues(resolveImportPath(resolved, item.from), stack);
+    } catch (err) {
+      continue;
+    }
+    if (item.namespace) bindings[item.namespace] = imported;
+    if (item.defaultName) bindings[item.defaultName] = imported.default;
+    for (const { exported, local } of item.named) bindings[local] = imported[exported];
+  }
+  const exported = moduleCache.get(resolved) || {};
+  moduleCache.set(resolved, exported);
+  const names = Object.keys(bindings);
+  try {
+    const fn = new Function('exports', ...names, stripModuleSyntax(raw));
+    fn(exported, ...names.map((n) => bindings[n]));
+  } catch (err) {
+    throw new Error(`${path.relative(ROOT, resolved)}: ${err.message}`);
+  }
+  return exported;
+}
+
+function loadRelativeBindings(file) {
+  const bindings = {};
+  const raw = fs.readFileSync(file, 'utf8');
+  for (const item of parseRelativeImports(raw)) {
+    let imported;
+    try {
+      imported = loadExportedValues(resolveImportPath(file, item.from));
+    } catch (err) {
+      continue;
+    }
+    if (item.namespace) bindings[item.namespace] = imported;
+    if (item.defaultName) bindings[item.defaultName] = imported.default;
+    for (const { exported, local } of item.named) {
+      if (Object.prototype.hasOwnProperty.call(imported, exported)) bindings[local] = imported[exported];
+    }
+  }
+  return bindings;
+}
+
+
 const FIELD_MODIFIERS = new Set(['public', 'private', 'protected', 'readonly', 'static', 'declare', 'override', 'abstract', 'async']);
 
 function skipTrivia(src, i) {
@@ -313,11 +454,15 @@ function loadComponent(file, helperFiles = []) {
     else if (member.kind === 'get') getters.push(member);
     else methods.push(member);
   }
+  const imported = loadRelativeBindings(file);
+  Object.assign(bindings, imported);
+  Object.assign(scope, imported);
   for (const member of fields) {
     try {
       scope[member.name] = evalInitializer(member.init, scope, bindings);
     } catch (err) {
-      throw new Error(`${path.relative(ROOT, file)} field ${member.name}: ${err.message}`);
+      // Skip unresolved fields so one page cannot fail the whole prerender build.
+      console.warn(`${path.relative(ROOT, file)} field ${member.name}: ${err.message} (skipped)`);
     }
   }
   for (const member of methods) {
@@ -927,10 +1072,12 @@ function renderMarketingPage(routePath) {
   try {
     html = `<div class="prerendered">${renderNodes(template, scope)}</div>`;
   } catch (err) {
-    throw new Error(`prerender /${routePath}: ${err.message}`);
+    // Never fail the production build because one page could not be expanded.
+    console.warn(`prerender /${routePath}: ${err.message} (page body skipped)`);
+    html = '<div class="prerendered"></div>';
   }
   pageCache.set(routePath, html);
   return html;
 }
 
-module.exports = { renderMarketingPage, pageScope, PAGES };
+module.exports = { renderMarketingPage, pageScope, PAGES, loadComponent, loadRelativeBindings, loadExportedValues, parseRelativeImports };
