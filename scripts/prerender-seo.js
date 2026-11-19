@@ -5,9 +5,12 @@
  * Runs after `ng build`. For each route in src/app/seo/seo-routes.json and each
  * post in src/app/pages/blog/posts.json it writes dist/.../browser/<route>/index.html
  * (a copy of the built index.html with that route's own <title>, description,
- * canonical, robots, og:* and twitter:* tags). Blog posts also get their article
- * body inlined in <app-root> so it is readable without JavaScript; Angular
- * replaces it on bootstrap. Also writes sitemap.xml to the build output.
+ * canonical, robots, og:* and twitter:* tags). Every public route also gets
+ * visible body HTML inlined in <app-root> (the page template expanded against
+ * the same data the Angular page uses, or the article body for a post) so it
+ * is readable without JavaScript. Angular clears <app-root> on bootstrap, so
+ * the static markup is not left beside the live view. sitemap.xml in the build
+ * output comes from buildSitemap() — post date for articles, build date for pages.
  *
  * Apache serves these via public/.htaccess (DirectorySlash Off + route/index.html
  * rewrite); everything else (dashboard, auth) falls back to the SPA index.html.
@@ -27,6 +30,7 @@ const ROBOTS = 'index, follow, max-snippet:-1, max-image-preview:large, max-vide
 const routes = require('../src/app/seo/seo-routes.json');
 const posts = require('../src/app/pages/blog/posts.json');
 const postContent = require('../src/app/pages/blog/posts-content.json');
+const { renderMarketingPage, pageScope } = require('./angular-static');
 
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -96,13 +100,88 @@ function staticBody(page) {
     const p = page.post;
     return `<article class="prerendered"><p><a href="/blog">Blog</a></p><h1>${esc(p.title)}</h1><time datetime="${p.date}">${p.date}</time>${postContent[p.slug]}</article>`;
   }
-  if (page.path === 'blog') {
-    const items = posts
-      .map((p) => `<li><a href="/blog/${p.slug}">${esc(p.title)}</a><p>${esc(p.description)}</p></li>`)
-      .join('');
-    return `<section class="prerendered"><h1>Blog</h1><ul>${items}</ul></section>`;
+  return renderMarketingPage(page.path) || '';
+}
+
+function ldScript(data) {
+  const json = JSON.stringify(data, null, 2).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json">\n${json}\n</script>`;
+}
+
+function offerFromPlan(plan) {
+  return {
+    '@type': 'Offer',
+    name: plan.name,
+    price: String(plan.price),
+    priceCurrency: 'USD',
+    description: `${plan.name} — $${plan.price} USD/month`,
+    priceSpecification: {
+      '@type': 'UnitPriceSpecification',
+      price: String(plan.price),
+      priceCurrency: 'USD',
+      unitText: 'month',
+      billingDuration: 1,
+    },
+  };
+}
+
+// Organization and SoftwareApplication stay in the document head. Offers are
+// taken from the pricing page data. The noindexed demo URL is not a sitelink.
+function ensureStructuredData(html) {
+  const plans = pageScope('pricing').plans;
+  const offers = plans.map(offerFromPlan);
+  let hasOrg = false;
+  let hasApp = false;
+  html = html.replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g, (full, json) => {
+    let data;
+    try {
+      data = JSON.parse(json);
+    } catch {
+      return full;
+    }
+    if (data['@type'] === 'Organization') {
+      hasOrg = true;
+      if (!data.name) data.name = SITE;
+      if (!data.url) data.url = `${ORIGIN}/`;
+      if (!data.logo) data.logo = `${ORIGIN}/favicon.svg`;
+      return data.name && data.url && data.logo ? full : ldScript(data);
+    }
+    if (data['@type'] === 'SoftwareApplication') {
+      hasApp = true;
+      data.name = SITE;
+      data.url = data.url || `${ORIGIN}/`;
+      data.offers = offers;
+      return ldScript(data);
+    }
+    if (data['@type'] === 'ItemList' && Array.isArray(data.itemListElement)) {
+      const items = data.itemListElement.filter((item) => !/\/demo(?:\/|$)/.test(String(item.url || '')));
+      data.itemListElement = items.map((item, index) => ({ ...item, position: index + 1 }));
+      return ldScript(data);
+    }
+    return full;
+  });
+  if (!hasOrg) {
+    html = html.replace('</head>', () => `${ldScript({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${ORIGIN}/#organization`,
+      name: SITE,
+      url: `${ORIGIN}/`,
+      logo: `${ORIGIN}/favicon.svg`,
+    })}\n</head>`);
   }
-  return '';
+  if (!hasApp) {
+    html = html.replace('</head>', () => `${ldScript({
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: SITE,
+      url: `${ORIGIN}/`,
+      applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Web Browser',
+      offers,
+    })}\n</head>`);
+  }
+  return html;
 }
 
 function render(template, page) {
@@ -118,6 +197,7 @@ function render(template, page) {
   html = setMeta(html, 'name', 'twitter:title', page.title);
   html = setMeta(html, 'name', 'twitter:description', page.description);
   html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);
+  html = ensureStructuredData(html);
   if (page.path !== '') {
     // Home-page-only structured data (FAQ) should not repeat on every URL.
     html = html.replace(/\s*<script type="application\/ld\+json">\s*\{\s*"@context": "https:\/\/schema\.org",\s*"@type": "FAQPage"[\s\S]*?<\/script>/, '');
@@ -138,7 +218,7 @@ function render(template, page) {
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
   const body = staticBody(page) + siteNav();
-  html = html.replace(/<app-root><\/app-root>/, `<app-root>${body}</app-root>`);
+  html = html.replace(/<app-root><\/app-root>/, () => `<app-root>${body}</app-root>`);
   return html;
 }
 
@@ -156,7 +236,7 @@ function main() {
     fs.writeFileSync(file, html);
     console.log(`prerendered /${page.path} -> ${path.relative(ROOT, file)}`);
   }
-  fs.writeFileSync(path.join(OUT, 'sitemap.xml'), fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml')));
+  fs.writeFileSync(path.join(OUT, 'sitemap.xml'), buildSitemap(new Date().toISOString().slice(0, 10)));
 }
 
 module.exports = { pages, buildSitemap, render, canonicalFor };
