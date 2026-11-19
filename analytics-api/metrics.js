@@ -26,6 +26,7 @@ const {
 } = require('./query');
 const { loadExclusionRules, exclusionMatch } = require('./owner-exclusion');
 const { CRAWLER_UA_PATTERN } = require('./bots');
+const { registerGoalRoutes } = require('./goals');
 const { loadImprovements } = require('./improve');
 
 /** Report-time filter: hide owner-excluded rows without deleting them. */
@@ -428,6 +429,7 @@ const CACHED_REPORTS = new Set([
   '/analytics/conversion-funnel', '/analytics/form-interactions', '/analytics/tooltip-insights',
   '/analytics/attribution', '/analytics/cohort-retention', '/analytics/user-paths', '/analytics/error-tracking',
   '/analytics/rage-dead-clicks', '/analytics/improvements', '/analytics/friction-details',
+  '/analytics/goal-conversion',
 ]);
 
 function createReportCache({ ttlMs, maxEntries = 300 } = {}) {
@@ -485,6 +487,8 @@ function registerMetricRoutes(app, { db, reportCacheTtlMs }) {
       return res.status(500).json({ error: err.message || 'metrics failed' });
     }
   };
+
+  registerGoalRoutes(app, { guarded, findEvents, composeMatch, previousRange, reqWithRange });
 
   app.get('/analytics/metrics', guarded(async (req, res, apiKey, col) => {
     const [core, live] = await Promise.all([
