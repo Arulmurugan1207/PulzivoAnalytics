@@ -1,5 +1,15 @@
 /** Pure helpers for the public share link and the read-only summary. */
 
+/** Badge on every public share page. Same campaign as the Start free button. */
+export const SHARE_BADGE_HREF =
+  'https://pulzivo.com/?utm_source=share&utm_medium=badge&utm_campaign=powered_by';
+
+/** Start free uses the badge campaign plus utm_content=cta. */
+export const SHARE_CTA_HREF = `${SHARE_BADGE_HREF}&utm_content=cta`;
+
+export const SHARE_CTA_LINE =
+  'Want stats like this for your site? Pulzivo is free for up to 10K events/month.';
+
 export interface ShareLink {
   token: string;
   url: string;

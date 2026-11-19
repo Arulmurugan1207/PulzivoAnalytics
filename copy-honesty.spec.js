@@ -156,6 +156,8 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     'src/app/pages/blog/posts.json',
     'src/app/pages/blog/posts-content.json',
     'src/app/pages/guides/guide-copy.ts',
+    'src/app/pages/share/share-dashboard.ts',
+    'src/app/growth/share.logic.ts',
   ];
   for (const f of files) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
