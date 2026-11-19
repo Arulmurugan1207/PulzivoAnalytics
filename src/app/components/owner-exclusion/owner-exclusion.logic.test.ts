@@ -61,7 +61,10 @@ test('docs describe pulz_owner, exclude_owner and pulz_exclude_owner as method 6
   const html = readFileSync(join(root, 'docs.html'), 'utf8');
   const ts = readFileSync(join(root, 'docs.ts'), 'utf8');
   assert.match(html, /Method 6/);
-  for (const param of OWNER_URL_PARAMS) assert.match(html, new RegExp(param));
-  assert.match(ts, /OWNER_EXCLUSION_FAQ/);
+  for (const param of OWNER_URL_PARAMS) {
+    assert.match(html, new RegExp(param));
+    assert.match(ts, new RegExp(param));
+  }
+  assert.match(ts, /all 6 methods/);
   assert.doesNotMatch(ts, /all 5 methods/);
 });
