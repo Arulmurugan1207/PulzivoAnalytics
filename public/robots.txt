@@ -4,7 +4,8 @@
 User-agent: *
 Allow: /
 
-# App / authenticated routes (no SEO value). Matches the noindex list in public/.htaccess.
+# App / authenticated routes (no SEO value). Matches the noindex list in public/.htaccess
+# except /share, which stays crawlable so Google can see X-Robots-Tag: noindex.
 Disallow: /dashboard
 Disallow: /reset-password
 Disallow: /login

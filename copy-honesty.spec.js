@@ -93,8 +93,13 @@ test('robots.txt still points at /sitemap.xml and hides noindex app routes', () 
   for (const route of ['/dashboard', '/reset-password', '/login', '/signin', '/signup', '/register', '/demo', '/api/']) {
     assert.match(robots, new RegExp(`Disallow:\\s*${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s`));
   }
+  assert.doesNotMatch(robots, /Disallow:\s*\/share\b/);
   assert.doesNotMatch(robots, /Strict-Transport-Security/i);
   const htaccess = fs.readFileSync(path.join(ROOT, 'public', '.htaccess'), 'utf8');
+  assert.match(
+    htaccess,
+    /SetEnvIf Request_URI "\^\/\(dashboard\|reset-password\|login\|signin\|signup\|register\|demo\|share\)" PZ_NOINDEX/,
+  );
   assert.doesNotMatch(htaccess, /Strict-Transport-Security/i);
 });
 
