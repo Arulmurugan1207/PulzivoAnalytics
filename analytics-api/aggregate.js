@@ -546,8 +546,9 @@ function coreMetricsPipeline(match) {
           { $count: 'n' },
         ],
         conversions: [
-          { $match: { _conv: 1, _who: { $nin: [null, ''] } } },
-          { $group: { _id: '$_who' } },
+          { $match: { _uid: { $nin: [null, ''] } } },
+          { $group: { _id: '$_uid', pv: { $max: '$_pv' }, conv: { $max: '$_conv' } } },
+          { $match: { pv: 1, conv: 1 } },
           { $count: 'n' },
         ],
         sessions: [
@@ -582,16 +583,16 @@ function shapeCoreMetrics(facet, liveCount = 0) {
     liveVisitors: liveCount,
     totalPageViews: page.count || 0,
     uniqueVisitors: unique,
-    conversionRate: percent(conversions, unique || sessionTotal || 1, 1),
-    bounceRate: percent(sessions.bounced || 0, sessionTotal || 1, 1),
+    conversionRate: unique ? percent(conversions, unique, 1) : null,
+    bounceRate: sessionTotal ? percent(sessions.bounced || 0, sessionTotal, 1) : null,
     avgSessionDuration: Math.round(durMean || 0),
     avgPagesPerSession: Math.round(((pagesMean || 0) * 10)) / 10,
     avgScrollDepth: Math.round(((scrollMean || 0) * 10)) / 10,
     avgTimeOnPage: Math.round(timeMean || 0),
-    newVsReturning: {
-      new: percent(fresh, visitorTotal || 1, 0),
-      returning: percent(returning, visitorTotal || 1, 0),
-    },
+    newVsReturning: visitorTotal ? {
+      new: percent(fresh, visitorTotal, 0),
+      returning: percent(returning, visitorTotal, 0),
+    } : { new: null, returning: null },
     totalSessions: sessionTotal,
   };
 }
