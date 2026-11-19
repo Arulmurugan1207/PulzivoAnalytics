@@ -35,6 +35,48 @@
     "changefreq": "monthly"
   },
   {
+    "path": "ga4-alternative",
+    "title": "Google Analytics 4 alternative for small sites | Pulzivo Analytics",
+    "description": "A practical GA4 alternative for small sites: one script, about 9KB gzip, no cookies, no personal data by default, and a free plan of 10,000 events a month.",
+    "priority": "0.8",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "cookieless-analytics",
+    "title": "Cookieless analytics: how Pulzivo measures a site | Pulzivo Analytics",
+    "description": "What cookieless analytics means in Pulzivo: no cookies, a visitor id that rotates each day in localStorage, and no personal data collected by default.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "compare/plausible",
+    "title": "Pulzivo vs Plausible | Pulzivo Analytics",
+    "description": "An honest Pulzivo vs Plausible comparison: cookies, a free plan, events versus pageviews, and which product fits a small site.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "compare/fathom",
+    "title": "Pulzivo vs Fathom | Pulzivo Analytics",
+    "description": "Pulzivo vs Fathom for small sites: cookieless tracking, a free events plan, and the product signals each tool does and does not include.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "compare/google-analytics",
+    "title": "Pulzivo vs Google Analytics 4 | Pulzivo Analytics",
+    "description": "Pulzivo vs GA4: cookies, setup, events, a GA4 CSV import, and the Google Ads and BigQuery cases where GA4 is still the better fit.",
+    "priority": "0.8",
+    "changefreq": "monthly"
+  },
+  {
+    "path": "compare/simple-analytics",
+    "title": "Pulzivo vs Simple Analytics | Pulzivo Analytics",
+    "description": "Pulzivo vs Simple Analytics: cookieless page stats versus an event-based free plan, and how to choose for a small site.",
+    "priority": "0.7",
+    "changefreq": "monthly"
+  },
+  {
     "path": "use-cases",
     "title": "Use Cases — Marketing Sites, SaaS & Apps | Pulzivo Analytics",
     "description": "See how teams use Pulzivo to measure marketing sites, SaaS products and web apps with one privacy-first analytics script and custom events.",

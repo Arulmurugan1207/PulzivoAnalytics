@@ -69,9 +69,30 @@
     .footer-stat-value { color: #4ade80; }
   }
 
-  .footer-nav {
+  .footer-nav,
+  .footer-compare {
     display: flex;
-    gap: 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    align-items: center;
+  }
+
+  .footer-compare {
+    flex: 1 1 100%;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .footer-group-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .footer-nav,
+  .footer-compare {
 
     a {
       color: rgba(255,255,255,0.5);

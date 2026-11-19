@@ -82,25 +82,94 @@ function setMeta(html, attr, key, value) {
   return html.replace(re, tag);
 }
 
+// Header links are the live navItems, so the prerendered main nav cannot drift
+// from the Angular header. Footer links are the real <a routerLink> / href
+// values in footer.html, including Docs and the Compare group.
+function headerNavItems() {
+  const src = fs.readFileSync(path.join(ROOT, 'src/app/layout/header/header.ts'), 'utf8');
+  const block = src.match(/navItems:\s*NavItem\[\]\s*=\s*\[([\s\S]*?)\];/);
+  if (!block) throw new Error('header.ts is missing navItems');
+  const items = [...block[1].matchAll(/\{\s*label:\s*'([^']+)',\s*path:\s*'([^']+)'\s*\}/g)];
+  if (!items.length) throw new Error('header.ts navItems did not parse');
+  return items.map((match) => [match[2], match[1]]);
+}
+
+function footerNavs() {
+  const src = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
+  const navs = [...src.matchAll(/<nav\b([^>]*)>([\s\S]*?)<\/nav>/g)];
+  if (!navs.length) throw new Error('footer.html is missing a nav');
+  return navs.map((nav) => {
+    const label = (nav[1].match(/aria-label="([^"]*)"/) || [])[1] || 'Footer';
+    const group = (nav[2].match(/footer-group-label">([^<]+)/) || [])[1];
+    const links = [...nav[2].matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].map((anchor) => {
+      const href = (anchor[1].match(/\brouterLink="([^"]+)"/) || anchor[1].match(/\bhref="([^"]+)"/) || [])[1];
+      if (!href) return '';
+      const text = anchor[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const external = /^https?:/i.test(href) ? ' target="_blank" rel="noopener"' : '';
+      return `<a href="${esc(href)}"${external}>${esc(text)}</a>`;
+    }).filter(Boolean);
+    const prefix = group ? `<span class="footer-group-label">${esc(group.trim())}</span> ` : '';
+    return `<nav aria-label="${esc(label)}">${prefix}${links.join(' ')}</nav>`;
+  });
+}
+
+function staticHeader() {
+  const links = headerNavItems().map(([href, label]) => `<a href="${esc(href)}">${esc(label)}</a>`).join(' ');
+  return `<header class="site-header"><a href="/">Pulzivo Analytics</a><nav aria-label="Primary navigation">${links}</nav></header>`;
+}
+
+function staticFooter() {
+  return `<footer class="site-footer">${footerNavs().join('')}</footer>`;
+}
+
 // Plain <a href> links present in the raw HTML of every prerendered page so
-// crawlers discover the blog without running JS. Angular replaces <app-root>
-// contents on bootstrap.
+// crawlers discover the blog without running JS. This nav stays visually
+// hidden. The visible header and footer above it are what carry /docs.
+// Angular replaces <app-root> contents on bootstrap.
 function siteNav() {
   const links = [
-    ['/', 'Home'], ['/features', 'Features'], ['/pricing', 'Pricing'], ['/docs', 'Docs'],
-    ['/why-pulzivo', 'Why Pulzivo'], ['/use-cases', 'Use cases'], ['/blog', 'Blog'],
+    ...headerNavItems(),
+    ['/features', 'Features'],
+    ['/use-cases', 'Use cases'],
     ...posts.map((p) => [`/blog/${p.slug}`, p.title]),
-    ['/contact', 'Contact'], ['/privacy', 'Privacy'], ['/terms', 'Terms'],
+    ['/privacy', 'Privacy'],
+    ['/terms', 'Terms'],
+    ['/ga4-alternative', 'GA4 alternative'],
+    ['/cookieless-analytics', 'Cookieless analytics'],
+    ['/compare/plausible', 'Pulzivo vs Plausible'],
+    ['/compare/fathom', 'Pulzivo vs Fathom'],
+    ['/compare/google-analytics', 'Pulzivo vs Google Analytics'],
+    ['/compare/simple-analytics', 'Pulzivo vs Simple Analytics'],
   ];
-  return `<nav class="prerendered-nav sr-only" aria-label="Site" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">${links.map(([h, t]) => `<a href="${h}">${esc(t)}</a>`).join(' ')}</nav>`;
+  const seen = new Set();
+  const unique = links.filter(([href]) => (seen.has(href) ? false : seen.add(href)));
+  return `<nav class="prerendered-nav sr-only" aria-label="Site" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">${unique.map(([h, t]) => `<a href="${esc(h)}">${esc(t)}</a>`).join(' ')}</nav>`;
 }
 
 function staticBody(page) {
+  let inner;
   if (page.post) {
     const p = page.post;
-    return `<article class="prerendered"><p><a href="/blog">Blog</a></p><h1>${esc(p.title)}</h1><time datetime="${p.date}">${p.date}</time>${postContent[p.slug]}</article>`;
+    inner = `<article class="prerendered"><p><a href="/blog">Blog</a></p><h1>${esc(p.title)}</h1><time datetime="${p.date}">${p.date}</time>${postContent[p.slug]}</article>`;
+  } else {
+    const rendered = renderMarketingPage(page.path) || '<div class="prerendered"></div>';
+    inner = rendered.replace(/^<div class="prerendered">/, '').replace(/<\/div>\s*$/, '');
   }
-  return renderMarketingPage(page.path) || '';
+  return `<div class="prerendered">${staticHeader()}${inner}${staticFooter()}</div>`;
+}
+
+function faqEntries(page) {
+  if (!page || page.post) return null;
+  const scope = pageScope(page.path);
+  if (!scope || !Array.isArray(scope.faqs)) return null;
+  const faqs = scope.faqs.map((item) => {
+    if (!item || typeof item !== 'object') return null;
+    const question = item.question || item.q;
+    const answer = item.answer || item.a;
+    if (!question || !answer) return null;
+    return { question: String(question), answer: String(answer) };
+  }).filter(Boolean);
+  return faqs.length ? faqs : null;
 }
 
 function ldScript(data) {
@@ -199,8 +268,22 @@ function render(template, page) {
   html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);
   html = ensureStructuredData(html);
   if (page.path !== '') {
-    // Home-page-only structured data (FAQ) should not repeat on every URL.
+    // The homepage FAQ block in index.html should not repeat on every URL.
     html = html.replace(/\s*<script type="application\/ld\+json">\s*\{\s*"@context": "https:\/\/schema\.org",\s*"@type": "FAQPage"[\s\S]*?<\/script>/, '');
+  }
+  if (!/"@type":\s*"FAQPage"/.test(html)) {
+    const faqs = faqEntries(page);
+    if (faqs) {
+      html = html.replace('</head>', () => `${ldScript({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: { '@type': 'Answer', text: item.answer },
+        })),
+      })}\n</head>`);
+    }
   }
   if (page.post) {
     html = setMeta(html, 'property', 'og:type', 'article');

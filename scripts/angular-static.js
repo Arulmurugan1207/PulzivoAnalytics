@@ -1033,6 +1033,30 @@ const PAGES = {
     template: 'src/app/pages/why-pulzivo/why-pulzivo.html',
     component: 'src/app/pages/why-pulzivo/why-pulzivo.ts',
   },
+  'ga4-alternative': {
+    template: 'src/app/pages/guides/ga4-alternative/ga4-alternative.html',
+    component: 'src/app/pages/guides/ga4-alternative/ga4-alternative.ts',
+  },
+  'cookieless-analytics': {
+    template: 'src/app/pages/guides/cookieless-analytics/cookieless-analytics.html',
+    component: 'src/app/pages/guides/cookieless-analytics/cookieless-analytics.ts',
+  },
+  'compare/plausible': {
+    template: 'src/app/pages/guides/compare/plausible/plausible.html',
+    component: 'src/app/pages/guides/compare/plausible/plausible.ts',
+  },
+  'compare/fathom': {
+    template: 'src/app/pages/guides/compare/fathom/fathom.html',
+    component: 'src/app/pages/guides/compare/fathom/fathom.ts',
+  },
+  'compare/google-analytics': {
+    template: 'src/app/pages/guides/compare/google-analytics/google-analytics.html',
+    component: 'src/app/pages/guides/compare/google-analytics/google-analytics.ts',
+  },
+  'compare/simple-analytics': {
+    template: 'src/app/pages/guides/compare/simple-analytics/simple-analytics.html',
+    component: 'src/app/pages/guides/compare/simple-analytics/simple-analytics.ts',
+  },
   'use-cases': {
     template: 'src/app/pages/use-cases/use-cases.html',
     component: 'src/app/pages/use-cases/use-cases.ts',
