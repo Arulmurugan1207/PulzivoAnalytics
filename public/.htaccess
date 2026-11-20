@@ -32,12 +32,15 @@ RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
   CacheLookup on
   RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
   RewriteCond %{QUERY_STRING} ^$
-  RewriteRule ^(pricing|features|docs|blog|blog/[a-z0-9-]+|why-pulzivo|use-cases|contact|privacy|terms|ga4-alternative|cookieless-analytics|compare/[a-z0-9-]+)?$ - [E=Cache-Control:max-age=600]
+  RewriteRule ^(pricing|features|docs|blog|blog/[a-z0-9-]+|why-pulzivo|use-cases|contact|privacy|terms|ga4-alternative|cookieless-analytics|compare/[a-z0-9-]+|tools/utm-builder)?$ - [E=Cache-Control:max-age=600]
 </IfModule>
 
 # Never rewrite SEO files to the Angular app
 RewriteRule ^sitemap\.xml$ - [L]
 RewriteRule ^robots\.txt$ - [L]
+
+# One free tool ships for now. /tools is the UTM builder, not its own page.
+RewriteRule ^tools/?$ https://pulzivo.com/tools/utm-builder [R=301,L]
 
 # Trailing slash -> canonical slash-less URL (301), except the site root
 RewriteCond %{REQUEST_FILENAME} !-f

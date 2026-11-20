@@ -1,0 +1,86 @@
+.tool-form, .tool-result { margin-top: 1.5rem; }
+
+.field { display: flex; flex-direction: column; gap: 0.35rem; margin: 0 0 0.85rem; font-weight: 650; }
+.field em { font-style: normal; font-weight: 500; color: #64748b; }
+.field input {
+  font: inherit;
+  font-weight: 450;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #0f172a;
+  background: #fff;
+}
+.field input:focus { outline: 2px solid #6366f1; outline-offset: 1px; border-color: #6366f1; }
+
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.field-grid .field:last-child { grid-column: 1 / -1; }
+
+.presets, .strategy { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0 0 1rem; }
+.presets button, .strategy button, .tool-btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  color: #312e81;
+  padding: 0.45rem 0.75rem;
+}
+.presets button { display: flex; flex-direction: column; align-items: flex-start; border-radius: 12px; text-align: left; }
+.preset-meta { font-size: 0.75rem; font-weight: 550; color: #64748b; }
+.presets button.active, .strategy button.active { background: #eef2ff; border-color: #4f46e5; color: #312e81; }
+.tool-btn { background: #4f46e5; color: #fff; border-color: #4f46e5; font-weight: 700; padding: 0.65rem 1.1rem; }
+.tool-btn:disabled { opacity: 0.65; cursor: progress; }
+
+.built-url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.92rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+  overflow-wrap: anywhere;
+  margin: 0 0 0.75rem;
+}
+.built-url.is-empty { color: #64748b; font-family: inherit; }
+.tool-hint { color: #64748b; font-size: 0.92rem; margin: 0.35rem 0; }
+.tool-error {
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+  margin: 0.75rem 0 0;
+}
+
+.score-row { display: flex; gap: 1rem; align-items: center; margin: 0.5rem 0 1rem; }
+.score-card, .vital-card { border-radius: 14px; padding: 0.9rem 1rem; border: 1px solid transparent; }
+.score-card { min-width: 8.5rem; text-align: center; }
+.score-num { display: block; font-size: 2.4rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.score-caption, .band-label { display: block; font-size: 0.85rem; font-weight: 700; }
+.score-note { color: #334155; margin: 0; }
+.vital-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-bottom: 1rem; }
+.vital-card h3 { margin: 0; font-size: 0.85rem; letter-spacing: 0.04em; }
+.vital-value { font-size: 1.45rem; font-weight: 800; margin: 0.2rem 0; letter-spacing: -0.02em; }
+.vital-detail { font-size: 0.85rem; margin: 0.45rem 0 0; }
+
+.band-good { background: #dcfce7; color: #166534; }
+.band-needs-work { background: #ffedd5; color: #9a3412; }
+.band-poor { background: #fee2e2; color: #991b1b; }
+.band-missing { background: #f1f5f9; color: #475569; }
+
+.opportunities { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.opportunities li { margin: 0.7rem 0; }
+.opportunities p { margin: 0.25rem 0 0; }
+
+.tool-index { list-style: none; padding: 0; margin: 0; }
+.tool-index li { border: 1px solid #e2e8f0; border-radius: 14px; padding: 1rem 1.1rem; margin: 0 0 0.8rem; }
+.tool-index h2 { font-size: 1.25rem; margin: 0 0 0.35rem; }
+.tool-index a { color: #4338ca; text-decoration: none; }
+.tool-index a:hover { text-decoration: underline; }
+
+.guide-cta .guide-cta-link { color: #fff; font-weight: 700; }
+
+@media (max-width: 700px) {
+  .field-grid, .vital-grid, .score-row { grid-template-columns: 1fr; display: grid; }
+}

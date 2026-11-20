@@ -1061,6 +1061,10 @@ const PAGES = {
     template: 'src/app/pages/use-cases/use-cases.html',
     component: 'src/app/pages/use-cases/use-cases.ts',
   },
+  'tools/utm-builder': {
+    template: 'src/app/pages/tools/utm-builder/utm-builder.html',
+    component: 'src/app/pages/tools/utm-builder/utm-builder.ts',
+  },
   blog: {
     template: 'src/app/pages/blog/blog.html',
     component: 'src/app/pages/blog/blog.ts',

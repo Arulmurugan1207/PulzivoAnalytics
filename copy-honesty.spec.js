@@ -158,6 +158,8 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     'src/app/pages/guides/guide-copy.ts',
     'src/app/pages/share/share-dashboard.ts',
     'src/app/growth/share.logic.ts',
+    'src/app/pages/tools/utm-builder/utm-builder.html',
+    'src/app/pages/tools/utm-builder/utm-builder.ts',
   ];
   for (const f of files) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -439,6 +441,48 @@ test('/docs is in the sitemap, prerendered, and linked from the visible nav and 
     assert.match(footerHtml[0], /<a href="\/docs">Docs<\/a>/);
     assert.doesNotMatch(headerHtml[0] + footerHtml[0], /sr-only|display:\s*none|visibility:\s*hidden/);
   }
+});
+
+test('the UTM builder is prerendered, canonical, and the only free tool in the sitemap', () => {
+  const { pages, render, canonicalFor, buildSitemap } = require('./scripts/prerender-seo.js');
+  const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
+  const committed = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const generated = buildSitemap('2026-11-19');
+  const header = fs.readFileSync(path.join(ROOT, 'src/app/layout/header/header.ts'), 'utf8');
+  const footer = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
+  const routes = fs.readFileSync(path.join(ROOT, 'src/app/app.routes.ts'), 'utf8');
+  assert.match(header, /label:\s*'UTM builder',\s*path:\s*'\/tools\/utm-builder'/);
+  assert.match(footer, /aria-label="Free tools"/);
+  assert.match(footer, /footer-group-label">Free tools</);
+  assert.match(footer, /routerLink="\/tools\/utm-builder">UTM builder</);
+  assert.doesNotMatch(footer, /routerLink="\/tools"/);
+  assert.match(routes, /path:\s*'tools',\s*redirectTo:\s*'tools\/utm-builder'/);
+  for (const xml of [committed, generated]) {
+    assert.match(xml, /<loc>https:\/\/pulzivo\.com\/tools\/utm-builder<\/loc>/);
+    assert.doesNotMatch(xml, /<loc>https:\/\/pulzivo\.com\/tools<\/loc>/);
+    assert.doesNotMatch(xml, /page-speed/);
+  }
+  assert.equal(pages().some((item) => item.path === 'tools' || item.path === 'tools/page-speed-checker'), false);
+  const page = pages().find((item) => item.path === 'tools/utm-builder');
+  assert.equal(page.title, 'UTM campaign URL builder | Pulzivo Analytics');
+  const html = render(template, page);
+  assert.match(html, /<title>UTM campaign URL builder \| Pulzivo Analytics<\/title>/);
+  assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor('tools/utm-builder').replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
+  assert.match(html, /<h1>UTM campaign URL builder<\/h1>/);
+  assert.match(html, /"@type": "FAQPage"/);
+  assert.match(html, /https:\/\/example\.com\/pricing\?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=spring-launch&amp;utm_content=hero/);
+  assert.match(html, /google \/ cpc/);
+  assert.match(html, /See which campaigns actually convert: Pulzivo shows UTM attribution on Starter\. Free plan to start\./);
+  assert.match(html, /href="\/signup"/);
+  assert.doesNotMatch(html, /GDPR|CCPA|cookie banner/i);
+  assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
+  assert.doesNotMatch(html, /today only|hurry|last chance|countdown/i);
+  assert.doesNotMatch(html, /page-speed|page speed checker/i);
+  const visibleStart = html.indexOf('<div class="prerendered">');
+  const hiddenStart = html.indexOf('<nav class="prerendered-nav');
+  const visible = html.slice(visibleStart, hiddenStart);
+  assert.match(visible, /<a href="\/tools\/utm-builder">UTM builder<\/a>/);
+  assert.match(visible, /footer-group-label">Free tools</);
 });
 
 test('prerender loads exported constants from relative imports and skips unresolved fields', () => {

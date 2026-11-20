@@ -140,3 +140,28 @@ test('missing sitemap.xml still returns 200 valid XML, not HTML', async (t) => {
   assert.match(xml, /https:\/\/pulzivo\.com\/docs/);
   assert.doesNotMatch(xml, /spa/);
 });
+
+test('/tools redirects to the UTM builder and does not swallow that page', async (t) => {
+  const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pulzivo-dist-'));
+  fs.writeFileSync(path.join(distDir, 'index.html'), '<html><body>spa</body></html>');
+
+  const port = await listenPort();
+  const child = await startServer({ port, distDir });
+  t.after(() => {
+    child.kill('SIGTERM');
+    fs.rmSync(distDir, { recursive: true, force: true });
+  });
+
+  const index = await fetch(`http://127.0.0.1:${port}/tools`, { redirect: 'manual' });
+  assert.equal(index.status, 301);
+  assert.equal(index.headers.get('location'), '/tools/utm-builder');
+
+  const slash = await fetch(`http://127.0.0.1:${port}/tools/?ref=1`, { redirect: 'manual' });
+  assert.equal(slash.status, 301);
+  assert.equal(slash.headers.get('location'), '/tools/utm-builder?ref=1');
+
+  const builder = await fetch(`http://127.0.0.1:${port}/tools/utm-builder`, { redirect: 'manual' });
+  assert.equal(builder.status, 200);
+  assert.equal(builder.headers.get('location'), null);
+  assert.match(await builder.text(), /spa/);
+});

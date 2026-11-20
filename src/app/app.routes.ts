@@ -83,6 +83,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/use-cases/use-cases').then(m => m.UseCases)
   },
   {
+    path: 'tools',
+    redirectTo: 'tools/utm-builder',
+    pathMatch: 'full',
+  },
+  {
+    path: 'tools/utm-builder',
+    ...seo('tools/utm-builder'),
+    loadComponent: () => import('./pages/tools/utm-builder/utm-builder').then(m => m.UtmBuilderPage)
+  },
+  {
     path: 'blog',
     ...seo('blog'),
     loadComponent: () => import('./pages/blog/blog').then(m => m.Blog)
