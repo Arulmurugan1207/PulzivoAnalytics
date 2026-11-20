@@ -2,12 +2,22 @@
 # Static files (sitemap.xml, robots.txt, hashed assets) are served as-is.
 # Public marketing routes are prerendered at build time to <route>/index.html
 # (scripts/prerender-seo.js) and served without a trailing slash.
-# Unknown paths (dashboard, auth, demo) fall through to the SPA index.html.
+# Unknown extensionless paths (dashboard, auth, demo, share) fall through to
+# the SPA index.html. Unknown .html/.php paths do not: they 404.
 
 # Don't 301 /pricing -> /pricing/ just because a prerendered directory exists;
 # canonical URLs have no trailing slash.
 DirectorySlash Off
 DirectoryIndex index.html
+
+# Turn off directory listings, content negotiation, and CGI. The +/- form
+# leaves FollowSymLinks alone, which RewriteEngine needs.
+Options -Indexes -MultiViews -ExecCGI
+
+# A quoted string, not a URL. A URL error document would be routed through the
+# SPA fallback below and unknown files would come back as 200 index.html.
+ErrorDocument 404 "Not Found"
+ErrorDocument 403 "Forbidden"
 
 RewriteEngine On
 
@@ -17,10 +27,56 @@ RewriteCond %{HTTPS} off
 RewriteCond %{HTTP_HOST} ^(www\.)?pulzivo\.com$ [NC]
 RewriteRule ^(.*)$ https://pulzivo.com/$1 [R=301,L]
 
+# This docroot is a static site. Never execute or download server-side scripts,
+# dotfiles that configure the interpreter, or common dump/backup names, even
+# if someone uploads them next to the built files.
+RewriteRule \.(?:php\d*|phtml|phar|phps|cgi|pl|py|asp|aspx|jsp|shtml|sql|bak|old|orig)$ - [R=404,L,NC]
+RewriteRule (^|/)\.(?:user\.ini|env|htpasswd)$ - [R=404,L,NC]
+
+# Google Search Console HTML verification files are not part of this app.
+# 404 them even when the file exists on disk (the Nov 2026 compromise uploaded
+# googlec6a347bbda5b0ae1.html and googleab7dc7f91204aed1.html).
+RewriteRule (^|/)google[^/]*\.html$ - [R=404,L,NC]
+
 # Defence in depth: app routes never get indexed even if linked externally
 <IfModule mod_headers.c>
   SetEnvIf Request_URI "^/(dashboard|reset-password|login|signin|signup|register|demo|share)" PZ_NOINDEX
+  # The SPA rewrite is an internal redirect, which renames the env var. Set
+  # the header for both names so /dashboard and /share stay noindex.
   Header set X-Robots-Tag "noindex, nofollow" env=PZ_NOINDEX
+  Header set X-Robots-Tag "noindex, nofollow" env=REDIRECT_PZ_NOINDEX
+</IfModule>
+
+# Security headers. `always` covers 404s and redirects, not only 200s.
+# HSTS is max-age=31536000 with no includeSubDomains and no preload.
+# Browsers discard HSTS received over plain HTTP; the canonical-host rule above
+# already redirects http:// to https://pulzivo.com.
+# Nothing in this repo frames pulzivo.com, so framing is denied.
+<IfModule mod_headers.c>
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "accelerometer=(), autoplay=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), interest-cohort=(), browsing-topics=()"
+  # Enforcing CSP, built from what the Angular app actually loads:
+  #   script  same-origin bundles, the inline tracker loader (sha256), and
+  #           cdn.pulzivo.com (tracker fallback / customer snippet host).
+  #           'unsafe-hashes' plus the second sha256 allow only the Angular
+  #           stylesheet loader onload="this.media='all'" (not arbitrary handlers).
+  #   style   bundled CSS, the prerender <style> block, and Angular's
+  #           inlined <style> tags ('unsafe-inline'). The production build
+  #           inlines Inter, so fonts.googleapis.com is not contacted.
+  #   font    self + fonts.gstatic.com (Inter woff2)
+  #   img     self, data:, blob:, www.google.com/s2/favicons, and the
+  #           *.gstatic.com host that favicon URL redirects to
+  #   connect App Engine auth/billing API + Cloud Run analytics API
+  # Stripe Checkout and the Billing Portal are top-level navigations to a URL
+  # the App Engine API returns. The browser never loads Stripe.js. navigate-to
+  # is left unset so those redirects keep working.
+  # Turnstile is not loaded (turnstileSiteKey is the placeholder). Enabling a
+  # real site key requires script-src, frame-src, and connect-src for
+  # https://challenges.cloudflare.com.
+  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self' https://cdn.pulzivo.com 'unsafe-hashes' 'sha256-7BNqt3JIcWv5cXwq7gfhUSvxF3ujdxfeDHnpZkv3SSo=' 'sha256-MhtPZXr7+LpJUY5qtMutB+qWfQtMaPccfe7QXtCcEYc='; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://www.google.com https://*.gstatic.com; connect-src 'self' https://analytics-dot-node-server-apis.ue.r.appspot.com https://pulzivo-analytics-api-167308220305.us-east1.run.app; worker-src 'self'; manifest-src 'self'; media-src 'self'; upgrade-insecure-requests"
 </IfModule>
 
 # LiteSpeed page cache for public, prerendered marketing HTML only.
@@ -51,14 +107,25 @@ RewriteCond %{REQUEST_FILENAME} -d
 RewriteCond %{REQUEST_FILENAME}/index.html -f
 RewriteRule ^(.+)$ $1/index.html [L]
 
-# Everything else that isn't a real file: SPA fallback
+# Missing HTML must not fall through to index.html. Real files (/index.html,
+# prerendered route index.html) are served as themselves because -f is true.
+# Extensionless Angular routes are unchanged and still use the SPA fallback.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule \.html?$ - [R=404,L,NC]
+
+# Everything else that isn't a real file: SPA fallback.
+# A path that still looks like HTML or a server script never becomes index.html.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !\.(?:html?|php\d*|phtml|phar|phps|cgi|pl|py|asp|aspx|jsp|shtml)(?:\?|$) [NC]
 RewriteRule . index.html [L]
 
 <IfModule mod_mime.c>
   AddType application/xml .xml
   AddType text/plain .txt
+  RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .phps .cgi .pl .py .asp .aspx .jsp .shtml
+  RemoveType .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .phps
 </IfModule>
 
 # Browser caching

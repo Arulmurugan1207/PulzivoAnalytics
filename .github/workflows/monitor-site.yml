@@ -1,0 +1,30 @@
+name: Site integrity
+
+# Every 6 hours, plus manual runs. Minute 17 avoids the top-of-hour queue.
+# No secrets. GitHub emails a failed scheduled run to the account that
+# introduced this cron (or the account that later edits the cron, or the
+# account that re-enables the workflow). That is the default Actions
+# notification for scheduled workflows; this file does not send mail itself.
+# The recipient still needs Actions email notifications turned on. The run is
+# also visible on the repository Actions tab. Scheduled workflows run only
+# from the default branch.
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.x'
+      - name: Compare the live site with this repo
+        run: node scripts/monitor-live-site.js

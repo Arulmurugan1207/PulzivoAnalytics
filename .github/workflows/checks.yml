@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22.x'
       - name: Server + copy honesty
@@ -24,6 +24,8 @@ jobs:
           npm run test:server
           npm run test:copy
           node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts
+      - name: Security headers and live-check helpers
+        run: node --test scripts/security-headers.spec.js scripts/site-integrity.spec.js scripts/deploy-verify.spec.js
       - name: Analytics API routes
         run: |
           npm ci --prefix analytics-api
