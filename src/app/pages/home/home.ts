@@ -8,7 +8,7 @@ import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
 import { BreakdownCard } from '../../components/breakdown-card/breakdown-card';
-import blogPosts from '../blog/posts.json';
+import blogPosts from '../blog/published-posts.json';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
 
 declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;

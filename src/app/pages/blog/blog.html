@@ -8,7 +8,10 @@
           <a [routerLink]="['/blog', post.slug]">
             <h2>{{ post.title }}</h2>
           </a>
-          <time [attr.datetime]="post.date">{{ post.date }}</time>
+          <p class="post-meta">
+            <time [attr.datetime]="post.publishDate || post.date">{{ post.date }}</time>
+            <span class="reading-time">{{ post.minutes }} min read</span>
+          </p>
           <p>{{ post.description }}</p>
           <a class="read-more" [routerLink]="['/blog', post.slug]">Read article →</a>
         </li>

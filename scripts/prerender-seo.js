@@ -3,7 +3,10 @@
  * Build-time prerender of SEO <head> tags for every public marketing route.
  *
  * Runs after `ng build`. For each route in src/app/seo/seo-routes.json and each
- * post in src/app/pages/blog/posts.json it writes dist/.../browser/<route>/index.html
+ * post in src/app/pages/blog/posts.json whose publishDate is on or before today
+ * in America/Toronto, it writes dist/.../browser/<route>/index.html. A later
+ * post is not prerendered and is not added to the sitemap. Set PULZIVO_AS_OF
+ * to YYYY-MM-DD to simulate that day (tests only; the deploy workflow must not).
  * (a copy of the built index.html with that route's own <title>, description,
  * canonical, robots, og:* and twitter:* tags). Every public route also gets
  * visible body HTML inlined in <app-root> (the page template expanded against
@@ -28,15 +31,20 @@ const SITE = 'Pulzivo Analytics';
 const ROBOTS = 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1';
 
 const routes = require('../src/app/seo/seo-routes.json');
-const posts = require('../src/app/pages/blog/posts.json');
+const allPosts = require('../src/app/pages/blog/posts.json');
 const postContent = require('../src/app/pages/blog/posts-content.json');
-const { renderMarketingPage, pageScope } = require('./angular-static');
+const { renderMarketingPage, pageScope, loadExportedValues } = require('./angular-static');
+const schedule = loadExportedValues(path.join(ROOT, 'src/app/pages/blog/schedule.ts'));
+
+function visiblePosts(asOf) {
+  return schedule.publishedPosts(allPosts, asOf);
+}
 
 const esc = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const canonicalFor = (p) => (p ? `${ORIGIN}/${p}` : `${ORIGIN}/`);
 
-function pages() {
+function pages(asOf) {
   const list = routes.map((r) => ({
     path: r.path,
     title: r.title,
@@ -44,7 +52,7 @@ function pages() {
     priority: r.priority,
     changefreq: r.changefreq,
   }));
-  for (const p of posts) {
+  for (const p of visiblePosts(asOf)) {
     list.push({
       path: `blog/${p.slug}`,
       title: `${p.title} | ${SITE}`,
@@ -57,8 +65,8 @@ function pages() {
   return list;
 }
 
-function buildSitemap(lastmod) {
-  const urls = pages()
+function buildSitemap(lastmod, asOf) {
+  const urls = pages(asOf)
     .map(
       (p) => `  <url>
     <loc>${canonicalFor(p.path)}</loc>
@@ -126,12 +134,12 @@ function staticFooter() {
 // crawlers discover the blog without running JS. This nav stays visually
 // hidden. The visible header and footer above it are what carry /docs.
 // Angular replaces <app-root> contents on bootstrap.
-function siteNav() {
+function siteNav(asOf) {
   const links = [
     ...headerNavItems(),
     ['/features', 'Features'],
     ['/use-cases', 'Use cases'],
-    ...posts.map((p) => [`/blog/${p.slug}`, p.title]),
+    ...visiblePosts(asOf).map((p) => [`/blog/${p.slug}`, p.title]),
     ['/privacy', 'Privacy'],
     ['/terms', 'Terms'],
     ['/ga4-alternative', 'GA4 alternative'],
@@ -147,11 +155,26 @@ function siteNav() {
   return `<nav class="prerendered-nav sr-only" aria-label="Site" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">${unique.map(([h, t]) => `<a href="${esc(h)}">${esc(t)}</a>`).join(' ')}</nav>`;
 }
 
-function staticBody(page) {
+function relatedPosts(post, asOf) {
+  return visiblePosts(asOf).filter((item) => item.slug !== post.slug).slice(-3).reverse();
+}
+
+function staticBody(page, asOf) {
   let inner;
   if (page.post) {
     const p = page.post;
-    inner = `<article class="prerendered"><p><a href="/blog">Blog</a></p><h1>${esc(p.title)}</h1><time datetime="${p.date}">${p.date}</time>${postContent[p.slug]}</article>`;
+    const html = postContent[p.slug] || '';
+    const day = p.publishDate || p.date;
+    const label = schedule.readingLabel(html);
+    const related = relatedPosts(p, asOf);
+    const relatedHtml = related.length
+      ? `<nav class="post-related" aria-label="Related articles"><h2>Related articles</h2><ul>${related
+          .map((item) => `<li><a href="/blog/${esc(item.slug)}">${esc(item.title)}</a></li>`)
+          .join('')}</ul></nav>`
+      : '';
+    const cta =
+      '<aside class="post-cta"><h2>Start free</h2><p>One script tag. No cookies, no personal data collected by default. The free plan includes 10,000 events a month, and you don’t need a credit card.</p><a href="/signup">Start free</a></aside>';
+    inner = `<article class="prerendered"><p><a href="/blog">Blog</a></p><h1>${esc(p.title)}</h1><p class="post-meta"><time datetime="${esc(day)}">${esc(p.date)}</time> <span class="reading-time">${esc(label)}</span></p>${html}${relatedHtml}${cta}</article>`;
   } else {
     const rendered = renderMarketingPage(page.path) || '<div class="prerendered"></div>';
     inner = rendered.replace(/^<div class="prerendered">/, '').replace(/<\/div>\s*$/, '');
@@ -254,7 +277,7 @@ function ensureStructuredData(html) {
   return html;
 }
 
-function render(template, page) {
+function render(template, page, asOf) {
   const url = canonicalFor(page.path);
   let html = template;
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(page.title)}</title>`);
@@ -293,15 +316,15 @@ function render(template, page) {
       '@type': 'BlogPosting',
       headline: page.post.title,
       description: page.post.description,
-      datePublished: page.post.date,
-      dateModified: page.post.date,
+      datePublished: page.post.publishDate || page.post.date,
+      dateModified: page.post.publishDate || page.post.date,
       mainEntityOfPage: url,
       author: { '@id': `${ORIGIN}/#organization` },
       publisher: { '@id': `${ORIGIN}/#organization` },
     };
     html = html.replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld)}</script>\n</head>`);
   }
-  const body = staticBody(page) + siteNav();
+  const body = staticBody(page, asOf) + siteNav(asOf);
   html = html.replace(/<app-root><\/app-root>/, () => `<app-root>${body}</app-root>`);
   return html;
 }
@@ -313,7 +336,9 @@ function main() {
   }
   const indexPath = path.join(OUT, 'index.html');
   const template = fs.readFileSync(indexPath, 'utf8');
-  for (const page of pages()) {
+  const day = schedule.asOfDate();
+  console.log(`blog publish window ${day}: ${visiblePosts(day).length} posts`);
+  for (const page of pages(day)) {
     const html = render(template, page);
     const file = page.path ? path.join(OUT, page.path, 'index.html') : indexPath;
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -328,5 +353,5 @@ function main() {
   console.log(`copied .htaccess -> ${path.relative(ROOT, path.join(OUT, '.htaccess'))}`);
 }
 
-module.exports = { pages, buildSitemap, render, canonicalFor };
+module.exports = { pages, buildSitemap, render, canonicalFor, visiblePosts };
 if (require.main === module) main();

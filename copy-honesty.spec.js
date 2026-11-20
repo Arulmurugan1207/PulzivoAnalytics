@@ -132,8 +132,8 @@ test('sitemap.xml matches the prerendered SEO routes and blog posts', () => {
   const { pages, canonicalFor } = require('./scripts/prerender-seo.js');
   const xml = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).sort();
-  const expected = pages().map((p) => canonicalFor(p.path)).sort();
-  assert.deepEqual(locs, expected, 'regenerate with: node scripts/prerender-seo.js --sitemap YYYY-MM-DD > public/sitemap.xml');
+  const expected = pages('2026-11-20').map((p) => canonicalFor(p.path)).sort();
+  assert.deepEqual(locs, expected, 'public/sitemap.xml is the 2026-11-20 snapshot. The build writes a fresh sitemap from America/Toronto today.');
 });
 
 test('prerendered pages render unique title, description and self canonical', () => {
@@ -170,9 +170,9 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
   }
 });
 
-test('every prerendered page links to the blog and all articles with plain <a href>', () => {
+test('every prerendered page links to the blog and published articles with plain <a href>', () => {
   const { pages, render } = require('./scripts/prerender-seo.js');
-  const posts = require('./src/app/pages/blog/posts.json');
+  const posts = pages().filter((page) => page.post).map((page) => page.post);
   const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
   for (const page of pages()) {
     const html = render(template, page);

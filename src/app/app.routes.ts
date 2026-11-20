@@ -4,7 +4,7 @@ import { AuthGuard, guestGuard } from './guards/auth.guard';
 // Home is eager (landing page); other public pages are lazy-loaded to keep the initial bundle small
 import { Home } from './pages/home/home';
 import seoRoutes from './seo/seo-routes.json';
-import posts from './pages/blog/posts.json';
+import posts from './pages/blog/published-posts.json';
 
 // Title/description for public marketing routes live in seo-routes.json so the
 // build-time prerender (scripts/prerender-seo.mjs) and the router stay in sync.

@@ -25,8 +25,9 @@ function page(title, canonical, extra = '') {
   </head><body><h1>Pulzivo</h1><p>Privacy-first analytics.</p></body></html>`;
 }
 
-test('repo sitemap covers every SEO route and blog post', () => {
-  const expected = loadExpectedPages(ROOT);
+test('repo sitemap covers every SEO route and blog post published through 2026-11-20', () => {
+  const expected = loadExpectedPages(ROOT, '2026-11-20');
+  assert.deepEqual(locsFromSitemap(expected.sitemapXml).sort(), [...expected.sitemapLocs].sort());
   assert.deepEqual(repoSitemapAgrees(expected), []);
   assert.ok(expected.sitemapLocs.includes(`${ORIGIN}/pricing`));
   assert.ok(expected.sitemapLocs.includes(`${ORIGIN}/`));
@@ -34,7 +35,7 @@ test('repo sitemap covers every SEO route and blog post', () => {
 });
 
 test('clean marketing HTML passes and spam or off-site canonicals fail', () => {
-  const expected = loadExpectedPages(ROOT);
+  const expected = loadExpectedPages(ROOT, '2026-11-20');
   const pricing = expected.titles.get('/pricing');
   assert.deepEqual(assessPage({
     html: page(pricing.title, pricing.url),
@@ -67,7 +68,7 @@ test('clean marketing HTML passes and spam or off-site canonicals fail', () => {
 
 test('class names containing slot are not spam, hidden keyword stuffing is', () => {
   assert.equal(visibleText('<div class="improve-slot">Dashboard</div>'), 'Dashboard');
-  const expected = loadExpectedPages(ROOT);
+  const expected = loadExpectedPages(ROOT, '2026-11-20');
   const home = expected.titles.get('/');
   const clean = assessPage({
     html: page(home.title, home.url, '<div class="improve-slot"></div>'),
@@ -86,7 +87,7 @@ test('class names containing slot are not spam, hidden keyword stuffing is', () 
 });
 
 test('sitemap and robots checks reject extra hosts and missing markers', () => {
-  const expected = loadExpectedPages(ROOT);
+  const expected = loadExpectedPages(ROOT, '2026-11-20');
   assert.deepEqual(assessSitemap(expected.sitemapXml, expected.sitemapLocs), []);
   const dirty = expected.sitemapXml.replace(
     '</urlset>',

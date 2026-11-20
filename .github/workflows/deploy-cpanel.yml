@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # 11:05 UTC. In winter (EST, UTC−5) that is 6:05 AM America/Toronto.
+    # In summer (EDT, UTC−4) it is 7:05 AM. GitHub cron is UTC only.
+    # Do not set PULZIVO_AS_OF. The build includes a post only when its
+    # publishDate is on or before today in America/Toronto.
+    - cron: '5 11 * * *'
 
 permissions:
   contents: read
@@ -54,5 +60,9 @@ jobs:
           # Using /public_html/ here created a nested public_html/public_html/ and
           # left the live site serving the old login-root build.
           server-dir: ./
+      # The URL list is this build's sitemap, not a pinned file. A post that
+      # publishes today is in the sitemap and is checked. A future post is
+      # absent, so it is not fetched. Page lastmod values change with the
+      # build date; the compare is against this build's files.
       - name: Verify live URLs match the build
         run: node scripts/deploy-verify.js --origin https://pulzivo.com --dist dist/simpletrack-prime-ng/browser

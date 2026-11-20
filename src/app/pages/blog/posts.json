@@ -3,18 +3,70 @@
     "slug": "simple-google-analytics-alternative",
     "title": "A Simple Google Analytics Alternative for Small Sites and Side Projects",
     "description": "When GA4 is more than you need: what a simple analytics tool should cover, what you give up, and how to set up Pulzivo with one script tag.",
-    "date": "2026-10-29"
+    "date": "2026-10-29",
+    "publishDate": "2026-10-29"
   },
   {
     "slug": "privacy-friendly-analytics-small-sites",
     "title": "Privacy-Friendly Analytics for Small Sites: A Practical Checklist",
     "description": "How to measure a small website without cookies or personal data by default: what to collect, what to skip, and questions to ask any analytics vendor.",
-    "date": "2026-10-29"
+    "date": "2026-10-29",
+    "publishDate": "2026-10-29"
   },
   {
     "slug": "pulzivo-vs-ga4-vs-plausible-pricing",
     "title": "Pulzivo vs GA4 vs Plausible vs Fathom: Pricing Compared (Oct 2026)",
     "description": "Side-by-side pricing for Pulzivo, Google Analytics 4, Plausible and Fathom as of October 2026, plus what each plan actually counts.",
-    "date": "2026-10-29"
+    "date": "2026-10-29",
+    "publishDate": "2026-10-29"
+  },
+  {
+    "slug": "plausible-vs-pulzivo-vs-ga4",
+    "title": "Plausible vs Pulzivo vs GA4 for Small Sites",
+    "description": "A fair way to choose between Plausible, Pulzivo, and GA4: cookies, the free plan, events versus pageviews, and when GA4 is still the right tool.",
+    "date": "2026-11-21",
+    "publishDate": "2026-11-21"
+  },
+  {
+    "slug": "track-utm-campaigns",
+    "title": "How to Track UTM Campaigns Cleanly",
+    "description": "Name utm_source, utm_medium, and utm_campaign so reports stay readable, and build the URL with Pulzivo’s free UTM builder. Attribution is on Starter.",
+    "date": "2026-11-22",
+    "publishDate": "2026-11-22"
+  },
+  {
+    "slug": "core-web-vitals-for-site-owners",
+    "title": "Core Web Vitals for Site Owners",
+    "description": "What LCP, INP, and CLS measure, the good and poor cutoffs, and how to read field data. Web Vitals are included on Pulzivo’s free plan.",
+    "date": "2026-11-23",
+    "publishDate": "2026-11-23"
+  },
+  {
+    "slug": "what-cookieless-analytics-means",
+    "title": "What Cookieless Analytics Actually Means",
+    "description": "Cookieless means the analytics script does not set a cookie. It does not mean nothing is stored, and it is not a promise about consent banners.",
+    "date": "2026-11-24",
+    "publishDate": "2026-11-24"
+  },
+  {
+    "slug": "rage-clicks-and-dead-clicks",
+    "title": "Rage Clicks and Dead Clicks, Explained",
+    "description": "Repeated clicks and clicks that do nothing point at broken or confusing UI. Pulzivo records rage clicks and dead clicks on the Enterprise plan.",
+    "date": "2026-11-25",
+    "publishDate": "2026-11-25"
+  },
+  {
+    "slug": "measure-form-abandonment",
+    "title": "How to Measure Form Abandonment",
+    "description": "See which forms people start and leave, which fields they focused, and what to fix first. Form abandonment in Pulzivo is an Enterprise feature.",
+    "date": "2026-11-26",
+    "publishDate": "2026-11-26"
+  },
+  {
+    "slug": "bounce-rate-without-ga4",
+    "title": "Read Bounce Rate Without GA4",
+    "description": "A bounced session in Pulzivo is a session with one page view. Here is how to read that number, and which engagement signals matter more.",
+    "date": "2026-11-27",
+    "publishDate": "2026-11-27"
   }
 ]
