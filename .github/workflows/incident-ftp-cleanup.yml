@@ -1,0 +1,58 @@
+# TEMPORARY incident-response workflow. Do not merge to main.
+# Deletes the allow-listed injected files, then uploads a full build of
+# main commit 85b6840. Removed with this branch after verification.
+
+name: Incident FTP cleanup (temporary)
+
+on:
+  push:
+    branches:
+      - cursor/incident-spam-cleanup-4ae5
+
+permissions:
+  contents: read
+
+concurrency:
+  group: incident-ftp-pulzivo
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout cleanup script
+        uses: actions/checkout@v4
+
+      - name: Checkout clean main
+        uses: actions/checkout@v4
+        with:
+          ref: 85b68402205e2a8eb8b6f3d4103e20fff53cba8f
+          path: clean-main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: clean-main/package-lock.json
+
+      - name: Build main 85b6840
+        working-directory: clean-main
+        run: npm ci && npm run build && cp public/.htaccess dist/simpletrack-prime-ng/browser/.htaccess
+
+      - name: Delete injected files and reset FTP sync state
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: python3 scripts/incident_ftp_cleanup.py
+
+      - name: Upload the full clean build
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./clean-main/dist/simpletrack-prime-ng/browser/
+          server-dir: ./
