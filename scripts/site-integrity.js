@@ -89,21 +89,31 @@ function spamHits(value, rules) {
   return rules.filter(([, re]) => re.test(value)).map(([name]) => name);
 }
 
-function loadExpectedPages(root) {
+function loadSchedule() {
+  const { loadExportedValues } = require('./angular-static');
+  return loadExportedValues(path.join(__dirname, '../src/app/pages/blog/schedule.ts'));
+}
+
+function loadExpectedPages(root, asOf) {
   const seoRoutes = JSON.parse(fs.readFileSync(path.join(root, 'src/app/seo/seo-routes.json'), 'utf8'));
   const posts = JSON.parse(fs.readFileSync(path.join(root, 'src/app/pages/blog/posts.json'), 'utf8'));
   const sitemapXml = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
+  const schedule = loadSchedule();
+  const day = asOf || schedule.liveAsOf();
+  const livePosts = schedule.publishedPosts(posts, day);
   const titles = new Map();
+  const sitemapLocs = [];
   for (const route of seoRoutes) {
     const url = route.path ? `${ORIGIN}/${route.path}` : `${ORIGIN}/`;
     titles.set(pathnameOf(url), { url, title: route.title });
+    sitemapLocs.push(url);
   }
-  for (const post of posts) {
+  for (const post of livePosts) {
     const url = `${ORIGIN}/blog/${post.slug}`;
     titles.set(pathnameOf(url), { url, title: `${post.title} | ${SITE}` });
+    sitemapLocs.push(url);
   }
-  const sitemapLocs = locsFromSitemap(sitemapXml);
-  return { titles, sitemapLocs, sitemapXml };
+  return { titles, sitemapLocs, sitemapXml, asOf: day };
 }
 
 function assessPage({ html, finalUrl, expectedUrl, expectedTitle }) {

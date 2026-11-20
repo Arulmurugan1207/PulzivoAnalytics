@@ -56,13 +56,27 @@ async function fetchText(url) {
   }
 }
 
+function urlsFromSitemap(origin, sitemapXml) {
+  const root = String(origin).replace(/\/$/, '');
+  const host = new URL(root).hostname;
+  const locs = locsFromSitemap(sitemapXml).map((loc) => {
+    const target = new URL(loc, `${root}/`);
+    target.protocol = 'https:';
+    target.hostname = host;
+    target.search = '';
+    target.hash = '';
+    return target.toString();
+  });
+  return [...locs, `${root}/sitemap.xml`, `${root}/robots.txt`];
+}
+
 async function verifyDeployedSite({ origin, distDir, stamp = Date.now() }) {
   const problems = [];
   const root = origin.replace(/\/$/, '');
   const sitemapPath = path.join(distDir, 'sitemap.xml');
   const sitemap = fs.readFileSync(sitemapPath, 'utf8');
   const locs = locsFromSitemap(sitemap);
-  const pages = [...locs, `${root}/sitemap.xml`, `${root}/robots.txt`];
+  const pages = urlsFromSitemap(origin, sitemap);
 
   for (const loc of pages) {
     const target = new URL(loc, `${root}/`);
@@ -131,6 +145,7 @@ module.exports = {
   localPathForUrl,
   firstMismatch,
   cacheBust,
+  urlsFromSitemap,
   verifyDeployedSite,
 };
 
