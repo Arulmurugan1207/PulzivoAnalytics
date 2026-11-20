@@ -15,9 +15,4 @@ export const environment = {
   // if you later set TURNSTILE_MODE=enforce (that also needs the secret on
   // the API). Test site key that always passes: 1x00000000000000000000AA.
   turnstileSiteKey: 'YOUR_TURNSTILE_SITE_KEY',
-  // Optional Google PageSpeed Insights API key for /tools/page-speed-checker.
-  // Empty uses the public endpoint and Google's shared quota. A key is sent
-  // from the browser, so it is visible in the page. Use an HTTP-referrer
-  // restricted key if you set one, and do not commit the key.
-  pageSpeedApiKey: '',
 };

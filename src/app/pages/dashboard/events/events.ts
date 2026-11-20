@@ -26,6 +26,8 @@ import { describeVisitSource } from './visit-source';
 import { groupUserHistory, UserHistoryView } from './user-history';
 import { buildFrictionView, FrictionKind, FrictionView, FRICTION_TITLES, FRICTION_ABOUT } from './friction-detail';
 import { buildEventDetail, EventDetailView, streamTime, streamTimeTitle } from './event-detail';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 
 interface UserColor { bg: string; text: string; border: string; }
 
@@ -175,13 +177,15 @@ interface FilterOptions {
     MenuModule,
     TooltipModule,
     DatePickerModule,
-    PopoverModule
+    PopoverModule,
+    FounderOfferComponent,
   ],
   templateUrl: './events.html',
   styleUrl: './events.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DashboardEvents implements OnInit, OnDestroy {
+  readonly isFreePlan = isFreePlan;
   private subscriptions = new Subscription();
   private historyCancel$ = new Subject<void>();
   private destroy$ = new Subject<void>();

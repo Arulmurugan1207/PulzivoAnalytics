@@ -4,7 +4,8 @@ import { FOUNDER_OFFER } from './usage.logic';
 
 /**
  * Shown when someone on Free or Starter clicks a Pro-only feature.
- * Checkout is the existing Plans flow, which already sends promo FOUNDER50.
+ * The founder line is only for Free accounts. Checkout leaves the Stripe
+ * promotion-code box open so they can enter FOUNDER50.
  */
 @Component({
   selector: 'app-upgrade-prompt',
@@ -20,7 +21,9 @@ import { FOUNDER_OFFER } from './usage.logic';
             <li><i class="pi pi-check" aria-hidden="true"></i> {{ line }}</li>
           }
         </ul>
-        <p class="founder">{{ founderOffer }}</p>
+        @if (showOffer) {
+          <p class="founder">{{ founderOffer }}</p>
+        }
         <div class="upgrade-actions">
           <a class="upgrade-go" routerLink="/dashboard/plans" [queryParams]="{ plan: 'pro' }" (click)="dismiss.emit()">
             Continue to checkout
@@ -68,6 +71,8 @@ import { FOUNDER_OFFER } from './usage.logic';
 })
 export class UpgradePromptComponent {
   @Input() benefits: string[] = [];
+  /** Free accounts only. Paid plans are already customers. */
+  @Input() showOffer = false;
   @Output() dismiss = new EventEmitter<void>();
   readonly founderOffer = FOUNDER_OFFER;
 

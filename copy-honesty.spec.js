@@ -156,12 +156,10 @@ test('marketing + blog copy avoids compliance and script-size-vs-competitor clai
     'src/app/pages/blog/posts.json',
     'src/app/pages/blog/posts-content.json',
     'src/app/pages/guides/guide-copy.ts',
-    'src/app/pages/tools/tools-index/tools-index.html',
+    'src/app/pages/share/share-dashboard.ts',
+    'src/app/growth/share.logic.ts',
     'src/app/pages/tools/utm-builder/utm-builder.html',
-    'src/app/pages/tools/page-speed-checker/page-speed-checker.html',
-    'src/app/pages/tools/tools-index/tools-index.ts',
     'src/app/pages/tools/utm-builder/utm-builder.ts',
-    'src/app/pages/tools/page-speed-checker/page-speed-checker.ts',
   ];
   for (const f of files) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -232,6 +230,66 @@ test('prerendered home and pricing keep the live offer, size, and plan copy', ()
   assert.match(pricing, /\$99\/mo/);
   assert.match(pricing, /Page view tracking/);
   assert.match(pricing, /href="\/signup\?plan=starter"/);
+});
+
+test('in-app upgrade surfaces use the live FOUNDER50 line for free users only', () => {
+  const offer = 'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.';
+  const logic = fs.readFileSync(path.join(ROOT, 'src/app/growth/usage.logic.ts'), 'utf8');
+  assert.match(logic, new RegExp(offer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(logic, /today only|hurry|last chance|only \d+ left|countdown/i);
+
+  const surfaces = [
+    'src/app/pages/dashboard/dashboard.html',
+    'src/app/growth/upgrade-prompt.ts',
+    'src/app/pages/dashboard/plans/plans.html',
+    'src/app/pages/dashboard/billing/billing.html',
+    'src/app/pages/dashboard/reports/reports.html',
+    'src/app/pages/dashboard/events/events.html',
+    'src/app/pages/dashboard/funnels/funnels.html',
+    'src/app/pages/dashboard/settings/settings.html',
+    'src/app/pages/dashboard/overview/overview.html',
+    'src/app/pages/pricing/pricing.html',
+  ];
+  for (const file of surfaces) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    assert.match(text, /app-founder-offer|founderOffer|founder-offer/, `${file} is missing the founder offer`);
+    assert.doesNotMatch(text, /today only|hurry|last chance|only \d+ left|countdown/i, file);
+  }
+
+  const dashboard = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/dashboard.html'), 'utf8');
+  assert.match(dashboard, /usage-upgrade-banner[\s\S]*founderOffer/);
+  assert.match(dashboard, /usage-soft[\s\S]*isFreePlan\(usage\.plan\)[\s\S]*founderOffer/);
+  assert.match(dashboard, /\[showOffer\]="isFreePlan\(userPlan\)"/);
+
+  const prompt = fs.readFileSync(path.join(ROOT, 'src/app/growth/upgrade-prompt.ts'), 'utf8');
+  assert.match(prompt, /@if \(showOffer\)/);
+
+  const overview = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/overview/overview.html'), 'utf8');
+  const locks = overview.match(/<app-founder-offer \/>/g) || [];
+  assert.ok(locks.length >= 20, `expected the offer on locked overview cards, found ${locks.length}`);
+  assert.match(overview, /@if \(isFreePlan\(userPlan\)\) \{\s*<app-founder-offer \/>/);
+
+  for (const file of [
+    'src/app/pages/dashboard/events/events.html',
+    'src/app/pages/dashboard/funnels/funnels.html',
+    'src/app/pages/dashboard/settings/settings.html',
+    'src/app/pages/dashboard/billing/billing.html',
+    'src/app/pages/dashboard/plans/plans.html',
+  ]) {
+    const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    assert.match(text, /isFreePlan|userPlan === 'free'|getCurrentPlan\(\) === 'free'|@case \('free'\)/, `${file} must limit the offer to Free`);
+  }
+
+  const reports = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/reports/reports.html'), 'utf8');
+  assert.match(reports, /userPlan === 'free'[\s\S]*<app-founder-offer \/>/);
+
+  const pricing = fs.readFileSync(path.join(ROOT, 'src/app/pages/pricing/pricing.html'), 'utf8');
+  assert.match(pricing, /@if \(showFounderOffer\)[\s\S]*Enter the code at checkout/);
+
+  const checkout = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/plans/plans.ts'), 'utf8');
+  assert.match(checkout, /create-checkout-session/);
+  assert.doesNotMatch(checkout, /promo:\s*['"]FOUNDER50['"]/);
+  assert.match(checkout, /allow_promotion_codes/);
 });
 
 test('generated sitemap lastmod is the build date for pages and the post date for posts', () => {
@@ -385,54 +443,46 @@ test('/docs is in the sitemap, prerendered, and linked from the visible nav and 
   }
 });
 
-test('free tool pages have titles, canonicals, sitemap entries, and honest CTAs', () => {
-  const { pages, render, canonicalFor } = require('./scripts/prerender-seo.js');
+test('the UTM builder is prerendered, canonical, and the only free tool in the sitemap', () => {
+  const { pages, render, canonicalFor, buildSitemap } = require('./scripts/prerender-seo.js');
   const template = fs.readFileSync(path.join(ROOT, 'src', 'index.html'), 'utf8');
-  const xml = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const committed = fs.readFileSync(path.join(ROOT, 'public', 'sitemap.xml'), 'utf8');
+  const generated = buildSitemap('2026-11-19');
   const header = fs.readFileSync(path.join(ROOT, 'src/app/layout/header/header.ts'), 'utf8');
   const footer = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
-  assert.match(header, /label:\s*'Free tools',\s*path:\s*'\/tools'/);
+  const routes = fs.readFileSync(path.join(ROOT, 'src/app/app.routes.ts'), 'utf8');
+  assert.match(header, /label:\s*'UTM builder',\s*path:\s*'\/tools\/utm-builder'/);
   assert.match(footer, /aria-label="Free tools"/);
   assert.match(footer, /footer-group-label">Free tools</);
-  assert.match(footer, /routerLink="\/tools\/utm-builder"/);
-  assert.match(footer, /routerLink="\/tools\/page-speed-checker"/);
-
-  const expected = [
-    ['tools', 'Free tools — UTM builder and page speed | Pulzivo Analytics', 'Free tools'],
-    ['tools/utm-builder', 'UTM campaign URL builder | Pulzivo Analytics', 'UTM campaign URL builder'],
-    ['tools/page-speed-checker', 'Page speed checker — Core Web Vitals | Pulzivo Analytics', 'Page speed checker'],
-  ];
-  for (const [routePath, title, h1] of expected) {
-    assert.match(xml, new RegExp(`<loc>${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</loc>`));
-    const page = pages().find((item) => item.path === routePath);
-    assert.equal(page.title, title);
-    const html = render(template, page);
-    assert.match(html, new RegExp(`<title>${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</title>`));
-    assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
-    assert.match(html, new RegExp(`<h1>${h1}</h1>`));
-    assert.match(html, /"@type": "FAQPage"/);
-    assert.doesNotMatch(html, /GDPR|CCPA/i);
-    assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
-    const visibleStart = html.indexOf('<div class="prerendered">');
-    const hiddenStart = html.indexOf('<nav class="prerendered-nav');
-    const visible = html.slice(visibleStart, hiddenStart);
-    assert.match(visible, /<a href="\/tools">Free tools<\/a>/);
-    assert.match(visible, /Free tools/);
-    assert.match(visible, /<a href="\/tools\/utm-builder">/);
-    assert.match(visible, /<a href="\/tools\/page-speed-checker">/);
+  assert.match(footer, /routerLink="\/tools\/utm-builder">UTM builder</);
+  assert.doesNotMatch(footer, /routerLink="\/tools"/);
+  assert.match(routes, /path:\s*'tools',\s*redirectTo:\s*'tools\/utm-builder'/);
+  for (const xml of [committed, generated]) {
+    assert.match(xml, /<loc>https:\/\/pulzivo\.com\/tools\/utm-builder<\/loc>/);
+    assert.doesNotMatch(xml, /<loc>https:\/\/pulzivo\.com\/tools<\/loc>/);
+    assert.doesNotMatch(xml, /page-speed/);
   }
-
-  const utm = render(template, pages().find((item) => item.path === 'tools/utm-builder'));
-  assert.match(utm, /https:\/\/example\.com\/pricing\?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=spring-launch&amp;utm_content=hero/);
-  assert.match(utm, /google \/ cpc/);
-  assert.match(utm, /See which campaigns actually convert: Pulzivo shows UTM attribution on Starter\. Free plan to start\./);
-  assert.match(utm, /href="\/signup"/);
-
-  const speed = render(template, pages().find((item) => item.path === 'tools/page-speed-checker'));
-  assert.match(speed, /lab proxy/);
-  assert.match(speed, /TBT is not INP/);
-  assert.match(speed, /Lab tests are one visit\. Pulzivo records real Core Web Vitals from every visitor, on the free plan\./);
-  assert.match(speed, /href="\/signup"/);
+  assert.equal(pages().some((item) => item.path === 'tools' || item.path === 'tools/page-speed-checker'), false);
+  const page = pages().find((item) => item.path === 'tools/utm-builder');
+  assert.equal(page.title, 'UTM campaign URL builder | Pulzivo Analytics');
+  const html = render(template, page);
+  assert.match(html, /<title>UTM campaign URL builder \| Pulzivo Analytics<\/title>/);
+  assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor('tools/utm-builder').replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
+  assert.match(html, /<h1>UTM campaign URL builder<\/h1>/);
+  assert.match(html, /"@type": "FAQPage"/);
+  assert.match(html, /https:\/\/example\.com\/pricing\?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=spring-launch&amp;utm_content=hero/);
+  assert.match(html, /google \/ cpc/);
+  assert.match(html, /See which campaigns actually convert: Pulzivo shows UTM attribution on Starter\. Free plan to start\./);
+  assert.match(html, /href="\/signup"/);
+  assert.doesNotMatch(html, /GDPR|CCPA|cookie banner/i);
+  assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
+  assert.doesNotMatch(html, /today only|hurry|last chance|countdown/i);
+  assert.doesNotMatch(html, /page-speed|page speed checker/i);
+  const visibleStart = html.indexOf('<div class="prerendered">');
+  const hiddenStart = html.indexOf('<nav class="prerendered-nav');
+  const visible = html.slice(visibleStart, hiddenStart);
+  assert.match(visible, /<a href="\/tools\/utm-builder">UTM builder<\/a>/);
+  assert.match(visible, /footer-group-label">Free tools</);
 });
 
 test('prerender loads exported constants from relative imports and skips unresolved fields', () => {

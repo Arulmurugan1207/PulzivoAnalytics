@@ -121,11 +121,26 @@ function sendText(res, statusCode, body) {
   res.end(body);
 }
 
+function toolsIndexRedirect(req, res) {
+  const raw = req.url || '/';
+  const pathOnly = raw.split('?')[0];
+  if (pathOnly !== '/tools' && pathOnly !== '/tools/') return false;
+  const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
+  res.writeHead(301, {
+    Location: `/tools/utm-builder${query}`,
+    'Cache-Control': 'no-cache',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  res.end();
+  return true;
+}
+
 const server = http.createServer((req, res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     sendText(res, 405, 'Method Not Allowed');
     return;
   }
+  if (toolsIndexRedirect(req, res)) return;
 
   const filePath = safeFilePath(req.url);
   if (!filePath) {

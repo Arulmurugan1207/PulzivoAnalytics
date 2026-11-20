@@ -84,18 +84,13 @@ export const routes: Routes = [
   },
   {
     path: 'tools',
-    ...seo('tools'),
-    loadComponent: () => import('./pages/tools/tools-index/tools-index').then(m => m.ToolsIndexPage)
+    redirectTo: 'tools/utm-builder',
+    pathMatch: 'full',
   },
   {
     path: 'tools/utm-builder',
     ...seo('tools/utm-builder'),
     loadComponent: () => import('./pages/tools/utm-builder/utm-builder').then(m => m.UtmBuilderPage)
-  },
-  {
-    path: 'tools/page-speed-checker',
-    ...seo('tools/page-speed-checker'),
-    loadComponent: () => import('./pages/tools/page-speed-checker/page-speed-checker').then(m => m.PageSpeedCheckerPage)
   },
   {
     path: 'blog',

@@ -18,7 +18,7 @@ import { trackConversion } from '../../analytics/conversion';
 import { InstallStatusService } from '../../growth/install-status.service';
 import { UsageService } from '../../growth/usage.service';
 import { UpgradePromptComponent } from '../../growth/upgrade-prompt';
-import { FOUNDER_OFFER, formatPeriodEnd, proBenefitLines, usageLevel, PRO_PLAN_BENEFITS } from '../../growth/usage.logic';
+import { FOUNDER_OFFER, formatPeriodEnd, isFreePlan, proBenefitLines, usageLevel, PRO_PLAN_BENEFITS } from '../../growth/usage.logic';
 
 // App owner email
 const APP_OWNER_EMAIL = 'arul007rajmathy@gmail.com';
@@ -65,6 +65,7 @@ export class Dashboard implements OnInit, OnDestroy {
   readonly usageLevel = usageLevel;
   readonly formatPeriodEnd = formatPeriodEnd;
   readonly founderOffer = FOUNDER_OFFER;
+  readonly isFreePlan = isFreePlan;
   private subscriptions = new Subscription();
   private proListener = false;
 

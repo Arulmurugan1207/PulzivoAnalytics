@@ -9,6 +9,4 @@ export const environment = {
   // Same placeholder as production. Leave it until a site key is issued so
   // local signup against an API with no TURNSTILE_SECRET_KEY is not blocked.
   turnstileSiteKey: 'YOUR_TURNSTILE_SITE_KEY',
-  // Same as production: leave empty. A key here is bundled into the dev app.
-  pageSpeedApiKey: '',
 };

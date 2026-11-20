@@ -15,7 +15,12 @@ export interface UsageSnapshot {
 export type UsageLevel = 'ok' | 'soft' | 'full';
 
 export const FOUNDER_OFFER =
-  'Founder offer: 50% off for 12 months with code FOUNDER50 (first 10 paying customers)';
+  'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.';
+
+/** FOUNDER50 is for first-time customers. Paid plans do not see it. */
+export function isFreePlan(plan: string | null | undefined): boolean {
+  return String(plan || '').trim().toLowerCase() === 'free';
+}
 
 /** Plain-language Pro benefits. Shown with whatever the usage API lists. */
 export const PRO_PLAN_BENEFITS = [

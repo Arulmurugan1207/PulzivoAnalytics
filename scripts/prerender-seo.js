@@ -140,9 +140,7 @@ function siteNav() {
     ['/compare/fathom', 'Pulzivo vs Fathom'],
     ['/compare/google-analytics', 'Pulzivo vs Google Analytics'],
     ['/compare/simple-analytics', 'Pulzivo vs Simple Analytics'],
-    ['/tools', 'Free tools'],
     ['/tools/utm-builder', 'UTM campaign URL builder'],
-    ['/tools/page-speed-checker', 'Page speed checker'],
   ];
   const seen = new Set();
   const unique = links.filter(([href]) => (seen.has(href) ? false : seen.add(href)));

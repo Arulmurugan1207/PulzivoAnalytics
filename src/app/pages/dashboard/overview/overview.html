@@ -286,6 +286,9 @@
             </div>
 
           </div>
+          @if (isFreePlan(userPlan) && (!hasFeature('unique_visitors') || !hasFeature('sessions'))) {
+            <app-founder-offer />
+          }
 
           <div class="pulse-chart">
             <div class="pulse-chart-head">
@@ -338,6 +341,9 @@
 
             @if (!hasFeature('unique_visitors')) {
               <p class="device-locked">Desktop, mobile, and tablet split is available on Starter. <a routerLink="/dashboard/plans">View plans</a></p>
+              @if (isFreePlan(userPlan)) {
+                <app-founder-offer />
+              }
             } @else if (loadingStates.devices) {
               <p class="chart-note">Loading device split…</p>
             } @else if (loadErrors.devices) {
@@ -428,6 +434,9 @@
                   <h4>Traffic sources</h4>
                   <p>See whether people arrived from search, a referral, social, email, paid, or directly.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">View plans <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.trafficSources) {
@@ -462,6 +471,9 @@
                   <h4>Custom events</h4>
                   <p>Track signups, purchases and other key actions on a paid plan.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">View plans <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.overviewCustomEvents) {
@@ -510,6 +522,9 @@
                 <h4>Visitor Geography Map</h4>
                 <p>Geographic data is available on Starter plan and above.</p>
                 <a routerLink="/dashboard/plans" class="upgrade-btn btn-starter">Upgrade to Starter <i class="pi pi-arrow-right"></i></a>
+                @if (isFreePlan(userPlan)) {
+                  <app-founder-offer />
+                }
               </div>
             </div>
           } @else {
@@ -561,6 +576,9 @@
                   <h4>Top Countries</h4>
                   <p>Geographic data requires session tracking. Upgrade to Pro to unlock.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.geography) {
@@ -631,6 +649,9 @@
                   <h4>Traffic Sources</h4>
                   <p>UTM attribution & traffic sources require Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.trafficSources) {
@@ -680,6 +701,9 @@
                   <h4>UTM Campaigns</h4>
                   <p>UTM campaign tracking requires Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.trafficSources) {
@@ -732,6 +756,9 @@
                 <h4>Attribution Model</h4>
                 <p>Multi-touch attribution requires Pro.</p>
                 <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                @if (isFreePlan(userPlan)) {
+                  <app-founder-offer />
+                }
               </div>
             </div>
           } @else if (loadingStates.attribution) {
@@ -798,6 +825,9 @@
                   <h4>Top Entry Pages</h4>
                   <p>Entry & exit page tracking requires Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.entryExit) {
@@ -847,6 +877,9 @@
                   <h4>Top Exit Pages</h4>
                   <p>Entry & exit page tracking requires Pro.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.entryExit) {
@@ -976,6 +1009,9 @@
                   <h4>Session Insights</h4>
                   <p>Session tracking requires Pro. Upgrade to unlock engagement metrics.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.metrics || loadingStates.sessionStats) {
@@ -1056,6 +1092,9 @@
                 <h4>Cohort Retention</h4>
                 <p>Cohort analysis requires Pro or Enterprise.</p>
                 <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                @if (isFreePlan(userPlan)) {
+                  <app-founder-offer />
+                }
               </div>
             </div>
           } @else if (loadingStates.cohortRetention) {
@@ -1140,6 +1179,9 @@
                 <h4>User Paths</h4>
                 <p>Session journey analysis requires Pro or Enterprise.</p>
                 <a routerLink="/dashboard/plans" class="upgrade-btn btn-pro">Upgrade to Pro <i class="pi pi-arrow-right"></i></a>
+                @if (isFreePlan(userPlan)) {
+                  <app-founder-offer />
+                }
               </div>
             </div>
           } @else if (loadingStates.userPaths) {
@@ -1271,6 +1313,9 @@
                   <h4>Form Interactions</h4>
                   <p>Form tracking requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.formInteractions) {
@@ -1330,6 +1375,9 @@
                   <h4>Tooltip Insights</h4>
                   <p>Tooltip & UX confusion tracking require Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.tooltipInsights) {
@@ -1391,6 +1439,9 @@
                   <h4>Error Tracking</h4>
                   <p>JS error capture requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.errorTracking) {
@@ -1444,6 +1495,9 @@
                   <h4>Rage & Dead Clicks</h4>
                   <p>Frustration signal tracking requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.rageDeadClicks) {
@@ -1538,6 +1592,9 @@
                   <h4>Core Web Vitals</h4>
                   <p>Performance metrics (LCP, INP, CLS) require Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.webVitals) {
@@ -1598,6 +1655,9 @@
                   <h4>Browsers</h4>
                   <p>Browser & OS detection requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.browsers) {
@@ -1647,6 +1707,9 @@
                   <h4>Operating Systems</h4>
                   <p>OS detection requires Enterprise.</p>
                   <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                  @if (isFreePlan(userPlan)) {
+                    <app-founder-offer />
+                  }
                 </div>
               </div>
             } @else if (loadingStates.browsers) {
@@ -1699,6 +1762,9 @@
                 <h4>Per-Page Vitals</h4>
                 <p>Per-page performance metrics require Enterprise.</p>
                 <a routerLink="/dashboard/plans" class="upgrade-btn btn-enterprise">Upgrade to Enterprise <i class="pi pi-arrow-right"></i></a>
+                @if (isFreePlan(userPlan)) {
+                  <app-founder-offer />
+                }
               </div>
             </div>
           } @else if (loadingStates.pageVitals) {

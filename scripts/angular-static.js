@@ -1061,17 +1061,9 @@ const PAGES = {
     template: 'src/app/pages/use-cases/use-cases.html',
     component: 'src/app/pages/use-cases/use-cases.ts',
   },
-  tools: {
-    template: 'src/app/pages/tools/tools-index/tools-index.html',
-    component: 'src/app/pages/tools/tools-index/tools-index.ts',
-  },
   'tools/utm-builder': {
     template: 'src/app/pages/tools/utm-builder/utm-builder.html',
     component: 'src/app/pages/tools/utm-builder/utm-builder.ts',
-  },
-  'tools/page-speed-checker': {
-    template: 'src/app/pages/tools/page-speed-checker/page-speed-checker.html',
-    component: 'src/app/pages/tools/page-speed-checker/page-speed-checker.ts',
   },
   blog: {
     template: 'src/app/pages/blog/blog.html',

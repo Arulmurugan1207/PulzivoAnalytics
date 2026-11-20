@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FOUNDER_OFFER, formatPeriodEnd, isBelowPro, parseUsage, proBenefitLines, usageLevel, usagePercent,
+  FOUNDER_OFFER, formatPeriodEnd, isBelowPro, isFreePlan, parseUsage, proBenefitLines, usageLevel, usagePercent,
 } from './usage.logic.ts';
 
 test('parseUsage reads the contract and ignores a missing payload', () => {
@@ -54,9 +54,21 @@ test('Enterprise sends a null cap and the meter stays quiet', () => {
 });
 
 test('upgrade copy lists benefits and the founder offer without a countdown', () => {
+  assert.equal(
+    FOUNDER_OFFER,
+    'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.',
+  );
   assert.match(FOUNDER_OFFER, /FOUNDER50/);
   assert.match(FOUNDER_OFFER, /first 10 paying customers/);
-  assert.doesNotMatch(FOUNDER_OFFER, /today only|expires|hurry|last chance/i);
+  assert.match(FOUNDER_OFFER, /Enter the code at checkout/);
+  assert.doesNotMatch(FOUNDER_OFFER, /today only|expires|hurry|last chance|only \d+ left|countdown/i);
+  assert.equal(isFreePlan('free'), true);
+  assert.equal(isFreePlan(' Free '), true);
+  assert.equal(isFreePlan('starter'), false);
+  assert.equal(isFreePlan('pro'), false);
+  assert.equal(isFreePlan('enterprise'), false);
+  assert.equal(isFreePlan(null), false);
+  assert.equal(isFreePlan(undefined), false);
   const lines = proBenefitLines(['sessions', 'not_a_key']);
   assert.equal(lines[0], 'Sessions and time on site');
   assert.equal(lines[1], 'Not A Key');

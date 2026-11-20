@@ -26,6 +26,8 @@ import { EmailPrefsComponent } from '../../../growth/email-prefs';
 import { EmailPrefsService } from '../../../growth/email-prefs.service';
 import { ShareSettingsComponent } from '../../../growth/share-settings';
 import { Ga4ImportComponent } from '../../../growth/ga4-import';
+import { isFreePlan } from '../../../growth/usage.logic';
+import { FounderOfferComponent } from '../../../growth/founder-offer';
 import { environment } from '../../../../environments/environment';
 
 // Plan feature access map matching the analytics SDK
@@ -84,6 +86,7 @@ interface User {
     EmailPrefsComponent,
     ShareSettingsComponent,
     Ga4ImportComponent,
+    FounderOfferComponent,
     CommonModule,
     RouterLink,
     FormsModule,
@@ -107,6 +110,7 @@ interface User {
   providers: [MessageService]
 })
 export class DashboardSettings implements OnInit {
+  readonly isFreePlan = isFreePlan;
   user = signal<User | null>(null);
   loading = signal(false);
 
