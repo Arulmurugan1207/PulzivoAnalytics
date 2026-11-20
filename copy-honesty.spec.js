@@ -100,7 +100,9 @@ test('robots.txt still points at /sitemap.xml and hides noindex app routes', () 
     htaccess,
     /SetEnvIf Request_URI "\^\/\(dashboard\|reset-password\|login\|signin\|signup\|register\|demo\|share\)" PZ_NOINDEX/,
   );
-  assert.doesNotMatch(htaccess, /Strict-Transport-Security/i);
+  const hsts = htaccess.match(/Strict-Transport-Security "([^"]*)"/);
+  assert.ok(hsts, 'HSTS header missing');
+  assert.equal(hsts[1], 'max-age=31536000');
 });
 
 test('Features Free badges match script + pricing (page views, clicks, custom events)', () => {

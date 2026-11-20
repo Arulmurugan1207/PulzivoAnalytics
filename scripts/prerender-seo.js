@@ -321,6 +321,11 @@ function main() {
     console.log(`prerendered /${page.path} -> ${path.relative(ROOT, file)}`);
   }
   fs.writeFileSync(path.join(OUT, 'sitemap.xml'), buildSitemap(new Date().toISOString().slice(0, 10)));
+  // Angular's asset copy skips dotfiles, so the docroot .htaccess has to be
+  // placed in the build output explicitly. The deploy workflow copies it again.
+  const htaccess = path.join(ROOT, 'public', '.htaccess');
+  fs.copyFileSync(htaccess, path.join(OUT, '.htaccess'));
+  console.log(`copied .htaccess -> ${path.relative(ROOT, path.join(OUT, '.htaccess'))}`);
 }
 
 module.exports = { pages, buildSitemap, render, canonicalFor };
