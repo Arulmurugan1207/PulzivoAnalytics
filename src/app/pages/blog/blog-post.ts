@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import posts from './published-posts.json';
 import content from './published-content.json';
-import { readingMinutes } from './schedule';
+import { readingMinutes, relatedPosts } from './schedule';
 import { trackConversion } from '../../analytics/conversion';
 
 type Post = {
@@ -54,7 +54,7 @@ export class BlogPost {
   readonly post = (posts as Post[]).find((p) => p.slug === this.slug);
   readonly html = (content as Record<string, string>)[this.slug] ?? '';
   readonly minutes = readingMinutes(this.html);
-  readonly related = (posts as Post[]).filter((p) => p.slug !== this.slug).slice(-3).reverse();
+  readonly related = relatedPosts(posts as Post[], this.slug, 3);
 
   trackStart() {
     trackConversion('cta_click', { location: 'blog' });

@@ -79,6 +79,26 @@ function publishedPosts<T extends Dated>(posts: readonly T[], asOf?: string): T[
   return posts.filter((post) => isPublished(post, day));
 }
 
+/** Newest published posts first. Same-day posts keep their existing order. */
+function latestPosts<T extends Dated>(posts: readonly T[], limit = 3): T[] {
+  const cap = limit > 0 ? limit : 0;
+  return posts
+    .map((post, index) => ({ post, index }))
+    .sort((a, b) => {
+      const byDay = publishDay(b.post).localeCompare(publishDay(a.post));
+      return byDay || a.index - b.index;
+    })
+    .slice(0, cap)
+    .map((item) => item.post);
+}
+
+function relatedPosts<T extends Dated & { slug: string }>(posts: readonly T[], slug: string, limit = 3): T[] {
+  return latestPosts(
+    posts.filter((post) => post.slug !== slug),
+    limit,
+  );
+}
+
 function articleText(html: string): string {
   return String(html)
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -115,6 +135,8 @@ export {
   publishDay,
   isPublished,
   publishedPosts,
+  latestPosts,
+  relatedPosts,
   articleText,
   wordCount,
   readingMinutes,

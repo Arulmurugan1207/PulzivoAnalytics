@@ -33,7 +33,7 @@ const ROBOTS = 'index, follow, max-snippet:-1, max-image-preview:large, max-vide
 const routes = require('../src/app/seo/seo-routes.json');
 const allPosts = require('../src/app/pages/blog/posts.json');
 const postContent = require('../src/app/pages/blog/posts-content.json');
-const { renderMarketingPage, pageScope, loadExportedValues } = require('./angular-static');
+const { renderMarketingPage, pageScope, loadExportedValues, setPrerenderPosts } = require('./angular-static');
 const schedule = loadExportedValues(path.join(ROOT, 'src/app/pages/blog/schedule.ts'));
 
 function visiblePosts(asOf) {
@@ -155,10 +155,6 @@ function siteNav(asOf) {
   return `<nav class="prerendered-nav sr-only" aria-label="Site" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0">${unique.map(([h, t]) => `<a href="${esc(h)}">${esc(t)}</a>`).join(' ')}</nav>`;
 }
 
-function relatedPosts(post, asOf) {
-  return visiblePosts(asOf).filter((item) => item.slug !== post.slug).slice(-3).reverse();
-}
-
 function staticBody(page, asOf) {
   let inner;
   if (page.post) {
@@ -166,7 +162,7 @@ function staticBody(page, asOf) {
     const html = postContent[p.slug] || '';
     const day = p.publishDate || p.date;
     const label = schedule.readingLabel(html);
-    const related = relatedPosts(p, asOf);
+    const related = schedule.relatedPosts(visiblePosts(asOf), p.slug, 3);
     const relatedHtml = related.length
       ? `<nav class="post-related" aria-label="Related articles"><h2>Related articles</h2><ul>${related
           .map((item) => `<li><a href="/blog/${esc(item.slug)}">${esc(item.title)}</a></li>`)
@@ -278,6 +274,7 @@ function ensureStructuredData(html) {
 }
 
 function render(template, page, asOf) {
+  setPrerenderPosts(visiblePosts(asOf));
   const url = canonicalFor(page.path);
   let html = template;
   html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(page.title)}</title>`);

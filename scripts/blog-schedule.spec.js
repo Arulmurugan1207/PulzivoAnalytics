@@ -183,6 +183,115 @@ test('the Angular snapshot committed for 2026-11-20 omits future posts', () => {
   assert.doesNotMatch(post, /posts-content\.json/);
 });
 
+function visibleHtml(html) {
+  const start = html.indexOf('<div class="prerendered">');
+  const hidden = html.indexOf('<nav class="prerendered-nav');
+  assert.ok(start !== -1 && hidden > start, 'prerendered body missing');
+  return html.slice(start, hidden);
+}
+
+function linkedPaths(html) {
+  return [...String(html).matchAll(/href="([^"]+)"/g)].map((match) => {
+    const pathName = match[1].split('?')[0].split('#')[0];
+    if (!pathName.startsWith('/')) return null;
+    const trimmed = pathName.replace(/\/$/, '');
+    return trimmed || '/';
+  }).filter(Boolean);
+}
+
+test('no future-dated article appears in homepage links or the sitemap', () => {
+  for (const asOf of ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-27']) {
+    const published = schedule.publishedPosts(allPosts, asOf);
+    const future = allPosts.filter((post) => !published.some((item) => item.slug === post.slug));
+    const homePage = pages(asOf).find((page) => page.path === '');
+    const home = render(template, homePage, asOf);
+    const sitemap = buildSitemap(asOf, asOf);
+    const visible = visibleHtml(home);
+    const section = visible.match(/<section\b[^>]*id="latest-articles"[^>]*>[\s\S]*?<\/section>/);
+    assert.ok(section, `homepage is missing Latest articles on ${asOf}`);
+    assert.match(section[0], /<h2>Latest articles<\/h2>/);
+    const linked = [...section[0].matchAll(/href="\/blog\/([^"?#]+)"/g)].map((match) => match[1]);
+    const expected = schedule.latestPosts(published, 3).map((post) => post.slug);
+    assert.deepEqual(linked, expected, asOf);
+    assert.ok(linked.length > 0 && linked.length <= 3, asOf);
+    for (const slug of linked) {
+      assert.equal(published.some((post) => post.slug === slug), true, slug);
+    }
+    for (const post of future) {
+      assert.equal(home.includes(`/blog/${post.slug}`), false, `${post.slug} leaked onto the homepage as of ${asOf}`);
+      assert.equal(sitemap.includes(`/blog/${post.slug}`), false, `${post.slug} leaked into the sitemap as of ${asOf}`);
+      assert.equal(sitemap.includes(post.slug), false, `${post.slug} leaked into the sitemap as of ${asOf}`);
+    }
+    for (const post of published) {
+      assert.match(sitemap, new RegExp(`<loc>https://pulzivo.com/blog/${post.slug}</loc>`));
+    }
+  }
+});
+
+test('the blog index links every published post with a plain href', () => {
+  for (const asOf of ['2026-11-20', '2026-11-22', '2026-11-27']) {
+    const published = schedule.publishedPosts(allPosts, asOf);
+    const index = render(template, pages(asOf).find((page) => page.path === 'blog'), asOf);
+    const visible = visibleHtml(index);
+    for (const post of published) {
+      assert.match(visible, new RegExp(`<a href="/blog/${post.slug}">[\\s\\S]*${post.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    }
+    for (const post of allPosts) {
+      if (published.some((item) => item.slug === post.slug)) continue;
+      assert.equal(index.includes(`/blog/${post.slug}`), false, `${post.slug} leaked into the blog index as of ${asOf}`);
+    }
+  }
+});
+
+test('each article ends with related published posts and a soft start-free link', () => {
+  for (const asOf of ['2026-11-20', '2026-11-27']) {
+    const published = schedule.publishedPosts(allPosts, asOf);
+    for (const page of pages(asOf).filter((item) => item.post)) {
+      const html = render(template, page, asOf);
+      const visible = visibleHtml(html);
+      const article = visible.match(/<article[\s\S]*?<\/article>/);
+      assert.ok(article, page.path);
+      assert.match(article[0], /<nav class="post-related" aria-label="Related articles"><h2>Related articles<\/h2>/);
+      assert.match(article[0], /<aside class="post-cta">[\s\S]*<h2>Start free<\/h2>[\s\S]*<a href="\/signup">Start free<\/a>/);
+      assert.doesNotMatch(article[0], /today only|hurry|last chance|only \d+ left|countdown/i);
+      const related = article[0].match(/<nav class="post-related"[\s\S]*?<\/nav>/);
+      const slugs = [...related[0].matchAll(/href="\/blog\/([^"]+)"/g)].map((match) => match[1]);
+      const expected = schedule.relatedPosts(published, page.post.slug, 3).map((post) => post.slug);
+      assert.deepEqual(slugs, expected, `${page.path} on ${asOf}`);
+      assert.equal(slugs.includes(page.post.slug), false);
+      assert.ok(slugs.length >= 2 && slugs.length <= 3, `${page.path} has ${slugs.length} related`);
+      for (const slug of slugs) {
+        assert.equal(published.some((post) => post.slug === slug), true, slug);
+      }
+    }
+  }
+});
+
+test('docs and the UTM article link the builder in the prerendered body', () => {
+  const asOf = '2026-11-22';
+  const docs = render(template, pages(asOf).find((page) => page.path === 'docs'), asOf);
+  const docsBody = visibleHtml(docs).replace(/<header[\s\S]*?<\/header>/, '').replace(/<footer[\s\S]*?<\/footer>/, '');
+  assert.match(docsBody, /<a href="\/tools\/utm-builder">free UTM builder<\/a>/);
+  const article = render(template, pages(asOf).find((page) => page.path === 'blog/track-utm-campaigns'), asOf);
+  const body = visibleHtml(article).match(/<article[\s\S]*?<\/article>/)[0];
+  assert.match(body, /<a href="\/tools\/utm-builder">UTM campaign URL builder<\/a>/);
+});
+
+test('every sitemap URL has a visible inbound link from another prerendered page', () => {
+  const asOf = '2026-11-27';
+  const list = pages(asOf);
+  const rendered = list.map((page) => ({ page, html: visibleHtml(render(template, page, asOf)) }));
+  for (const target of list) {
+    const want = target.path ? `/${target.path}` : '/';
+    const from = rendered.filter(({ page, html }) => page.path !== target.path && linkedPaths(html).includes(want));
+    assert.ok(from.length > 0, `${want} has no visible inbound <a href>`);
+  }
+  const footer = fs.readFileSync(path.join(ROOT, 'src/app/layout/footer/footer.html'), 'utf8');
+  for (const pathName of ['/blog', '/tools/utm-builder', '/use-cases', '/ga4-alternative', '/cookieless-analytics', '/compare/plausible', '/compare/fathom', '/compare/google-analytics', '/compare/simple-analytics']) {
+    assert.match(footer, new RegExp(`routerLink="${pathName}"`));
+  }
+});
+
 test('the daily deploy keeps the cPanel hardening and does not pin the sitemap', () => {
   const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/deploy-cpanel.yml'), 'utf8');
   assert.match(yml, /cron:\s*'5 11 \* \* \*'/);
