@@ -16,6 +16,17 @@ const { stripTypeScriptTypes } = require('node:module');
 
 const ROOT = path.join(__dirname, '..');
 const POSTS = require('../src/app/pages/blog/posts.json');
+const FULL_POST_CONTENT = require('../src/app/pages/blog/posts-content.json');
+
+// Prerender passes the publishDate-filtered list so homepage and blog index
+// links follow the same day as the sitemap, not a stale published-posts.json.
+let prerenderPosts = null;
+
+function setPrerenderPosts(posts) {
+  prerenderPosts = Array.isArray(posts) ? posts : null;
+  pageCache.clear();
+  componentCache.clear();
+}
 
 const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 const DROP_ATTRS = new Set([
@@ -457,6 +468,16 @@ function loadComponent(file, helperFiles = []) {
   const imported = loadRelativeBindings(file);
   Object.assign(bindings, imported);
   Object.assign(scope, imported);
+  if (prerenderPosts) {
+    bindings.posts = prerenderPosts;
+    bindings.blogPosts = prerenderPosts;
+    scope.posts = prerenderPosts;
+    scope.blogPosts = prerenderPosts;
+    if (Object.prototype.hasOwnProperty.call(bindings, 'content')) {
+      bindings.content = FULL_POST_CONTENT;
+      scope.content = FULL_POST_CONTENT;
+    }
+  }
   for (const member of fields) {
     try {
       scope[member.name] = evalInitializer(member.init, scope, bindings);
@@ -1108,4 +1129,4 @@ function renderMarketingPage(routePath) {
   return html;
 }
 
-module.exports = { renderMarketingPage, pageScope, PAGES, loadComponent, loadRelativeBindings, loadExportedValues, parseRelativeImports };
+module.exports = { renderMarketingPage, pageScope, PAGES, loadComponent, loadRelativeBindings, loadExportedValues, parseRelativeImports, setPrerenderPosts };

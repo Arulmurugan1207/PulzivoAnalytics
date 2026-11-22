@@ -9,6 +9,7 @@ import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
 import { BreakdownCard } from '../../components/breakdown-card/breakdown-card';
 import blogPosts from '../blog/published-posts.json';
+import { latestPosts } from '../blog/schedule';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
 
 declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
@@ -21,7 +22,7 @@ declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefi
   styleUrl: './home.scss',
 })
 export class Home implements OnInit, OnDestroy {
-  readonly blogPosts = blogPosts;
+  readonly latestArticles = latestPosts(blogPosts, 3);
   script = `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
 
 

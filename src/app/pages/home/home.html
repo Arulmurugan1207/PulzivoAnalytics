@@ -160,12 +160,12 @@
   </div>
 </section>
 
-<!-- From the blog -->
-<section class="h-section h-blog">
+<!-- Latest articles: the 3 newest posts from the publishDate-filtered list. -->
+<section id="latest-articles" class="h-section h-blog" aria-label="Latest articles">
   <div class="h-container">
-    <h2>From the blog</h2>
+    <h2>Latest articles</h2>
     <ul class="h-blog-list">
-      @for (p of blogPosts; track p.slug) {
+      @for (p of latestArticles; track p.slug) {
         <li>
           <a [href]="'/blog/' + p.slug" [routerLink]="['/blog', p.slug]">{{ p.title }}</a>
           <p>{{ p.description }}</p>

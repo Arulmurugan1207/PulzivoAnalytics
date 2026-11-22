@@ -670,6 +670,7 @@
           <button pButton type="button" [label]="isCopied('email-utm-tracking') ? 'Copied!' : 'Copy'" [icon]="isCopied('email-utm-tracking') ? 'pi pi-check' : 'pi pi-copy'" (click)="copyCode(codeBlocks['email-utm-tracking'])" [class.p-button-success]="isCopied('email-utm-tracking')" class="copy-btn" size="small" aria-label="Copy code"></button>
           <pre class="code-block"><code>{{ codeBlocks['email-utm-tracking'] }}</code></pre>
         </div>
+        <p>Build the tagged link with the <a routerLink="/tools/utm-builder">free UTM builder</a>. It runs in the browser and does not upload the address.</p>
       </section>
 
       <!-- Error Tracking -->
