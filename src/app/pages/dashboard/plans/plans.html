@@ -47,7 +47,12 @@
       </span>
       <span class="cad-note">All prices in USD</span>
     </div>
-    @if (isFreePlan(currentPlan())) {
+    @if (launchOffer().active) {
+      <p class="launch-offer-line launch-offer-banner">{{ launchOfferLine(launchOffer().percent, launchOffer().months) }}</p>
+      @if (launchSpotsLabel(launchOffer())) {
+        <p class="launch-spots">{{ launchSpotsLabel(launchOffer()) }}</p>
+      }
+    } @else if (isFreePlan(currentPlan())) {
       <app-founder-offer />
     }
   </div>
@@ -72,21 +77,27 @@
 
         <div class="plan-header">
           <h2 class="plan-name">{{ plan.name }}</h2>
-          <div class="plan-price">
+          <div class="plan-price" [class.on-offer]="launchOffer().active && plan.price > 0">
             @if (plan.price === 0) {
               <span class="price-amount">Free</span>
+            } @else if (launchOffer().active) {
+              <span class="price-was"><s>${{ listAmount(plan) }}</s></span>
+              <span class="price-currency">$</span>
+              <span class="price-amount">{{ saleAmount(plan) }}</span>
+              <span class="price-period">/{{ billingCycle() === 'year' ? 'year' : 'mo' }}</span>
             } @else {
               <span class="price-currency">$</span>
-              <span class="price-amount">
-                {{ billingCycle() === 'year' ? (plan.price * 12 * 0.8 | number:'1.0-0') : plan.price }}
-              </span>
+              <span class="price-amount">{{ listAmount(plan) }}</span>
               <span class="price-period">/{{ billingCycle() === 'year' ? 'year' : 'mo' }}</span>
             }
           </div>
           @if (billingCycle() === 'year' && plan.price > 0) {
             <p class="monthly-equiv">
-              ${{ (plan.price * 12 * 0.8 / 12) | number:'1.2-2' }}/mo billed annually
+              ${{ yearlyEquiv(plan) }}/mo billed annually
             </p>
+          }
+          @if (launchOffer().active && plan.price > 0) {
+            <p class="launch-offer-line">{{ launchOfferLine(launchOffer().percent, launchOffer().months) }}</p>
           }
           <p class="plan-description">{{ plan.description }}</p>
         </div>
@@ -160,9 +171,16 @@
           <tr class="price-row">
             <th></th>
             <th [class.current-col]="currentPlan() === 'free'">$0</th>
-            <th class="starter-col" [class.current-col]="currentPlan() === 'starter'">$9/mo</th>
-            <th class="pro-col" [class.current-col]="currentPlan() === 'pro'">$29/mo</th>
-            <th class="enterprise-col" [class.current-col]="currentPlan() === 'enterprise'">$99/mo</th>
+            @for (plan of ['starter', 'pro', 'enterprise']; track plan) {
+              <th [class]="plan + '-col'" [class.current-col]="currentPlan() === plan">
+                @if (launchOffer().active) {
+                  <s>{{ listLabel(plan) }}</s>
+                  <span class="sale-price">{{ saleLabel(plan) }}</span>
+                } @else {
+                  {{ listLabel(plan) }}
+                }
+              </th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -298,7 +316,9 @@
       <div class="price-info">
         @if (canUpgrade(selectedPlan)) {
           <p><i class="pi pi-info-circle"></i> You'll be redirected to Stripe to complete your upgrade to <strong>{{ selectedPlan.name }}</strong> at <strong>{{ getPlanPrice(selectedPlan) }}</strong>.</p>
-          @if (isFreePlan(currentPlan())) {
+          @if (launchOffer().active && selectedPlan.price > 0) {
+            <p class="launch-offer-line">{{ launchOfferLine(launchOffer().percent, launchOffer().months) }}</p>
+          } @else if (isFreePlan(currentPlan())) {
             <app-founder-offer />
           }
         } @else if (selectedPlan.price === 0) {

@@ -23,7 +23,7 @@ jobs:
         run: |
           npm run test:server
           npm run test:copy
-          node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts
+          node --experimental-strip-types --test src/app/services/analytics-unreachable.test.ts src/app/growth/launch-offer.test.ts
       - name: Security headers and live-check helpers
         run: node --test scripts/security-headers.spec.js scripts/site-integrity.spec.js scripts/deploy-verify.spec.js
       - name: Analytics API routes
