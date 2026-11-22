@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FOUNDER_OFFER } from './usage.logic';
 
-/** Honest founder-offer line. Parents render this only for Free accounts. */
+/** Launch-offer line. Parents render this only for Free accounts. */
 @Component({
   selector: 'app-founder-offer',
   standalone: true,

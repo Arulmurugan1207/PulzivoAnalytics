@@ -346,10 +346,9 @@ export class DashboardPlans implements OnInit {
         cycle: this.billingCycle(),
         userId: this.user._id,
         email: this.user.email,
-        // Leave promo off. The API pre-applies promo FOUNDER50 as a Stripe
-        // discount, and Checkout hides the promotion-code box when a discount
-        // is already attached. Omitting it keeps allow_promotion_codes so the
-        // customer can enter FOUNDER50 on Stripe's page.
+        // Leave promo off. The API auto-applies the launch discount, and
+        // Checkout hides the promotion-code box when a discount is already
+        // attached. Omitting a code keeps allow_promotion_codes.
       }).subscribe({
         next: ({ url }) => {
           window.location.href = url;

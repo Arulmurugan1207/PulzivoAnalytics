@@ -4,8 +4,8 @@ import { FOUNDER_OFFER } from './usage.logic';
 
 /**
  * Shown when someone on Free or Starter clicks a Pro-only feature.
- * The founder line is only for Free accounts. Checkout leaves the Stripe
- * promotion-code box open so they can enter FOUNDER50.
+ * The launch line is only for Free accounts. Checkout does not send a promo
+ * code; the API auto-applies the launch discount.
  */
 @Component({
   selector: 'app-upgrade-prompt',

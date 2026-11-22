@@ -258,7 +258,7 @@ export const COMPARE_FATHOM = {
     {
       question: 'Are rage clicks and form abandonment on the free plan?',
       answer:
-        'No. JavaScript errors start on Pro ($29/month). Form abandonment, rage clicks, and dead clicks start on Enterprise ($99/month). Web Vitals and scroll depth are on every plan, including Free.',
+        'No. JavaScript errors start on Pro (list $29/month, $14.50 for the first 12 months). Form abandonment, rage clicks, and dead clicks start on Enterprise (list $99/month, $49.50 for the first 12 months). Web Vitals and scroll depth are on every plan, including Free. 50% off your first 12 months, launch offer until we reach 100 users.',
     },
     {
       question: 'Can I share a Pulzivo dashboard without creating an account for someone?',
@@ -407,7 +407,7 @@ export const COMPARE_SIMPLE = {
     {
       question: 'Does Pulzivo have a free plan?',
       answer:
-        'Yes. Free is $0, 10,000 events a month, one website, 30-day retention, no credit card. Starter is $9, Pro is $29, and Enterprise is $99 per month.',
+        'Yes. Free is $0, 10,000 events a month, one website, 30-day retention, no credit card. Starter lists at $9, Pro at $29, and Enterprise at $99 per month. 50% off your first 12 months, launch offer until we reach 100 users ($4.50, $14.50, and $49.50).',
     },
     {
       question: 'What is not on the free plan?',

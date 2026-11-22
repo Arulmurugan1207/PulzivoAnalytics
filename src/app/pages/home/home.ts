@@ -1,7 +1,9 @@
 ﻿import { Component, signal, OnInit, OnDestroy, HostListener, NgZone } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription, timeout } from 'rxjs';
 import { trackConversion } from '../../analytics/conversion';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -11,6 +13,16 @@ import { BreakdownCard } from '../../components/breakdown-card/breakdown-card';
 import blogPosts from '../blog/published-posts.json';
 import { latestPosts } from '../blog/schedule';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
+import { environment } from '../../../environments/environment';
+import {
+  LaunchOfferState,
+  applyLaunchOfferResponse,
+  defaultLaunchOffer,
+  discountedAmount,
+  formatPlanAmount,
+  launchOfferLine,
+  launchOfferUrl,
+} from '../../growth/launch-offer';
 
 declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefined;
 
@@ -23,6 +35,12 @@ declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefi
 })
 export class Home implements OnInit, OnDestroy {
   readonly latestArticles = latestPosts(blogPosts, 3);
+  private offerSub: Subscription | null = null;
+  /** Defaults on. GET /billing/launch-offer can set active=false. Failures keep this. */
+  launchOffer: LaunchOfferState = defaultLaunchOffer();
+  formatPlanAmount = formatPlanAmount;
+  discountedAmount = discountedAmount;
+  launchOfferLine = launchOfferLine;
   script = `<script src="https://cdn.pulzivo.com/pulzivo-analytics.min.js" data-api-key="YOUR_API_KEY"></script>`;
 
 
@@ -47,7 +65,7 @@ export class Home implements OnInit, OnDestroy {
     localStorage.setItem('pulz_exit_intent_date', new Date().toISOString().slice(0, 10));
   }
 
-  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone, private router: Router) {
+  constructor(private meta: Meta, private titleService: Title, private authService: AuthService, private analyticsApi: AnalyticsAPIService, private ngZone: NgZone, private router: Router, private http: HttpClient) {
     this.meta.updateTag({ name: 'description', content: 'The Pulse of Modern Web & Product Analytics. Track page views, clicks, custom events, and user journeys — privacy-first, no cookies, no personal data collected by default.' });
     this.meta.updateTag({ property: 'og:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'og:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
@@ -78,10 +96,10 @@ export class Home implements OnInit, OnDestroy {
   ];
 
   plans = [
-    { name: 'Free',       plan: 'free',       price: '$0',  per: false, desc: '10K events/month', featured: false },
-    { name: 'Starter',    plan: 'starter',    price: '$9',  per: true,  desc: 'Sessions, scroll depth, UTM attribution', featured: true },
-    { name: 'Pro',        plan: 'pro',        price: '$29', per: true,  desc: 'Opt-in user identification and performance', featured: false },
-    { name: 'Enterprise', plan: 'enterprise', price: '$99', per: true,  desc: 'Errors, rage clicks, Web Vitals', featured: false },
+    { name: 'Free',       plan: 'free',       monthly: 0,  price: '$0',  per: false, desc: '10K events/month', featured: false },
+    { name: 'Starter',    plan: 'starter',    monthly: 9,  price: '$9',  per: true,  desc: 'Sessions, scroll depth, UTM attribution', featured: true },
+    { name: 'Pro',        plan: 'pro',        monthly: 29, price: '$29', per: true,  desc: 'Opt-in user identification and performance', featured: false },
+    { name: 'Enterprise', plan: 'enterprise', monthly: 99, price: '$99', per: true,  desc: 'Errors, rage clicks, Web Vitals', featured: false },
   ];
 
   faqs = [
@@ -137,6 +155,17 @@ export class Home implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // GET {apiUrl}/billing/launch-offer — path must match node-server-api.
+    // The section already shows the config default, so a miss does not hide it.
+    this.offerSub = this.http.get(launchOfferUrl(environment.apiUrl)).pipe(timeout(4000)).subscribe({
+      next: (body) => {
+        this.ngZone.run(() => {
+          this.launchOffer = applyLaunchOfferResponse(this.launchOffer, body);
+        });
+      },
+      error: () => {},
+    });
+
     // Grace period: don't fire exit intent until 3s after page load.
     // Prevents the modal popping up immediately when navigating here after logout.
     setTimeout(() => { this.exitIntentReady = true; }, 3000);
@@ -160,6 +189,7 @@ export class Home implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.offerSub?.unsubscribe();
     if (this.statsTimer) clearInterval(this.statsTimer);
     if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
     if (this.nudgeAutoHide) clearTimeout(this.nudgeAutoHide);

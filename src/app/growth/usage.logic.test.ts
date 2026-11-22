@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { launchOfferLine } from './launch-offer.ts';
 import {
   FOUNDER_OFFER, formatPeriodEnd, isBelowPro, isFreePlan, parseUsage, proBenefitLines, usageLevel, usagePercent,
 } from './usage.logic.ts';
@@ -53,14 +54,13 @@ test('Enterprise sends a null cap and the meter stays quiet', () => {
   assert.equal(usageLevel(snapshot!), 'ok');
 });
 
-test('upgrade copy lists benefits and the founder offer without a countdown', () => {
+test('upgrade copy lists benefits and the launch offer without a countdown', () => {
+  assert.equal(FOUNDER_OFFER, launchOfferLine());
   assert.equal(
     FOUNDER_OFFER,
-    'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.',
+    '50% off your first 12 months, launch offer until we reach 100 users.',
   );
-  assert.match(FOUNDER_OFFER, /FOUNDER50/);
-  assert.match(FOUNDER_OFFER, /first 10 paying customers/);
-  assert.match(FOUNDER_OFFER, /Enter the code at checkout/);
+  assert.doesNotMatch(FOUNDER_OFFER, /FOUNDER50|first 10 paying customers|Enter the code at checkout/);
   assert.doesNotMatch(FOUNDER_OFFER, /today only|expires|hurry|last chance|only \d+ left|countdown/i);
   assert.equal(isFreePlan('free'), true);
   assert.equal(isFreePlan(' Free '), true);

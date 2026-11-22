@@ -164,7 +164,8 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 .h-price { display: block; text-decoration: none; color: inherit; background: #fff; border: 1px solid $line; border-radius: 14px; padding: 1.4rem; text-align: center;
   &:hover { border-color: rgba(99,102,241,0.45); }
   h3 { margin: 0; font-size: 1rem; color: #334155; }
-  .amt { font-size: 2.1rem; font-weight: 800; color: $ink; margin: 0.35rem 0; span { font-size: 0.9rem; font-weight: 500; color: $muted; } }
+  .amt { font-size: 2.1rem; font-weight: 800; color: $ink; margin: 0.35rem 0; span { font-size: 0.9rem; font-weight: 500; color: $muted; }
+    .was { display: block; font-size: 0.95rem; font-weight: 600; color: $muted; text-decoration: line-through; text-decoration-thickness: 1.5px; } }
   p { margin: 0; color: $muted; font-size: 0.875rem; }
   &.featured { border-color: $accent; box-shadow: 0 8px 24px rgba(99,102,241,0.15); } }
 
@@ -212,7 +213,8 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
   .kpi-value { font-size: 20px; }
   .dash-chart svg { height: 120px; }
   .dash-lists { grid-template-columns: 1fr; > :last-child { grid-column: auto; } }
-  .h-features, .h-values-grid { grid-template-columns: 1fr; }
+  .h-features, .h-values-grid, .h-prices { grid-template-columns: 1fr; }
+  .h-prices { max-width: 420px; }
 }
 
 // ─── Re-engagement nudge bar ─────────────────────────────────────────────────

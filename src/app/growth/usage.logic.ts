@@ -14,10 +14,15 @@ export interface UsageSnapshot {
 
 export type UsageLevel = 'ok' | 'soft' | 'full';
 
+/**
+ * Same sentence as launchOfferLine(). Kept as a string so node:test can load
+ * this file without resolving the Angular import. usage.logic.test.ts checks
+ * the two stay equal.
+ */
 export const FOUNDER_OFFER =
-  'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.';
+  '50% off your first 12 months, launch offer until we reach 100 users.';
 
-/** FOUNDER50 is for first-time customers. Paid plans do not see it. */
+/** The launch offer is for first-time customers. Paid plans do not see it. */
 export function isFreePlan(plan: string | null | undefined): boolean {
   return String(plan || '').trim().toLowerCase() === 'free';
 }
