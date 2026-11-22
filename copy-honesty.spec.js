@@ -225,11 +225,16 @@ test('prerendered home and pricing keep the live offer, size, and plan copy', ()
   assert.match(home, /No cookies, no personal data collected by default/);
   assert.match(home, /~9KB gzip/);
   assert.match(home, /Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers\./);
-  assert.match(pricing, /Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers\. Enter the code at checkout\./);
+  assert.match(pricing, /50% off your first 12 months, launch offer until we reach 100 users\./);
+  assert.match(pricing, /<s>\$9\/mo<\/s>/);
   assert.match(pricing, /\$0/);
   assert.match(pricing, /\$9\/mo/);
   assert.match(pricing, /\$29\/mo/);
   assert.match(pricing, /\$99\/mo/);
+  assert.match(pricing, /\$4\.50\/mo/);
+  assert.match(pricing, /\$14\.50\/mo/);
+  assert.match(pricing, /\$49\.50\/mo/);
+  assert.doesNotMatch(pricing, /spots remaining/);
   assert.match(pricing, /Page view tracking/);
   assert.match(pricing, /href="\/signup\?plan=starter"/);
 });
@@ -250,7 +255,6 @@ test('in-app upgrade surfaces use the live FOUNDER50 line for free users only', 
     'src/app/pages/dashboard/funnels/funnels.html',
     'src/app/pages/dashboard/settings/settings.html',
     'src/app/pages/dashboard/overview/overview.html',
-    'src/app/pages/pricing/pricing.html',
   ];
   for (const file of surfaces) {
     const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -286,7 +290,11 @@ test('in-app upgrade surfaces use the live FOUNDER50 line for free users only', 
   assert.match(reports, /userPlan === 'free'[\s\S]*<app-founder-offer \/>/);
 
   const pricing = fs.readFileSync(path.join(ROOT, 'src/app/pages/pricing/pricing.html'), 'utf8');
-  assert.match(pricing, /@if \(showFounderOffer\)[\s\S]*Enter the code at checkout/);
+  assert.match(pricing, /@if \(launchOffer\.active\)/);
+  assert.match(pricing, /launchOfferLine\(launchOffer\.percent, launchOffer\.months\)/);
+  assert.match(pricing, /<s>/);
+  assert.doesNotMatch(pricing, /FOUNDER50|Enter the code at checkout/);
+  assert.doesNotMatch(pricing, /today only|hurry|last chance|only \d+ left|countdown/i);
 
   const checkout = fs.readFileSync(path.join(ROOT, 'src/app/pages/dashboard/plans/plans.ts'), 'utf8');
   assert.match(checkout, /create-checkout-session/);

@@ -9,10 +9,25 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { AuthService } from '../../../services/auth.service';
 import { HttpClient } from '@angular/common/http';
+import { timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { normalizePlan } from '../../../analytics/intent-plan';
 import { isFreePlan } from '../../../growth/usage.logic';
 import { FounderOfferComponent } from '../../../growth/founder-offer';
+import {
+  BillingCycle,
+  LaunchOfferState,
+  applyLaunchOfferResponse,
+  cycleListPrice,
+  defaultLaunchOffer,
+  discountedAmount,
+  formatPlanAmount,
+  launchOfferLine,
+  launchOfferUrl,
+  launchSpotsLabel,
+  planPriceLabel,
+  yearlyPerMonth,
+} from '../../../growth/launch-offer';
 
 interface Plan {
   type: 'free' | 'starter' | 'pro' | 'enterprise';
@@ -46,7 +61,11 @@ interface Plan {
 export class DashboardPlans implements OnInit {
   readonly isFreePlan = isFreePlan;
   currentPlan = signal<'free' | 'starter' | 'pro' | 'enterprise'>('free');
-  billingCycle = signal<'month' | 'year'>('month');
+  billingCycle = signal<BillingCycle>('month');
+  /** On by default. GET /billing/launch-offer may set active=false. Failures keep the default. */
+  launchOffer = signal<LaunchOfferState>(defaultLaunchOffer());
+  launchOfferLine = launchOfferLine;
+  launchSpotsLabel = launchSpotsLabel;
   showConfirmDialog = signal(false);
   showUpgradeComingSoon = signal(false);
   upgradeIntentPlan: Plan | null = null;
@@ -163,6 +182,7 @@ export class DashboardPlans implements OnInit {
 
   ngOnInit() {
     this.loadCurrentPlan();
+    this.loadLaunchOffer();
     const requested = normalizePlan(this.route.snapshot.queryParamMap.get('plan'));
     if (!requested) return;
     const plan = this.plans.find(p => p.type === requested);
@@ -201,21 +221,56 @@ export class DashboardPlans implements OnInit {
   toggleBillingCycle() {
     const newCycle = this.billingCycle() === 'month' ? 'year' : 'month';
     this.billingCycle.set(newCycle);
-    
-    // Update prices based on billing cycle
+    // Keep plan.price as the monthly catalog amount. Yearly and the launch
+    // percent are applied once in cycleListPrice / discountedAmount.
     this.plans = this.plans.map(plan => ({
       ...plan,
       billingCycle: newCycle,
-      price: newCycle === 'year' && plan.type !== 'free' 
-        ? Math.floor(plan.price * 12 * 0.8) // 20% discount for annual
-        : plan.type === 'free' ? 0 : (plan.type === 'starter' ? 9 : plan.type === 'pro' ? 29 : 99)
     }));
+  }
+
+  /** Catalog monthly price. The billing toggle must not overwrite this. */
+  listAmount(plan: Plan): string {
+    return formatPlanAmount(cycleListPrice(plan.price, this.billingCycle()));
+  }
+
+  saleAmount(plan: Plan): string {
+    const list = cycleListPrice(plan.price, this.billingCycle());
+    return formatPlanAmount(discountedAmount(list, this.launchOffer().percent));
+  }
+
+  yearlyEquiv(plan: Plan): string {
+    const percent = this.launchOffer().active ? this.launchOffer().percent : null;
+    return formatPlanAmount(yearlyPerMonth(plan.price, percent));
+  }
+
+  listLabel(type: string): string {
+    return planPriceLabel(this.catalogMonthly(type), this.billingCycle(), null);
+  }
+
+  saleLabel(type: string): string {
+    return planPriceLabel(this.catalogMonthly(type), this.billingCycle(), this.launchOffer().percent);
+  }
+
+  private catalogMonthly(type: string): number {
+    return this.plans.find((plan) => plan.type === type)?.price ?? 0;
+  }
+
+  private loadLaunchOffer() {
+    // Path must match node-server-api: GET {apiUrl}/billing/launch-offer
+    this.http.get(launchOfferUrl(environment.apiUrl)).pipe(timeout(4000)).subscribe({
+      next: (body) => this.launchOffer.set(applyLaunchOfferResponse(this.launchOffer(), body)),
+      error: () => {},
+    });
   }
 
   getPlanPrice(plan: Plan): string {
     if (plan.price === 0) return 'Free';
-    const cycle = this.billingCycle() === 'year' ? 'year' : 'mo';
-    return `$${plan.price} USD/${cycle}`;
+    const cycle = this.billingCycle();
+    const list = cycleListPrice(plan.price, cycle);
+    const amount = this.launchOffer().active ? discountedAmount(list, this.launchOffer().percent) : list;
+    const period = cycle === 'year' ? 'year' : 'mo';
+    return `$${formatPlanAmount(amount)} USD/${period}`;
   }
 
   canUpgrade(plan: Plan): boolean {
