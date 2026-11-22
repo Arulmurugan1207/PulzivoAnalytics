@@ -166,6 +166,33 @@
   }
 }
 
+.launch-offer-banner {
+  max-width: 720px;
+  margin: 1rem auto 0;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  background: #eef2ff;
+  color: #312e81;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+}
+
+.launch-spots {
+  margin: 0.4rem 0 0;
+  text-align: center;
+  color: #4338ca;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.launch-offer-line {
+  margin: 0.35rem 0 0.75rem;
+  color: #3730a3;
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
 /* Plans Grid */
 .plans-grid {
   display: grid;
@@ -291,6 +318,18 @@
         color: var(--text-color-secondary);
         margin-left: 0.25rem;
       }
+
+      .price-was {
+        flex: 1 0 100%;
+        color: var(--text-color-secondary);
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: line-through;
+      }
+
+      &.on-offer {
+        flex-wrap: wrap;
+      }
     }
 
     .monthly-equiv {
@@ -304,6 +343,14 @@
       color: var(--text-color-secondary);
       margin: 0;
       line-height: 1.5;
+    }
+
+    .launch-offer-line {
+      margin: 0.35rem 0 0.75rem;
+      color: #3730a3;
+      font-size: 0.8rem;
+      font-weight: 650;
+      line-height: 1.4;
     }
   }
 
@@ -774,6 +821,19 @@
     padding-top: 0;
     padding-bottom: 0.875rem;
     border-bottom: 2px solid var(--surface-border);
+
+    s {
+      display: block;
+      font-weight: 500;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .sale-price {
+      display: block;
+      color: #3730a3;
+      font-weight: 700;
+    }
   }
 
   .feature-col {

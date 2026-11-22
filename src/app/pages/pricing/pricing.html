@@ -11,9 +11,28 @@
           </span>
         }
       </p>
-      @if (showFounderOffer) {
-        <p class="founder-offer">Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.</p>
+      @if (launchOffer.active) {
+        <p class="launch-banner">{{ launchOfferLine(launchOffer.percent, launchOffer.months) }}</p>
+        @if (launchSpotsLabel(launchOffer)) {
+          <p class="launch-spots">{{ launchSpotsLabel(launchOffer) }}</p>
+        }
       }
+      <div class="billing-toggle" role="group" aria-label="Billing period">
+        <span class="toggle-label" [class.active]="billingCycle === 'month'">Monthly</span>
+        <button
+          type="button"
+          class="cycle-toggle-btn"
+          (click)="toggleBillingCycle()"
+          [attr.aria-pressed]="billingCycle === 'year'"
+          [attr.aria-label]="billingCycle === 'month' ? 'Show yearly prices' : 'Show monthly prices'"
+        >
+          <span class="toggle-slider" [class.yearly]="billingCycle === 'year'"></span>
+        </button>
+        <span class="toggle-label" [class.active]="billingCycle === 'year'">
+          Yearly
+          <span class="save-badge">Save 20%</span>
+        </span>
+      </div>
       <a class="header-compare-link" (click)="scrollTo('compare')">
         Compare all features <i class="pi pi-arrow-down"></i>
       </a>
@@ -38,16 +57,28 @@
               <p class="plan-desc">{{ plan.description }}</p>
             </div>
 
-            <div class="plan-price">
+            <div class="plan-price" [class.on-offer]="launchOffer.active && plan.price > 0">
               @if (plan.price === 0) {
                 <span class="amount">Free</span>
+              } @else if (launchOffer.active) {
+                <span class="price-was"><s>${{ formatPlanAmount(cycleListPrice(plan.price, billingCycle)) }}</s></span>
+                <span class="currency">$</span>
+                <span class="amount">{{ formatPlanAmount(discountedAmount(cycleListPrice(plan.price, billingCycle), launchOffer.percent)) }}</span>
+                <span class="period">/{{ billingCycle === 'year' ? 'year' : 'mo' }}</span>
+                <span class="cad-label">USD</span>
               } @else {
                 <span class="currency">$</span>
-                <span class="amount">{{ plan.price }}</span>
-                <span class="period">/mo</span>
+                <span class="amount">{{ billingCycle === 'year' ? cycleListPrice(plan.price, 'year') : plan.price }}</span>
+                <span class="period">/{{ billingCycle === 'year' ? 'year' : 'mo' }}</span>
                 <span class="cad-label">USD</span>
               }
             </div>
+            @if (billingCycle === 'year' && plan.price > 0) {
+              <p class="yearly-equiv">${{ formatPlanAmount(yearlyPerMonth(plan.price, launchOffer.active ? launchOffer.percent : null)) }}/mo billed annually</p>
+            }
+            @if (launchOffer.active && plan.price > 0) {
+              <p class="launch-offer-line">{{ launchOfferLine(launchOffer.percent, launchOffer.months) }}</p>
+            }
 
             <div class="plan-limits">
               <div class="limit-item">
@@ -105,10 +136,18 @@
             </tr>
             <tr class="price-row">
               <th></th>
-              <th>$0</th>
-              <th class="starter-col">$9/mo</th>
-              <th class="pro-col">$29/mo</th>
-              <th class="enterprise-col">$99/mo</th>
+              @for (plan of plans; track plan.type) {
+                <th [class]="plan.type === 'free' ? '' : plan.type + '-col'">
+                  @if (plan.price === 0) {
+                    $0
+                  } @else if (launchOffer.active) {
+                    <s>{{ planPriceLabel(plan.price, billingCycle, null) }}</s>
+                    <span class="sale-price">{{ planPriceLabel(plan.price, billingCycle, launchOffer.percent) }}</span>
+                  } @else {
+                    {{ planPriceLabel(plan.price, billingCycle, null) }}
+                  }
+                </th>
+              }
             </tr>
           </thead>
           <tbody>

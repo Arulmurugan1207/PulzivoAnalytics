@@ -1,15 +1,32 @@
 ﻿import { Component, HostListener, NgZone, OnDestroy } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { DividerModule } from 'primeng/divider';
+import { Subscription, timeout } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { planButtonDisabled, planButtonLabel } from './pricing-cta';
 import { trackConversion } from '../../analytics/conversion';
 import { rememberIntentPlan } from '../../analytics/intent-plan';
+import { environment } from '../../../environments/environment';
+import {
+  BillingCycle,
+  LaunchOfferState,
+  applyLaunchOfferResponse,
+  cycleListPrice,
+  defaultLaunchOffer,
+  discountedAmount,
+  formatPlanAmount,
+  launchOfferLine,
+  launchOfferUrl,
+  launchSpotsLabel,
+  planPriceLabel,
+  yearlyPerMonth,
+} from '../../growth/launch-offer';
 
 interface Plan {
   type: string;
@@ -31,6 +48,18 @@ interface Plan {
 })
 export class Pricing implements OnDestroy {
   private scrollMilestonesHit = new Set<number>();
+  private offerSub: Subscription | null = null;
+
+  /** Defaults on. The public offer endpoint can set active=false; failures keep this. */
+  launchOffer: LaunchOfferState = defaultLaunchOffer();
+  billingCycle: BillingCycle = 'month';
+  formatPlanAmount = formatPlanAmount;
+  cycleListPrice = cycleListPrice;
+  discountedAmount = discountedAmount;
+  planPriceLabel = planPriceLabel;
+  launchOfferLine = launchOfferLine;
+  launchSpotsLabel = launchSpotsLabel;
+  yearlyPerMonth = yearlyPerMonth;
 
   @HostListener('window:scroll')
   onScroll() {
@@ -49,7 +78,13 @@ export class Pricing implements OnDestroy {
     }
   }
 
-  ngOnDestroy() {}
+  ngOnDestroy() {
+    this.offerSub?.unsubscribe();
+  }
+
+  toggleBillingCycle(): void {
+    this.billingCycle = this.billingCycle === 'month' ? 'year' : 'month';
+  }
 
   currentPlan: Plan = {
     type: 'free',
@@ -61,7 +96,7 @@ export class Pricing implements OnDestroy {
     features: []
   };
 
-  constructor(private authService: AuthService, private meta: Meta, private titleService: Title, private router: Router, private ngZone: NgZone) {
+  constructor(private authService: AuthService, private meta: Meta, private titleService: Title, private router: Router, private ngZone: NgZone, private http: HttpClient) {
 
     // Load actual plan from stored user data
     if (this.authService.isAuthenticated()) {
@@ -78,15 +113,22 @@ export class Pricing implements OnDestroy {
         logged_in: this.authService.isAuthenticated()
       });
     }
+
+    // GET {apiUrl}/billing/launch-offer — path must match node-server-api.
+    // The page already shows the config default, so a miss or a non-JSON body
+    // does not hide the offer or move the layout.
+    this.offerSub = this.http.get(launchOfferUrl(environment.apiUrl)).pipe(timeout(4000)).subscribe({
+      next: (body) => {
+        this.ngZone.run(() => {
+          this.launchOffer = applyLaunchOfferResponse(this.launchOffer, body);
+        });
+      },
+      error: () => {},
+    });
   }
 
   get isLoggedIn(): boolean {
     return this.authService.isAuthenticated();
-  }
-
-  /** Public visitors and Free accounts. Paying customers are not eligible. */
-  get showFounderOffer(): boolean {
-    return !this.isLoggedIn || this.currentPlan.type === 'free';
   }
 
   plans: Plan[] = [

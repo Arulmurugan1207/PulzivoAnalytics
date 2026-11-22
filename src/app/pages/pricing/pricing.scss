@@ -32,17 +32,81 @@
     line-height: 1.6;
   }
 
-  .founder-offer {
-    max-width: 640px;
+  .launch-banner {
+    max-width: 720px;
     margin: 1rem auto 0;
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1.1rem;
     border: 1px solid #c7d2fe;
     background: #eef2ff;
     color: #312e81;
-    border-radius: 10px;
-    font-size: 0.95rem;
+    border-radius: 12px;
+    font-size: 1rem;
     line-height: 1.5;
+    font-weight: 650;
+  }
+
+  .launch-spots {
+    margin: 0.5rem auto 0;
+    color: #4338ca;
+    font-size: 0.875rem;
     font-weight: 600;
+  }
+}
+
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1rem auto 0;
+  width: fit-content;
+
+  .toggle-label {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    font-weight: 600;
+
+    &.active {
+      color: #0f172a;
+    }
+  }
+
+  .save-badge {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 0.7rem;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+
+  .cycle-toggle-btn {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid #c7d2fe;
+    border-radius: 999px;
+    background: #eef2ff;
+    cursor: pointer;
+
+    .toggle-slider {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4f46e5;
+      transition: transform 0.2s ease;
+
+      &.yearly {
+        transform: translateX(20px);
+      }
+    }
   }
 }
 
@@ -187,7 +251,22 @@
 .plan-price {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   margin-bottom: 1.5rem;
+
+  .price-was {
+    flex: 1 0 100%;
+    margin-bottom: 0.15rem;
+    color: #94a3b8;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+
+    s {
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+    }
+  }
 
   .currency {
     font-size: 1.25rem;
@@ -220,6 +299,21 @@
     padding-bottom: 0.35rem;
     letter-spacing: 0.04em;
   }
+}
+
+.yearly-equiv {
+  margin: -1rem 0 1rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.launch-offer-line {
+  margin: -0.85rem 0 1.15rem;
+  color: #3730a3;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.4;
 }
 
 // ── Limits ──
@@ -505,6 +599,19 @@
     padding-top: 0;
     padding-bottom: 0.875rem;
     border-bottom: 2px solid #e2e8f0;
+
+    s {
+      display: block;
+      color: #94a3b8;
+      font-weight: 500;
+      text-decoration: line-through;
+    }
+
+    .sale-price {
+      display: block;
+      color: #312e81;
+      font-weight: 700;
+    }
   }
 
   .feature-col {
