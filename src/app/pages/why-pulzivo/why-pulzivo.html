@@ -125,27 +125,29 @@
   <div class="container">
     <h2>Simple pricing</h2>
     <p class="section-subtitle">Start free. Upgrade when your traffic grows.</p>
+    @if (launchOffer.active) {
+      <p class="launch-offer">{{ launchOfferLine(launchOffer.percent, launchOffer.months) }}</p>
+    }
     <div class="price-grid">
       <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'free' }" (click)="track('why_pricing', 'free')">
         <h3>Free</h3>
         <div class="price">$0</div>
         <p>10K events/month</p>
       </a>
-      <a class="price-card featured" routerLink="/signup" [queryParams]="{ plan: 'starter' }" (click)="track('why_pricing', 'starter')">
-        <h3>Starter</h3>
-        <div class="price">$9<span>/mo</span></div>
-        <p>Sessions, scroll depth, UTM attribution</p>
-      </a>
-      <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'pro' }" (click)="track('why_pricing', 'pro')">
-        <h3>Pro</h3>
-        <div class="price">$29<span>/mo</span></div>
-        <p>Opt-in user identification and performance</p>
-      </a>
-      <a class="price-card" routerLink="/signup" [queryParams]="{ plan: 'enterprise' }" (click)="track('why_pricing', 'enterprise')">
-        <h3>Enterprise</h3>
-        <div class="price">$99<span>/mo</span></div>
-        <p>Errors, rage clicks, Web Vitals</p>
-      </a>
+      @for (p of paidPlans; track p.plan) {
+        <a class="price-card" [class.featured]="p.featured" routerLink="/signup" [queryParams]="{ plan: p.plan }" (click)="track('why_pricing', p.plan)">
+          <h3>{{ p.name }}</h3>
+          @if (launchOffer.active) {
+            <div class="price">
+              <s class="was">${{ formatPlanAmount(p.monthly) }}</s>
+              ${{ formatPlanAmount(discountedAmount(p.monthly, launchOffer.percent)) }}<span>/mo</span>
+            </div>
+          } @else {
+            <div class="price">${{ p.monthly }}<span>/mo</span></div>
+          }
+          <p>{{ p.desc }}</p>
+        </a>
+      }
     </div>
     <div class="center"><a routerLink="/pricing" [queryParams]="{utm_source: 'why', utm_medium: 'pricing-strip', utm_campaign: 'pricing'}" class="text-link">Compare all plan features <i class="pi pi-arrow-right"></i></a></div>
   </div>

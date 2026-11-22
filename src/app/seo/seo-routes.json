@@ -9,7 +9,7 @@
   {
     "path": "pricing",
     "title": "Pricing — Free Plan & Paid Tiers | Pulzivo Analytics",
-    "description": "Pulzivo pricing: a free plan with 10,000 events/month, then Starter $9, Pro $29 and Enterprise $99 per month. No credit card to start, no cookies, no personal data collected by default.",
+    "description": "Pulzivo pricing: free for 10,000 events/month. Launch offer is 50% off the first 12 months (list Starter $9, Pro $29, Enterprise $99). No credit card to start.",
     "priority": "0.9",
     "changefreq": "monthly"
   },

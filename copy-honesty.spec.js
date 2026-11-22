@@ -224,7 +224,12 @@ test('prerendered home and pricing keep the live offer, size, and plan copy', ()
   const pricing = render(template, pages().find((p) => p.path === 'pricing'));
   assert.match(home, /No cookies, no personal data collected by default/);
   assert.match(home, /~9KB gzip/);
-  assert.match(home, /Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers\./);
+  assert.match(home, /50% off your first 12 months, launch offer until we reach 100 users\./);
+  assert.match(home, /<s class="was">\$9<\/s>/);
+  assert.match(home, /\$4\.50<span>\/mo<\/span>/);
+  assert.match(home, /\$14\.50<span>\/mo<\/span>/);
+  assert.match(home, /\$49\.50<span>\/mo<\/span>/);
+  assert.doesNotMatch(home, /FOUNDER50|first 10 paying customers/);
   assert.match(pricing, /50% off your first 12 months, launch offer until we reach 100 users\./);
   assert.match(pricing, /<s>\$9\/mo<\/s>/);
   assert.match(pricing, /\$0/);
@@ -239,10 +244,10 @@ test('prerendered home and pricing keep the live offer, size, and plan copy', ()
   assert.match(pricing, /href="\/signup\?plan=starter"/);
 });
 
-test('in-app upgrade surfaces use the live FOUNDER50 line for free users only', () => {
-  const offer = 'Founder offer: 50% off any paid plan for 12 months with code FOUNDER50, limited to the first 10 paying customers. Enter the code at checkout.';
+test('in-app upgrade surfaces use the launch offer line for free users only', () => {
   const logic = fs.readFileSync(path.join(ROOT, 'src/app/growth/usage.logic.ts'), 'utf8');
-  assert.match(logic, new RegExp(offer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(logic, /50% off your first 12 months, launch offer until we reach 100 users\./);
+  assert.doesNotMatch(logic, /FOUNDER50|first 10 paying customers|Enter the code at checkout/);
   assert.doesNotMatch(logic, /today only|hurry|last chance|only \d+ left|countdown/i);
 
   const surfaces = [
@@ -407,7 +412,8 @@ test('comparison pages are in the sitemap, canonical, honest, and 800-1200 words
     assert.match(html, new RegExp(`<link rel="canonical" href="${canonicalFor(routePath).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}">`));
     assert.match(html, new RegExp(`<h1>${h1.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</h1>`));
     assert.doesNotMatch(html, /(?<![0-9])5\s*[Kk][Bb]\b/);
-    assert.match(html, /FOUNDER50/);
+    assert.match(html, /50% off your first 12 months, launch offer until we reach 100 users\./);
+    assert.doesNotMatch(html, /FOUNDER50|first 10 paying customers/);
     assert.match(html, /"@type": "FAQPage"/);
     const cells = [...html.matchAll(/<td[^>]*>([^<]+)<\/td>/g)].map((match) => match[1].trim());
     assert.ok(cells.length > 0, routePath);

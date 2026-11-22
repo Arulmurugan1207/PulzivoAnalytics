@@ -129,6 +129,14 @@ h2 {
 
 // ---- Pricing strip ----
 .pricing-strip { padding: 3rem 0; background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); }
+.launch-offer {
+  max-width: 720px;
+  margin: 0.75rem auto 0;
+  text-align: center;
+  color: #3730a3;
+  font-weight: 650;
+  line-height: 1.45;
+}
 .price-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
   max-width: 1000px; margin: 1.5rem auto 0;
@@ -137,7 +145,8 @@ h2 {
   display: block; color: inherit; text-decoration: none;
   background: #fff; border: 1px solid rgba(15,23,42,0.08); border-radius: 14px; padding: 1.25rem; text-align: center;
   h3 { margin: 0; font-size: 1rem; color: #334155; }
-  .price { font-size: 2rem; font-weight: 800; color: #0f172a; margin: 0.4rem 0; span { font-size: 0.9rem; font-weight: 500; color: #64748b; } }
+  .price { font-size: 2rem; font-weight: 800; color: #0f172a; margin: 0.4rem 0; span { font-size: 0.9rem; font-weight: 500; color: #64748b; }
+    .was { display: block; font-size: 0.95rem; font-weight: 600; color: #64748b; text-decoration: line-through; text-decoration-thickness: 1.5px; } }
   p { margin: 0; font-size: 0.875rem; color: #64748b; }
   &.featured { border-color: #6366f1; box-shadow: 0 6px 20px rgba(99,102,241,0.15); }
 }
@@ -170,5 +179,5 @@ h2 {
   h2 { font-size: 1.6rem; }
   .why-hero { padding: 2.25rem 0 2rem; }
   .why-subtitle { font-size: 1rem; padding: 0 0.5rem; }
-  .price-grid { grid-template-columns: 1fr 1fr; }
+  .price-grid { grid-template-columns: 1fr; max-width: 420px; margin-left: auto; margin-right: auto; }
 }
