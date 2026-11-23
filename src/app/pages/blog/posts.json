@@ -28,16 +28,23 @@
     "publishDate": "2026-11-21"
   },
   {
+    "slug": "pulzivo-launch-offer",
+    "title": "Pulzivo Launch Offer: 50% Off for 12 Months",
+    "description": "Until Pulzivo reaches 100 users, paid plans are 50% off for the first 12 months: $4.50, $14.50, or $49.50 a month. The free plan stays at 10,000 events.",
+    "date": "2026-11-22",
+    "publishDate": "2026-11-22"
+  },
+  {
     "slug": "track-utm-campaigns",
     "title": "How to Track UTM Campaigns Cleanly",
-    "description": "Name utm_source, utm_medium, and utm_campaign so reports stay readable, and build the URL with Pulzivo’s free UTM builder. Attribution is on Starter.",
+    "description": "Name utm_source, utm_medium, and utm_campaign so reports stay readable, and build the URL with Pulzivo\u2019s free UTM builder. Attribution is on Starter.",
     "date": "2026-11-22",
     "publishDate": "2026-11-22"
   },
   {
     "slug": "core-web-vitals-for-site-owners",
     "title": "Core Web Vitals for Site Owners",
-    "description": "What LCP, INP, and CLS measure, the good and poor cutoffs, and how to read field data. Web Vitals are included on Pulzivo’s free plan.",
+    "description": "What LCP, INP, and CLS measure, the good and poor cutoffs, and how to read field data. Web Vitals are included on Pulzivo\u2019s free plan.",
     "date": "2026-11-23",
     "publishDate": "2026-11-23"
   },

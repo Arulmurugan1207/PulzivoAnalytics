@@ -17,6 +17,7 @@ const template = fs.readFileSync(path.join(ROOT, 'src/index.html'), 'utf8');
 const BATCH = [
   ['2026-11-21', 'plausible-vs-pulzivo-vs-ga4', 'plausible vs ga4 for small sites'],
   ['2026-11-22', 'track-utm-campaigns', 'how to track utm campaigns'],
+  ['2026-11-22', 'pulzivo-launch-offer', 'launch offer 50 percent off'],
   ['2026-11-23', 'core-web-vitals-for-site-owners', 'core web vitals lcp inp cls'],
   ['2026-11-24', 'what-cookieless-analytics-means', 'what cookieless analytics means'],
   ['2026-11-25', 'rage-clicks-and-dead-clicks', 'rage clicks and dead clicks'],
@@ -70,8 +71,8 @@ test('PULZIVO_AS_OF overrides the clock and is how tests simulate a later day', 
   process.env.PULZIVO_AS_OF = '2026-11-27';
   try {
     assert.equal(schedule.asOfDate(new Date('2026-11-20T15:00:00Z')), '2026-11-27');
-    assert.equal(pages().filter((page) => page.post).length, 10);
-    assert.equal(locCount(buildSitemap('2026-11-27')), 27);
+    assert.equal(pages().filter((page) => page.post).length, 11);
+    assert.equal(locCount(buildSitemap('2026-11-27')), 28);
   } finally {
     if (prev === undefined) delete process.env.PULZIVO_AS_OF;
     else process.env.PULZIVO_AS_OF = prev;
@@ -90,9 +91,9 @@ test('2026-11-20 excludes the batch and 2026-11-27 includes it', () => {
   ]);
   assert.equal(early.length, 20);
   assert.equal(locCount(buildSitemap('2026-11-20', '2026-11-20')), 20);
-  assert.equal(lateSlugs.length, 10);
-  assert.equal(late.length, 27);
-  assert.equal(locCount(buildSitemap('2026-11-27', '2026-11-27')), 27);
+  assert.equal(lateSlugs.length, 11);
+  assert.equal(late.length, 28);
+  assert.equal(locCount(buildSitemap('2026-11-27', '2026-11-27')), 28);
   for (const [, slug] of BATCH) {
     assert.equal(early.some((page) => page.path === `blog/${slug}`), false, slug);
     assert.equal(late.some((page) => page.path === `blog/${slug}`), true, slug);
@@ -169,7 +170,7 @@ test('the Angular snapshot committed for 2026-11-20 omits future posts', () => {
   assert.deepEqual(posts, bundle.posts);
   assert.deepEqual(content, bundle.content);
   assert.equal(bundle.posts.length, 3);
-  assert.equal(later.posts.length, 10);
+  assert.equal(later.posts.length, 11);
   assert.equal(later.content['bounce-rate-without-ga4']?.includes('<h2>'), true);
   assert.equal(bundle.content['bounce-rate-without-ga4'], undefined);
   const routes = fs.readFileSync(path.join(ROOT, 'src/app/app.routes.ts'), 'utf8');
