@@ -1,0 +1,74 @@
+<main class="signin-page">
+  <a routerLink="/" class="signin-brand" data-click="login-home-logo">Pulzivo<span> Analytics</span></a>
+
+  <section class="signin-card" aria-labelledby="signin-title">
+    <h1 id="signin-title">Sign in</h1>
+    <p class="signin-lead">Welcome back. Sign in to open your dashboard.</p>
+
+    @if (errorMessage) {
+      <p class="signin-error" role="alert">{{ errorMessage }}</p>
+    }
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" id="sign-in-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          placeholder="you@example.com"
+          [attr.aria-invalid]="emailInvalid || null">
+        @if (emailInvalid) {
+          <small class="field-error">A valid email is required.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          placeholder="Your password"
+          [attr.aria-invalid]="passwordInvalid || null">
+        @if (passwordInvalid) {
+          <small class="field-error">Password must be at least 6 characters.</small>
+        }
+      </div>
+
+      <div class="row">
+        <label class="remember">
+          <input type="checkbox" formControlName="rememberMe">
+          Remember me
+        </label>
+        <a
+          routerLink="/login"
+          [queryParams]="{ forgot: '1' }"
+          data-click="login-forgot"
+          (click)="openForgot($event)">Forgot password?</a>
+      </div>
+
+      <button type="submit" class="submit" data-click="login-submit" [disabled]="loading">
+        {{ loading ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p class="signup-line">
+      Don't have an account?
+      <a routerLink="/signup" data-click="login-signup">Create a free account</a>
+    </p>
+  </section>
+
+  <nav class="next-steps" aria-label="Other places to go">
+    <a routerLink="/" data-click="login-home">Back to home</a>
+    <a routerLink="/pricing" data-click="login-pricing">Pricing</a>
+    <a routerLink="/blog/pulzivo-launch-offer" data-click="login-offer">Launch offer: 50% off for 12 months</a>
+    <a routerLink="/contact" data-click="login-contact">Contact</a>
+  </nav>
+
+  <p class="offer-note">{{ launchOfferLine() }} Starter, Pro, and Enterprise are $4.50, $14.50, and $49.50 a month. The free plan is still 10,000 events a month, and you don't need a card.</p>
+</main>
+
+<app-forgot-password #forgotModal (backToSignIn)="closeForgot()" (close)="closeForgot()"></app-forgot-password>

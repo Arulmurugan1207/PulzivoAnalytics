@@ -55,7 +55,7 @@
           <label for="rememberMe">Remember me</label>
         </div>
         <div class="forgot-password">
-          <a (click)="onSwitchToForgotPassword()">Forgot password?</a>
+          <a routerLink="/login" [queryParams]="{ forgot: '1' }" data-click="login-forgot" (click)="onSwitchToForgotPassword()">Forgot password?</a>
         </div>
       </div>
 
@@ -64,12 +64,12 @@
         type="submit" 
         label="Sign In" 
         [loading]="loading"
-        class="sign-in-btn"></button>
+        class="sign-in-btn" data-click="login-submit"></button>
     </form>
 
     <div class="signup-link">
       Don't have an account? 
-      <a (click)="onSwitchToSignUp()">Sign up</a>
+      <a routerLink="/signup" data-click="login-signup" (click)="onSwitchToSignUp()">Sign up</a>
     </div>
   </div>
 </p-dialog>

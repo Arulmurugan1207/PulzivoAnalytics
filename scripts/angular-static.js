@@ -1031,11 +1031,7 @@ const PAGES = {
   '': {
     template: 'src/app/pages/home/home.html',
     component: 'src/app/pages/home/home.ts',
-    after(scope) {
-      if (!scope.chartArea) scope.chartArea = '';
-      if (!scope.chartLine) scope.chartLine = '';
-      if (!scope.chartEnd) scope.chartEnd = [0, 0];
-    },
+    after(scope) { scope.useInlineShot = true; },
   },
   pricing: {
     template: 'src/app/pages/pricing/pricing.html',
