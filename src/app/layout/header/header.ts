@@ -149,7 +149,9 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
 
   openSignIn() {
     if (this.authService.isAuthenticated()) { this.goToDashboard(); return; }
-    this.withModals(() => this.signInModal.show());
+    const path = this.router.url.split('?')[0].split('#')[0];
+    if (path === '/login' || path === '/signin') return;
+    this.router.navigate(['/login']);
   }
 
   /** Header CTA. /signup is what opens the modal, so the route is actually visited. */
@@ -175,7 +177,7 @@ export class Header implements OnInit, AfterViewInit, OnDestroy {
   onSignUpClosed() { if (!this.signUpCompleted) this.authService.notifySignUpDismissed(); }
 
   onSwitchToSignUp() { this.signInModal.hide(); this.signUpModal.show(); }
-  onSwitchToSignIn() { this.signUpModal.hide(); this.signInModal.show(); }
+  onSwitchToSignIn() { this.signUpModal.hide(); this.router.navigate(['/login']); }
   onSwitchToForgotPassword(email: string = '') { this.signInModal.hide(); this.forgotPasswordModal.show(email); }
   onBackToSignIn() { this.forgotPasswordModal.hide(); this.signInModal.show(); }
 

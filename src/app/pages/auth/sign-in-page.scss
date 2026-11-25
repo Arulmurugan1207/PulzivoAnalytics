@@ -1,0 +1,127 @@
+:host { display: block; }
+
+.signin-page {
+  min-height: calc(100vh - 6rem);
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3rem;
+}
+
+.signin-brand {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111827;
+  text-decoration: none;
+  margin-bottom: 1.75rem;
+  span { color: #6366f1; }
+}
+
+.signin-card {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.signin-lead {
+  margin: 0 0 1.25rem;
+  color: #64748b;
+  font-size: 0.98rem;
+}
+
+.signin-error {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #334155;
+}
+.field input[type="email"],
+.field input[type="password"] {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 1rem;
+  background: #fff;
+  color: #0f172a;
+}
+.field input:focus {
+  outline: 2px solid #6366f1;
+  outline-offset: 1px;
+  border-color: #6366f1;
+}
+.field-error { display: block; margin-top: 0.3rem; color: #dc2626; font-size: 0.85rem; }
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+}
+.remember { display: flex; align-items: center; gap: 0.4rem; color: #64748b; cursor: pointer; }
+.row a, .signup-line a, .next-steps a {
+  color: #4f46e5;
+  font-weight: 600;
+  text-decoration: none;
+}
+.row a:hover, .signup-line a:hover, .next-steps a:hover { text-decoration: underline; }
+
+.submit {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-weight: 650;
+  font-size: 1rem;
+  color: #fff;
+  background: linear-gradient(90deg, #2a6df6, #6f41ff);
+  cursor: pointer;
+}
+.submit:disabled { opacity: 0.7; cursor: wait; }
+
+.signup-line {
+  text-align: center;
+  margin: 1.1rem 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.next-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.1rem;
+  margin: 1.5rem 0 1rem;
+  font-size: 0.9rem;
+}
+
+.offer-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}

@@ -42,6 +42,10 @@ describe('guestGuard (/login, /signup)', () => {
   it('lets a signed-out user through to the sign-in modal', () => {
     expect(run(route({}, { authModal: 'signin' }))).toBe(true);
   });
+
+  it('lets a signed-out user through to the dedicated sign-in page', () => {
+    expect(run(route({}, { authPage: true }))).toBe(true);
+  });
 });
 
 describe('AuthGuard (/dashboard)', () => {

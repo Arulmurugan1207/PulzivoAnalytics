@@ -110,6 +110,8 @@ $mobile-bp:     1100px;
 }
 
 .btn-ghost {
+  display: inline-flex;
+  align-items: center;
   padding: 0.45rem 1rem;
   color: $text-muted;
   background: transparent;
@@ -117,6 +119,7 @@ $mobile-bp:     1100px;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
+  text-decoration: none;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
 
@@ -287,6 +290,7 @@ $mobile-bp:     1100px;
   border-radius: 8px;
   color: $text-main;
   font-size: 1rem;
+  text-decoration: none;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
   flex-shrink: 0;

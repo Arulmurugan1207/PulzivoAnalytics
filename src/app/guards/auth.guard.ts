@@ -35,6 +35,8 @@ export const guestGuard: CanActivateFn = (route) => {
   if (auth.isAuthenticated()) {
     return router.parseUrl(safeReturnUrl(route.queryParamMap.get('returnUrl')));
   }
+  // /login and /signin render their own page. /signup and /register still open a modal.
+  if (route.data?.['authPage']) return true;
   const mode = route.data?.['authModal'] === 'signup' ? 'signup' : 'signin';
   auth.pendingAuthModal = mode;
   if (mode === 'signup') auth.requestOpenSignUp(); else auth.requestOpenSignIn();

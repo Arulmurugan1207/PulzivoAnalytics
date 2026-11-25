@@ -14,69 +14,26 @@
       </div>
       <p class="h-note">Free plan: 10K events/month · No credit card</p>
     </div>
-    <div class="h-demo" aria-label="Sample Pulzivo dashboard with demo data">
-    <div class="dash">
-      <div class="dash-chrome">
-        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="dash-url">pulzivo.com/dashboard</span>
+    <div class="h-demo">
+      <div class="h-demo-shot" #heroShot>
+        @if (useInlineShot) {
+          <picture id="lcp-hero-shot">
+            <source type="image/avif"
+                    srcset="/images/hero-dashboard.avif 620w, /images/hero-dashboard-2x.avif 1240w"
+                    sizes="(max-width: 720px) 100vw, 620px">
+            <img
+              src="/images/hero-dashboard.webp"
+              srcset="/images/hero-dashboard.webp 620w, /images/hero-dashboard-2x.webp 1240w"
+              sizes="(max-width: 720px) 100vw, 620px"
+              width="620"
+              height="854"
+              alt="Sample Pulzivo dashboard with demo data: page views, visitors, sessions and top sources"
+              fetchpriority="high"
+              decoding="async">
+          </picture>
+        }
       </div>
-      <div class="dash-body">
-        <div class="dash-head">
-          <div class="dash-site">
-            <span class="dash-favicon">A</span>
-            <strong>acme-coffee.com</strong>
-            <span class="dash-live"><span></span>12 online</span>
-          </div>
-          <div class="dash-head-right">
-            <span class="dash-demo">DEMO DATA</span>
-            <span class="dash-range"><i class="pi pi-calendar"></i> Last 30 days <i class="pi pi-chevron-down"></i></span>
-          </div>
-        </div>
-
-        <div class="dash-kpis">
-          @for (k of kpis; track k.label) {
-            <div class="kpi">
-              <div class="kpi-label">{{ k.label }}</div>
-              <div class="kpi-value">{{ k.value }}</div>
-              <div class="kpi-delta" [class.up]="k.good" [class.down]="!k.good">
-                <i class="pi" [class.pi-arrow-up]="k.up" [class.pi-arrow-down]="!k.up"></i> {{ k.delta }}
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="dash-insight">
-          <i class="pi pi-sparkles"></i>
-          <span><strong>What happened:</strong> Visitors up 18% vs the previous 30 days. Most came from Google, and /pricing had its best week yet.</span>
-        </div>
-
-        <div class="dash-chart">
-          <div class="dash-chart-head"><span>Visitors</span><span class="muted">Daily</span></div>
-          <svg viewBox="0 0 600 160" preserveAspectRatio="none" role="img" aria-label="Visitors trend over the last 30 days, rising">
-            <defs>
-              <linearGradient id="hArea" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#6366f1" stop-opacity="0.28"/>
-                <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <line x1="0" y1="40" x2="600" y2="40" class="grid"/>
-            <line x1="0" y1="80" x2="600" y2="80" class="grid"/>
-            <line x1="0" y1="120" x2="600" y2="120" class="grid"/>
-            <path [attr.d]="chartArea" fill="url(#hArea)"/>
-            <path [attr.d]="chartLine" class="line"/>
-            <circle [attr.cx]="chartEnd[0]" [attr.cy]="chartEnd[1]" r="4" class="end"/>
-          </svg>
-          <div class="dash-axis"><span>Sep 23</span><span>Oct 8</span><span>Oct 22</span></div>
-        </div>
-
-        <div class="dash-lists">
-          <app-breakdown-card title="Top pages" metric="Views" tone="pages" look="pulse" [rows]="topPages"></app-breakdown-card>
-          <app-breakdown-card title="Top sources" metric="Visits" tone="sources" look="pulse" [rows]="topSources"></app-breakdown-card>
-          <app-breakdown-card title="Countries" metric="Views" tone="geo" look="pulse" [rows]="countries"></app-breakdown-card>
-        </div>
-      </div>
-    </div>
-    <p class="h-demo-cap">Sample data, same dashboard you get. <a routerLink="/demo" (click)="trackCta('hero_demo')">View live demo <i class="pi pi-arrow-right"></i></a></p>
+      <p class="h-demo-cap">Sample data, same dashboard you get. <a routerLink="/demo" (click)="trackCta('hero_demo')" data-click="hero-demo">View live demo <i class="pi pi-arrow-right"></i></a></p>
     </div>
   </div>
 </section>

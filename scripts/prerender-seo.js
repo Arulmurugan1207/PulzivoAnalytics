@@ -16,7 +16,8 @@
  * output comes from buildSitemap() — post date for articles, build date for pages.
  *
  * Apache serves these via public/.htaccess (DirectorySlash Off + route/index.html
- * rewrite); everything else (dashboard, auth) falls back to the SPA index.html.
+ * rewrite); dashboard and other app routes fall back to the SPA index.html.
+ * /login and /signin are prerendered with noindex and are not in the sitemap.
  *
  * Usage: node scripts/prerender-seo.js            (prerender into dist)
  *        node scripts/prerender-seo.js --sitemap  (print sitemap.xml to stdout)
@@ -323,6 +324,68 @@ function render(template, page, asOf) {
   }
   const body = staticBody(page, asOf) + siteNav(asOf);
   html = html.replace(/<app-root><\/app-root>/, () => `<app-root>${body}</app-root>`);
+  if (!page.path) {
+    const preload = '  <link rel="preload" as="image" href="/images/hero-dashboard.webp" type="image/webp" imagesrcset="/images/hero-dashboard.webp 620w, /images/hero-dashboard-2x.webp 1240w" imagesizes="(max-width: 720px) 100vw, 620px" fetchpriority="high">\n';
+    html = html.replace('</head>', `${preload}</head>`);
+  }
+  return html;
+}
+
+const AUTH_ROBOTS = 'noindex, follow';
+const AUTH_PAGES = [
+  {
+    path: 'login',
+    title: 'Sign In | Pulzivo Analytics',
+    description: 'Sign in to your Pulzivo Analytics dashboard.',
+  },
+  {
+    path: 'signin',
+    title: 'Sign In | Pulzivo Analytics',
+    description: 'Sign in to your Pulzivo Analytics dashboard.',
+  },
+];
+
+function authBody() {
+  return `<div class="prerendered"><main class="signin-page">
+  <a href="/">Pulzivo Analytics</a>
+  <section aria-labelledby="signin-title">
+    <h1 id="signin-title">Sign in</h1>
+    <p>Welcome back. Sign in to open your dashboard.</p>
+    <form method="get" action="/login" id="sign-in-form">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password">
+      <button type="submit" data-click="login-submit">Sign in</button>
+    </form>
+    <p><a href="/login?forgot=1" data-click="login-forgot">Forgot password?</a></p>
+    <p>Don't have an account? <a href="/signup" data-click="login-signup">Create a free account</a></p>
+  </section>
+  <nav aria-label="Other places to go">
+    <a href="/" data-click="login-home">Back to home</a>
+    <a href="/pricing" data-click="login-pricing">Pricing</a>
+    <a href="/blog/pulzivo-launch-offer" data-click="login-offer">Launch offer: 50% off for 12 months</a>
+    <a href="/contact" data-click="login-contact">Contact</a>
+  </nav>
+  <p>50% off your first 12 months, launch offer until we reach 100 users. Starter, Pro, and Enterprise are $4.50, $14.50, and $49.50 a month. The free plan is still 10,000 events a month, and you don't need a card.</p>
+</main></div>`;
+}
+
+function renderAuth(template, page) {
+  const url = canonicalFor(page.path);
+  let html = template;
+  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(page.title)}</title>`);
+  html = setMeta(html, 'name', 'description', page.description);
+  html = setMeta(html, 'name', 'robots', AUTH_ROBOTS);
+  html = setMeta(html, 'property', 'og:url', url);
+  html = setMeta(html, 'property', 'og:title', page.title);
+  html = setMeta(html, 'property', 'og:description', page.description);
+  html = setMeta(html, 'name', 'twitter:url', url);
+  html = setMeta(html, 'name', 'twitter:title', page.title);
+  html = setMeta(html, 'name', 'twitter:description', page.description);
+  html = html.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);
+  const body = authBody();
+  html = html.replace(/<app-root><\/app-root>/, () => `<app-root>${body}</app-root>`);
   return html;
 }
 
@@ -342,6 +405,13 @@ function main() {
     fs.writeFileSync(file, html);
     console.log(`prerendered /${page.path} -> ${path.relative(ROOT, file)}`);
   }
+  for (const page of AUTH_PAGES) {
+    const html = renderAuth(template, page);
+    const file = path.join(OUT, page.path, 'index.html');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, html);
+    console.log(`prerendered /${page.path} -> ${path.relative(ROOT, file)}`);
+  }
   fs.writeFileSync(path.join(OUT, 'sitemap.xml'), buildSitemap(new Date().toISOString().slice(0, 10)));
   // Angular's asset copy skips dotfiles, so the docroot .htaccess has to be
   // placed in the build output explicitly. The deploy workflow copies it again.
@@ -350,5 +420,5 @@ function main() {
   console.log(`copied .htaccess -> ${path.relative(ROOT, path.join(OUT, '.htaccess'))}`);
 }
 
-module.exports = { pages, buildSitemap, render, canonicalFor, visiblePosts };
+module.exports = { pages, buildSitemap, render, renderAuth, AUTH_PAGES, canonicalFor, visiblePosts };
 if (require.main === module) main();

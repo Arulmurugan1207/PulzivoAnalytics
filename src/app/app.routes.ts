@@ -1,7 +1,7 @@
 import { Route, Routes } from '@angular/router';
 import { AuthGuard, guestGuard } from './guards/auth.guard';
 
-// Home is eager (landing page); other public pages are lazy-loaded to keep the initial bundle small
+// Home is eager (landing page); auth and other public pages are lazy-loaded
 import { Home } from './pages/home/home';
 import seoRoutes from './seo/seo-routes.json';
 import posts from './pages/blog/published-posts.json';
@@ -116,16 +116,16 @@ export const routes: Routes = [
   {
     path: 'login',
     title: 'Sign In | Pulzivo Analytics',
-    data: { authModal: 'signin', robots: 'noindex, follow' },
+    data: { authPage: true, robots: 'noindex, follow' },
     canActivate: [guestGuard],
-    component: Home
+    loadComponent: () => import('./pages/auth/sign-in-page').then(m => m.SignInPage)
   },
   {
     path: 'signin',
     title: 'Sign In | Pulzivo Analytics',
-    data: { authModal: 'signin', robots: 'noindex, follow' },
+    data: { authPage: true, robots: 'noindex, follow' },
     canActivate: [guestGuard],
-    component: Home
+    loadComponent: () => import('./pages/auth/sign-in-page').then(m => m.SignInPage)
   },
   {
     path: 'signup',

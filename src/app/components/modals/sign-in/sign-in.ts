@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Output, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -19,7 +20,8 @@ import { readApiError } from '../../../auth/signup-payload';
     InputTextModule,
     PasswordModule,
     CheckboxModule,
-    ToastModule
+    ToastModule,
+    RouterModule,
   ],
   templateUrl: './sign-in.html',
   styleUrl: './sign-in.scss',

@@ -1,19 +1,16 @@
-﻿import { Component, signal, OnInit, OnDestroy, HostListener, NgZone } from '@angular/core';
+﻿import { AfterViewInit, Component, ElementRef, signal, OnInit, OnDestroy, HostListener, NgZone, ViewChild } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription, timeout } from 'rxjs';
 import { trackConversion } from '../../analytics/conversion';
-import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
-import { DividerModule } from 'primeng/divider';
 import { AuthService } from '../../services/auth.service';
-import { BreakdownCard } from '../../components/breakdown-card/breakdown-card';
 import blogPosts from '../blog/published-posts.json';
 import { latestPosts } from '../blog/schedule';
 import { AnalyticsAPIService } from '../../services/analytics-api.service';
 import { environment } from '../../../environments/environment';
+import { adoptLcpHero, prerenderedLcpHeroExists } from './preserve-lcp-hero';
 import {
   LaunchOfferState,
   applyLaunchOfferResponse,
@@ -29,12 +26,15 @@ declare const PulzivoAnalytics: ((cmd: string, ...args: any[]) => void) | undefi
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, TagModule, DividerModule, BreakdownCard],
+  imports: [CommonModule, RouterModule],
   templateUrl: './home.html',
   styleUrl: './home.scss',
 })
-export class Home implements OnInit, OnDestroy {
+export class Home implements OnInit, AfterViewInit, OnDestroy {
   readonly latestArticles = latestPosts(blogPosts, 3);
+  @ViewChild('heroShot') heroShot?: ElementRef<HTMLElement>;
+  /** False when the prerendered hero image was kept across bootstrap (see preserve-lcp-hero). */
+  readonly useInlineShot = !prerenderedLcpHeroExists();
   private offerSub: Subscription | null = null;
   /** Defaults on. GET /billing/launch-offer can set active=false. Failures keep this. */
   launchOffer: LaunchOfferState = defaultLaunchOffer();
@@ -73,10 +73,6 @@ export class Home implements OnInit, OnDestroy {
     this.meta.updateTag({ property: 'twitter:url', content: 'https://pulzivo.com/' });
     this.meta.updateTag({ property: 'twitter:title', content: 'Pulzivo Analytics — The Pulse of Modern Product Analytics' });
     this.meta.updateTag({ property: 'twitter:description', content: 'The Pulse of Modern Web & Product Analytics. Privacy-first, cookieless analytics for websites and applications.' });
-    const c = Home.buildChart(this.chartData);
-    this.chartLine = c.line;
-    this.chartArea = c.area;
-    this.chartEnd = c.end;
   }
 
   features = [
@@ -109,49 +105,8 @@ export class Home implements OnInit, OnDestroy {
     { q: 'Can I exclude my own visits?', a: 'Yes. Turn on owner mode once in your browser (or open any page with ?pulz_owner=1 on mobile) and your visits are ignored.' },
   ];
 
-  // ── Sample dashboard (clearly labelled demo data) ──
-  kpis = [
-    { label: 'Page views', value: '38.9K', delta: '12%', up: true,  good: true },
-    { label: 'Visitors',   value: '12.4K', delta: '18%', up: true,  good: true },
-    { label: 'Sessions',   value: '18.1K', delta: '9%',  up: true,  good: true },
-    { label: 'Bounce rate', value: '41%',  delta: '3%',  up: false, good: true },
-  ];
-  // Same sample counts as before. Share is each row's part of this list, so the
-  // donut and the % labels agree. Titles sit above the path, matching Overview.
-  topPages = [
-    { label: 'Home', secondary: '/', value: 5210, share: 48.5, rank: 1 },
-    { label: 'Pricing', secondary: '/pricing', value: 2480, share: 23.1, rank: 2 },
-    { label: 'Cold brew guide', secondary: '/blog/cold-brew-guide', value: 1930, share: 18.0, rank: 3 },
-    { label: 'Shop', secondary: '/shop', value: 1120, share: 10.4, rank: 4 },
-  ];
-  topSources = [
-    { label: 'Google', secondary: 'google.com', iconDomain: 'google.com', value: 6140, share: 53.2 },
-    { label: 'Direct', value: 3020, share: 26.1 },
-    { label: 'Newsletter', value: 1480, share: 12.8 },
-    { label: 'X', secondary: 'x.com', iconDomain: 'x.com', value: 910, share: 7.9 },
-  ];
-  countries = [
-    { label: 'United States', flagClass: 'flag-us', value: 4820, share: 51.7 },
-    { label: 'Germany', flagClass: 'flag-de', value: 1960, share: 21.0 },
-    { label: 'India', flagClass: 'flag-in', value: 1540, share: 16.5 },
-    { label: 'France', flagClass: 'flag-fr', value: 1010, share: 10.8 },
-  ];
-  private readonly chartData = [210, 230, 220, 260, 250, 240, 290, 300, 280, 320, 310, 300, 340, 360, 330, 350, 380, 370, 360, 400, 420, 390, 430, 450, 440, 470, 500, 480, 520, 540];
-  readonly chartLine: string;
-  readonly chartArea: string;
-  readonly chartEnd: [number, number];
-
-  private static buildChart(data: number[], w = 600, h = 160, pad = 12) {
-    const max = Math.max(...data) * 1.08, min = Math.min(...data) * 0.7;
-    const pts = data.map((v, i) => [i * (w / (data.length - 1)), h - pad - ((v - min) / (max - min)) * (h - pad * 2)] as [number, number]);
-    let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
-      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-      d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
-    }
-    return { line: d, area: `${d} L${w},${h} L0,${h} Z`, end: pts[pts.length - 1] };
+  ngAfterViewInit() {
+    adoptLcpHero(this.heroShot?.nativeElement);
   }
 
   ngOnInit() {

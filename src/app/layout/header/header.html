@@ -25,11 +25,11 @@
     <!-- Desktop actions -->
     <div class="header-actions">
       @if (!isLoggedIn) {
-        <button class="btn-ghost desktop-only" (click)="openSignIn()">Sign In</button>
+        <a class="btn-ghost desktop-only" routerLink="/login" data-click="nav-signin">Sign In</a>
         <button class="btn-primary desktop-only" (click)="startSignUp()">Start free</button>
-        <button class="icon-btn mobile-only" (click)="openSignIn()" aria-label="Sign In" title="Sign In">
+        <a class="icon-btn mobile-only" routerLink="/login" data-click="nav-signin" aria-label="Sign In" title="Sign In">
           <i class="pi pi-sign-in"></i>
-        </button>
+        </a>
         <button class="icon-btn icon-btn--accent mobile-only" (click)="startSignUp()" aria-label="Start free" title="Start free">
           <i class="pi pi-user-plus"></i>
         </button>

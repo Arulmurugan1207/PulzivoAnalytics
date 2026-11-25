@@ -56,6 +56,18 @@ h2 { font-size: 2.1rem; font-weight: 750; color: $ink; text-align: center; margi
 
 // ── Sample dashboard (sits in the hero so the product is above the fold) ──
 .h-demo { margin: 0; min-width: 0; }
+.h-demo-shot {
+  display: block;
+  width: 100%;
+}
+.h-demo-shot:empty { aspect-ratio: 620 / 854; }
+.h-demo-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.06);
+}
 .dash {
   background: #fff; border-radius: 16px; overflow: hidden; text-align: left;
   box-shadow: 0 24px 60px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.06); border: 1px solid $line;
