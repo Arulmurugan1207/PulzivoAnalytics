@@ -25,6 +25,16 @@ const BATCH = [
   ['2026-11-27', 'bounce-rate-without-ga4', 'bounce rate without google analytics'],
 ];
 
+const NEXT_BATCH = [
+  ['2026-11-28', 'add-analytics-to-wordpress-without-google', 'wordpress analytics without google analytics'],
+  ['2026-11-29', 'add-analytics-to-shopify-without-ga4', 'shopify analytics without ga4'],
+  ['2026-11-30', 'analytics-script-on-wix-squarespace-webflow', 'analytics script wix squarespace webflow'],
+  ['2026-12-01', 'which-social-or-google-visit-reached-your-site', 'facebook instagram google business visit'],
+  ['2026-12-02', 'track-phone-and-email-clicks', 'track phone and email clicks'],
+  ['2026-12-03', 'exclude-your-own-visits', 'exclude your own visits'],
+  ['2026-12-04', 'page-view-visitor-and-session', 'page view visitor session'],
+];
+
 function locCount(xml) {
   return [...xml.matchAll(/<loc>/g)].length;
 }
@@ -107,7 +117,7 @@ test('2026-11-20 excludes the batch and 2026-11-27 includes it', () => {
 });
 
 test('each batch post appears on its publishDate and not the day before', () => {
-  for (const [date, slug] of BATCH) {
+  for (const [date, slug] of [...BATCH, ...NEXT_BATCH]) {
     const previous = schedule.shiftIsoDate(date, -1);
     assert.equal(pages(previous).some((page) => page.path === `blog/${slug}`), false, previous);
     assert.equal(pages(date).some((page) => page.path === `blog/${slug}`), true, date);
@@ -127,7 +137,7 @@ test('each batch post appears on its publishDate and not the day before', () => 
 test('new articles are 900-1500 words, titled, described, and linked', () => {
   const titles = new Set(allPosts.map((post) => post.title));
   assert.equal(titles.size, allPosts.length);
-  for (const [date, slug, keyword] of BATCH) {
+  for (const [date, slug, keyword] of [...BATCH, ...NEXT_BATCH]) {
     const post = allPosts.find((item) => item.slug === slug);
     assert.ok(post, slug);
     assert.equal(post.publishDate, date);
@@ -200,8 +210,40 @@ function linkedPaths(html) {
   }).filter(Boolean);
 }
 
+test('the week of 2026-11-28 is one new post per day and stays unpublished on 2026-11-27', () => {
+  const days = NEXT_BATCH.map(([date]) => date);
+  assert.deepEqual(days, [
+    '2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04',
+  ]);
+  const byDay = new Map();
+  for (const post of allPosts) {
+    const list = byDay.get(post.publishDate) || [];
+    list.push(post.slug);
+    byDay.set(post.publishDate, list);
+  }
+  for (const date of days) assert.deepEqual(byDay.get(date), [NEXT_BATCH.find(([day]) => day === date)[1]]);
+  const before = pages('2026-11-27');
+  const after = pages('2026-12-04');
+  assert.equal(before.filter((page) => page.post).length, 11);
+  assert.equal(before.length, 28);
+  assert.equal(locCount(buildSitemap('2026-11-27', '2026-11-27')), 28);
+  assert.equal(after.filter((page) => page.post).length, 18);
+  assert.equal(after.length, 35);
+  assert.equal(locCount(buildSitemap('2026-12-04', '2026-12-04')), 35);
+  for (const [, slug] of NEXT_BATCH) {
+    assert.equal(before.some((page) => page.path === `blog/${slug}`), false, slug);
+    assert.equal(after.some((page) => page.path === `blog/${slug}`), true, slug);
+    assert.doesNotMatch(buildSitemap('2026-11-27', '2026-11-27'), new RegExp(slug));
+    assert.match(buildSitemap('2026-12-04', '2026-12-04'), new RegExp(`<loc>https://pulzivo.com/blog/${slug}</loc>`));
+  }
+  const home = render(template, before.find((page) => page.path === ''), '2026-11-27');
+  for (const [, slug] of NEXT_BATCH) {
+    assert.equal(home.includes(`/blog/${slug}`), false, `homepage nav leaked ${slug}`);
+  }
+});
+
 test('no future-dated article appears in homepage links or the sitemap', () => {
-  for (const asOf of ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-27']) {
+  for (const asOf of ['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-27', '2026-11-28', '2026-12-04']) {
     const published = schedule.publishedPosts(allPosts, asOf);
     const future = allPosts.filter((post) => !published.some((item) => item.slug === post.slug));
     const homePage = pages(asOf).find((page) => page.path === '');
@@ -230,7 +272,7 @@ test('no future-dated article appears in homepage links or the sitemap', () => {
 });
 
 test('the blog index links every published post with a plain href', () => {
-  for (const asOf of ['2026-11-20', '2026-11-22', '2026-11-27']) {
+  for (const asOf of ['2026-11-20', '2026-11-22', '2026-11-27', '2026-12-04']) {
     const published = schedule.publishedPosts(allPosts, asOf);
     const index = render(template, pages(asOf).find((page) => page.path === 'blog'), asOf);
     const visible = visibleHtml(index);
@@ -245,7 +287,7 @@ test('the blog index links every published post with a plain href', () => {
 });
 
 test('each article ends with related published posts and a soft start-free link', () => {
-  for (const asOf of ['2026-11-20', '2026-11-27']) {
+  for (const asOf of ['2026-11-20', '2026-11-27', '2026-12-04']) {
     const published = schedule.publishedPosts(allPosts, asOf);
     for (const page of pages(asOf).filter((item) => item.post)) {
       const html = render(template, page, asOf);
