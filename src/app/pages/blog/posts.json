@@ -75,5 +75,54 @@
     "description": "A bounced session in Pulzivo is a session with one page view. Here is how to read that number, and which engagement signals matter more.",
     "date": "2026-11-27",
     "publishDate": "2026-11-27"
+  },
+  {
+    "slug": "add-analytics-to-wordpress-without-google",
+    "title": "How to Add Analytics to WordPress Without Google",
+    "description": "Paste one Pulzivo script into WordPress with a header plugin or header.php, then confirm a page view. You do not create a Google Analytics property.",
+    "date": "2026-11-28",
+    "publishDate": "2026-11-28"
+  },
+  {
+    "slug": "add-analytics-to-shopify-without-ga4",
+    "title": "How to Add Analytics to Shopify Without GA4",
+    "description": "Pulzivo has no Shopify app. Paste the script into theme.liquid, then confirm a product page view. Checkout is not included.",
+    "date": "2026-11-29",
+    "publishDate": "2026-11-29"
+  },
+  {
+    "slug": "analytics-script-on-wix-squarespace-webflow",
+    "title": "Add an Analytics Script on Wix, Squarespace, or Webflow",
+    "description": "Header steps for Wix, Squarespace, and Webflow, then a live page view. No Pulzivo app, and the host plan has to allow custom code.",
+    "date": "2026-11-30",
+    "publishDate": "2026-11-30"
+  },
+  {
+    "slug": "which-social-or-google-visit-reached-your-site",
+    "title": "See Which Social or Google Visit Reached Your Site",
+    "description": "Facebook, Instagram, and Google Business often hide the referrer. A campaign link shows which button reached your site. Sources are on Starter.",
+    "date": "2026-12-01",
+    "publishDate": "2026-12-01"
+  },
+  {
+    "slug": "track-phone-and-email-clicks",
+    "title": "How to Track Phone and Email Clicks on Your Site",
+    "description": "tel: and mailto: taps are not outbound clicks. Mark them on Free, or use auto click tracking on Starter. Goals match the event name.",
+    "date": "2026-12-02",
+    "publishDate": "2026-12-02"
+  },
+  {
+    "slug": "exclude-your-own-visits",
+    "title": "Exclude Your Own Visits So the Stats Aren't Just You",
+    "description": "Open your site with ?pulz_owner=1. Pulzivo stores pulz_is_owner in that browser and stops sending your visits. Other visitors are unchanged.",
+    "date": "2026-12-03",
+    "publishDate": "2026-12-03"
+  },
+  {
+    "slug": "page-view-visitor-and-session",
+    "title": "What a Page View, a Visitor, and a Session Mean",
+    "description": "A page view is one address load. A visitor is one browser for a calendar day. A session ends after 30 quiet minutes. Free shows page views.",
+    "date": "2026-12-04",
+    "publishDate": "2026-12-04"
   }
 ]
